@@ -2,7 +2,10 @@
     "name": "DreamBlastClone.Data",
     "rootNamespace": "DreamBlastClone",
     "references": [
-        "DreamBlastClone.Core"
+        "DreamBlastClone.Core",
+        "DreamBlastClone.Grid",
+        "DreamBlastClone.Items",
+        "DreamBlastClone.Obstacles"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
