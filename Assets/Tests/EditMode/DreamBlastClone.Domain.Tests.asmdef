@@ -1,0 +1,25 @@
+{
+    "name": "DreamBlastClone.Domain.Tests",
+    "rootNamespace": "DreamBlastClone.Tests",
+    "references": [
+        "DreamBlastClone.Core",
+        "DreamBlastClone.Grid",
+        "DreamBlastClone.Items",
+        "DreamBlastClone.Obstacles",
+        "DreamBlastClone.Data"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

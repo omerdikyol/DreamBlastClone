@@ -1,2 +1,8 @@
 ﻿<Solution>
+  <Project Path="DreamBlastClone.Items.csproj" />
+  <Project Path="DreamBlastClone.Domain.Tests.csproj" />
+  <Project Path="DreamBlastClone.Data.csproj" />
+  <Project Path="DreamBlastClone.Grid.csproj" />
+  <Project Path="DreamBlastClone.Obstacles.csproj" />
+  <Project Path="DreamBlastClone.Core.csproj" />
 </Solution>
