@@ -1,0 +1,18 @@
+{
+    "name": "DreamBlastClone.Systems",
+    "rootNamespace": "DreamBlastClone",
+    "references": [
+        "DreamBlastClone.Core",
+        "DreamBlastClone.Grid",
+        "DreamBlastClone.Items"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

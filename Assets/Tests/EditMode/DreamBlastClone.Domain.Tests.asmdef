@@ -6,7 +6,8 @@
         "DreamBlastClone.Grid",
         "DreamBlastClone.Items",
         "DreamBlastClone.Obstacles",
-        "DreamBlastClone.Data"
+        "DreamBlastClone.Data",
+        "DreamBlastClone.Systems"
     ],
     "includePlatforms": [
         "Editor"
