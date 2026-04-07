@@ -6,12 +6,14 @@ namespace DreamBlastClone.Systems
     {
         public SpecialItemTapPipelineResult(
             bool isValidTap,
+            SpecialItemComboActivationResult combo,
             SpecialItemActivationResult activation,
             ObstacleDamageResolutionResult obstacleDamage,
             ItemGravityResolutionResult gravity,
             ItemRefillResolutionResult refill)
         {
             IsValidTap = isValidTap;
+            Combo = combo ?? throw new ArgumentNullException(nameof(combo));
             Activation = activation ?? throw new ArgumentNullException(nameof(activation));
             ObstacleDamage = obstacleDamage ?? throw new ArgumentNullException(nameof(obstacleDamage));
             Gravity = gravity ?? throw new ArgumentNullException(nameof(gravity));
@@ -19,6 +21,8 @@ namespace DreamBlastClone.Systems
         }
 
         public bool IsValidTap { get; }
+
+        public SpecialItemComboActivationResult Combo { get; }
 
         public SpecialItemActivationResult Activation { get; }
 
@@ -32,6 +36,7 @@ namespace DreamBlastClone.Systems
         {
             return new SpecialItemTapPipelineResult(
                 isValidTap: false,
+                combo: SpecialItemComboActivationResult.Invalid(),
                 activation: SpecialItemActivationResult.Invalid(),
                 obstacleDamage: ObstacleDamageResolutionResult.Empty(),
                 gravity: ItemGravityResolutionResult.Empty(),
