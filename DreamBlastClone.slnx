@@ -6,5 +6,6 @@
   <Project Path="DreamBlastClone.Controllers.csproj" />
   <Project Path="DreamBlastClone.Grid.csproj" />
   <Project Path="DreamBlastClone.Obstacles.csproj" />
+  <Project Path="DreamBlastClone.Views.csproj" />
   <Project Path="DreamBlastClone.Core.csproj" />
 </Solution>
