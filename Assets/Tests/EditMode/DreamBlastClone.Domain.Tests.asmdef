@@ -2,6 +2,7 @@
     "name": "DreamBlastClone.Domain.Tests",
     "rootNamespace": "DreamBlastClone.Tests",
     "references": [
+        "DreamBlastClone.Controllers",
         "DreamBlastClone.Core",
         "DreamBlastClone.Grid",
         "DreamBlastClone.Items",

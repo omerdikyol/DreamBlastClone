@@ -3,6 +3,7 @@
   <Project Path="DreamBlastClone.Domain.Tests.csproj" />
   <Project Path="DreamBlastClone.Systems.csproj" />
   <Project Path="DreamBlastClone.Data.csproj" />
+  <Project Path="DreamBlastClone.Controllers.csproj" />
   <Project Path="DreamBlastClone.Grid.csproj" />
   <Project Path="DreamBlastClone.Obstacles.csproj" />
   <Project Path="DreamBlastClone.Core.csproj" />
