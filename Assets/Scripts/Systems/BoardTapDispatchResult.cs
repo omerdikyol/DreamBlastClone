@@ -8,7 +8,7 @@ namespace DreamBlastClone.Systems
             bool isValidTap,
             TapRouteType routeType,
             NormalCubeTapPipelineResult normalCube,
-            SpecialItemActivationResult specialItem)
+            SpecialItemTapPipelineResult specialItem)
         {
             IsValidTap = isValidTap;
             RouteType = routeType;
@@ -22,7 +22,7 @@ namespace DreamBlastClone.Systems
 
         public NormalCubeTapPipelineResult NormalCube { get; }
 
-        public SpecialItemActivationResult SpecialItem { get; }
+        public SpecialItemTapPipelineResult SpecialItem { get; }
 
         public static BoardTapDispatchResult Invalid()
         {
@@ -30,7 +30,7 @@ namespace DreamBlastClone.Systems
                 isValidTap: false,
                 routeType: TapRouteType.None,
                 normalCube: NormalCubeTapPipelineResult.Invalid(),
-                specialItem: SpecialItemActivationResult.Invalid());
+                specialItem: SpecialItemTapPipelineResult.Invalid());
         }
     }
 }

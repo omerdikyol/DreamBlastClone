@@ -88,55 +88,108 @@ namespace DreamBlastClone.Tests.EditMode
                 new ItemSpawn(new BoardCoordinate(1, 2), CubeColor.Green),
                 new ItemSpawn(new BoardCoordinate(2, 2), CubeColor.Red)
             }));
-            Assert.That(result.SpecialItem.IsValidActivation, Is.False);
+            Assert.That(result.SpecialItem.IsValidTap, Is.False);
         }
 
         [Test]
-        public void RocketTapRoutesToSpecialItemResolver()
+        public void RocketTapRoutesToSpecialItemCoordinator()
         {
-            var board = new BoardModel(4, 2);
-            var tap = new BoardCoordinate(1, 0);
+            var board = new BoardModel(4, 3);
+            var tap = new BoardCoordinate(1, 1);
+            var vaseCoordinate = new BoardCoordinate(3, 1);
+            var vase = new VaseObstacleModel();
+            var refillResolver = new FakeRefillCubeColorResolver(new Dictionary<BoardCoordinate, CubeColor>
+            {
+                { new BoardCoordinate(0, 2), CubeColor.Yellow },
+                { new BoardCoordinate(1, 2), CubeColor.Green },
+                { new BoardCoordinate(2, 2), CubeColor.Blue },
+                { new BoardCoordinate(3, 2), CubeColor.Red }
+            });
 
-            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(0, 1), new CubeItemModel(CubeColor.Red));
             board.PlaceItem(tap, new RocketItemModel(RocketOrientation.Horizontal));
-            board.PlaceItem(new BoardCoordinate(3, 0), new TntItemModel());
+            board.PlaceItem(new BoardCoordinate(2, 1), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(3, 1), new CubeItemModel(CubeColor.Green));
+            board.PlaceItem(new BoardCoordinate(0, 2), new CubeItemModel(CubeColor.Yellow));
+            board.PlaceItem(new BoardCoordinate(1, 2), new CubeItemModel(CubeColor.Green));
+            board.PlaceItem(new BoardCoordinate(2, 2), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(3, 2), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(vaseCoordinate, vase);
 
-            var result = dispatcher.Resolve(board, tap, new FakeRefillCubeColorResolver());
+            var result = dispatcher.Resolve(board, tap, refillResolver);
 
             Assert.That(result.IsValidTap, Is.True);
             Assert.That(result.RouteType, Is.EqualTo(TapRouteType.SpecialItem));
             Assert.That(result.NormalCube.IsValidTap, Is.False);
-            Assert.That(result.SpecialItem.IsValidActivation, Is.True);
-            Assert.That(result.SpecialItem.ActivationType, Is.EqualTo(SpecialActivationType.Rocket));
-            Assert.That(result.SpecialItem.AffectedCoordinates, Is.EqualTo(new[]
+            Assert.That(result.SpecialItem.IsValidTap, Is.True);
+            Assert.That(result.SpecialItem.Activation.IsValidActivation, Is.True);
+            Assert.That(result.SpecialItem.Activation.ActivationType, Is.EqualTo(SpecialActivationType.Rocket));
+            Assert.That(result.SpecialItem.Activation.AffectedCoordinates, Is.EqualTo(new[]
             {
-                new BoardCoordinate(0, 0),
-                new BoardCoordinate(1, 0),
-                new BoardCoordinate(2, 0),
-                new BoardCoordinate(3, 0)
+                new BoardCoordinate(0, 1),
+                new BoardCoordinate(1, 1),
+                new BoardCoordinate(2, 1),
+                new BoardCoordinate(3, 1)
+            }));
+            Assert.That(result.SpecialItem.ObstacleDamage.Damages, Is.EqualTo(new[]
+            {
+                new ObstacleDamage(vaseCoordinate, 1)
+            }));
+            Assert.That(result.SpecialItem.Gravity.Moves, Is.EqualTo(new[]
+            {
+                new ItemFallMove(new BoardCoordinate(0, 2), new BoardCoordinate(0, 1)),
+                new ItemFallMove(new BoardCoordinate(1, 2), new BoardCoordinate(1, 1)),
+                new ItemFallMove(new BoardCoordinate(2, 2), new BoardCoordinate(2, 1)),
+                new ItemFallMove(new BoardCoordinate(3, 2), new BoardCoordinate(3, 1))
+            }));
+            Assert.That(result.SpecialItem.Refill.Spawns, Is.EqualTo(new[]
+            {
+                new ItemSpawn(new BoardCoordinate(0, 2), CubeColor.Yellow),
+                new ItemSpawn(new BoardCoordinate(1, 2), CubeColor.Green),
+                new ItemSpawn(new BoardCoordinate(2, 2), CubeColor.Blue),
+                new ItemSpawn(new BoardCoordinate(3, 2), CubeColor.Red)
             }));
         }
 
         [Test]
-        public void TntTapRoutesToSpecialItemResolverAndLeavesObstaclesUntouched()
+        public void TntTapRoutesToSpecialItemCoordinatorAndUsesFullSpecialPipeline()
         {
-            var board = new BoardModel(3, 3);
+            var board = new BoardModel(4, 4);
             var tap = new BoardCoordinate(1, 1);
-            var vase = new VaseObstacleModel();
+            var stoneCoordinate = new BoardCoordinate(0, 0);
+            var stone = new StoneObstacleModel();
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(2, 0), remainingDoorDurability: 1, requiredChaliceCount: 10);
 
             board.PlaceItem(tap, new TntItemModel());
-            board.PlaceObstacle(new BoardCoordinate(0, 0), vase);
-            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Green));
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(0, 1), new CubeItemModel(CubeColor.Green));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(stoneCoordinate, stone);
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
 
             var result = dispatcher.Resolve(board, tap, new FakeRefillCubeColorResolver());
 
             Assert.That(result.IsValidTap, Is.True);
             Assert.That(result.RouteType, Is.EqualTo(TapRouteType.SpecialItem));
             Assert.That(result.NormalCube.IsValidTap, Is.False);
-            Assert.That(result.SpecialItem.IsValidActivation, Is.True);
-            Assert.That(result.SpecialItem.ActivationType, Is.EqualTo(SpecialActivationType.Tnt));
-            Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.SameAs(vase));
-            Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Item, Is.Null);
+            Assert.That(result.SpecialItem.IsValidTap, Is.True);
+            Assert.That(result.SpecialItem.Activation.IsValidActivation, Is.True);
+            Assert.That(result.SpecialItem.Activation.ActivationType, Is.EqualTo(SpecialActivationType.Tnt));
+            Assert.That(result.SpecialItem.ObstacleDamage.Damages, Is.EqualTo(new[]
+            {
+                new ObstacleDamage(stoneCoordinate, 1),
+                new ObstacleDamage(chaliceBox.Anchor, 1)
+            }));
+            Assert.That(result.SpecialItem.ObstacleDamage.RemovedCoordinates, Is.EqualTo(new[]
+            {
+                stoneCoordinate
+            }));
+            Assert.That(result.SpecialItem.Gravity.HasAnyMovement, Is.False);
+            Assert.That(result.SpecialItem.Refill.SpawnCount, Is.EqualTo(board.Width * board.Height));
+            Assert.That(board.GetCell(stoneCoordinate).Obstacle, Is.Null);
+            Assert.That(board.GetCell(chaliceBox.Anchor).Obstacle, Is.SameAs(chaliceBox));
+            Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(0));
+            Assert.That(chaliceBox.CollectedChaliceCount, Is.EqualTo(0));
         }
 
         private static void AssertInvalidResult(BoardTapDispatchResult result)
@@ -144,7 +197,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(result.IsValidTap, Is.False);
             Assert.That(result.RouteType, Is.EqualTo(TapRouteType.None));
             Assert.That(result.NormalCube.IsValidTap, Is.False);
-            Assert.That(result.SpecialItem.IsValidActivation, Is.False);
+            Assert.That(result.SpecialItem.IsValidTap, Is.False);
         }
 
         private sealed class FakeRefillCubeColorResolver : IRefillCubeColorResolver
