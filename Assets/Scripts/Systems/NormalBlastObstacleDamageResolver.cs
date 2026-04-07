@@ -31,7 +31,7 @@ namespace DreamBlastClone.Systems
             var chaliceBoxesInOrder = new List<ChaliceBoxObstacleModel>();
             var damages = new List<ObstacleDamage>();
 
-            foreach (var blastedCoordinate in blast.RemovedCoordinates)
+            foreach (var blastedCoordinate in blast.BlastCoordinates)
             {
                 foreach (var neighborCoordinate in blastedCoordinate.GetOrthogonalNeighbors())
                 {

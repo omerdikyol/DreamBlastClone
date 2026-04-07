@@ -288,5 +288,29 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(vase.RemainingDurability, Is.EqualTo(1));
             Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(0));
         }
+
+        [Test]
+        public void RocketCreatingBlastStillDamagesObstacleAdjacentToTappedCell()
+        {
+            var board = new BoardModel(5, 2);
+            var vaseCoordinate = new BoardCoordinate(2, 1);
+            var vase = new VaseObstacleModel();
+
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(2, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(3, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(vaseCoordinate, vase);
+
+            var blast = cubeBlastResolver.Resolve(board, new BoardCoordinate(2, 0));
+            var result = damageResolver.Resolve(board, blast);
+
+            Assert.That(blast.CreatedSpecialItem, Is.TypeOf<RocketItemModel>());
+            Assert.That(result.Damages, Is.EqualTo(new[]
+            {
+                new ObstacleDamage(vaseCoordinate, 1)
+            }));
+            Assert.That(vase.RemainingDurability, Is.EqualTo(1));
+        }
     }
 }
