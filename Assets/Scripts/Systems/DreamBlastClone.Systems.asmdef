@@ -4,7 +4,8 @@
     "references": [
         "DreamBlastClone.Core",
         "DreamBlastClone.Grid",
-        "DreamBlastClone.Items"
+        "DreamBlastClone.Items",
+        "DreamBlastClone.Obstacles"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
