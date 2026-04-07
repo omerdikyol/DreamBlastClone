@@ -89,25 +89,26 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
-        public void ObstaclesRemainUntouchedWhileItemsCanSettleIntoObstacleCells()
+        public void ObstaclesBlockItemsFromSettlingIntoTheirCells()
         {
-            var board = new BoardModel(1, 3);
+            var board = new BoardModel(1, 4);
             var obstacleCoordinate = new BoardCoordinate(0, 0);
             var obstacle = new StoneObstacleModel();
             var item = new CubeItemModel(CubeColor.Yellow);
 
             board.PlaceObstacle(obstacleCoordinate, obstacle);
-            board.PlaceItem(new BoardCoordinate(0, 2), item);
+            board.PlaceItem(new BoardCoordinate(0, 3), item);
 
             var result = resolver.Resolve(board);
 
             Assert.That(result.Moves, Is.EqualTo(new[]
             {
-                new ItemFallMove(new BoardCoordinate(0, 2), obstacleCoordinate)
+                new ItemFallMove(new BoardCoordinate(0, 3), new BoardCoordinate(0, 1))
             }));
-            Assert.That(board.GetCell(obstacleCoordinate).Item, Is.SameAs(item));
+            Assert.That(board.GetCell(obstacleCoordinate).Item, Is.Null);
             Assert.That(board.GetCell(obstacleCoordinate).Obstacle, Is.SameAs(obstacle));
-            Assert.That(board.GetCell(new BoardCoordinate(0, 2)).Item, Is.Null);
+            Assert.That(board.GetCell(new BoardCoordinate(0, 1)).Item, Is.SameAs(item));
+            Assert.That(board.GetCell(new BoardCoordinate(0, 3)).Item, Is.Null);
         }
 
         [Test]

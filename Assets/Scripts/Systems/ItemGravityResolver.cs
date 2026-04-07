@@ -24,6 +24,13 @@ namespace DreamBlastClone.Systems
                 {
                     var sourceCoordinate = new BoardCoordinate(x, y);
                     var sourceCell = board.GetCell(sourceCoordinate);
+
+                    if (sourceCell.HasObstacle)
+                    {
+                        // Obstacles occupy their cells, so falling items can only settle above the highest blocker seen so far.
+                        nextLandingY = Math.Max(nextLandingY, y + 1);
+                    }
+
                     if (!sourceCell.HasItem)
                     {
                         continue;
@@ -38,7 +45,6 @@ namespace DreamBlastClone.Systems
                     var item = sourceCell.Item;
                     var destinationCoordinate = new BoardCoordinate(x, nextLandingY);
 
-                    // This step compacts only the item layer; obstacle occupancy is intentionally ignored for now.
                     board.PlaceItem(destinationCoordinate, item);
                     board.ClearItem(sourceCoordinate);
                     moves.Add(new ItemFallMove(sourceCoordinate, destinationCoordinate));

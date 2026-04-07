@@ -112,7 +112,7 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
-        public void EmptyCellsWithObstaclesStillReceiveSpawnedCubes()
+        public void EmptyCellsWithObstaclesDoNotReceiveSpawnedCubes()
         {
             var board = new BoardModel(2, 1);
             var stone = new StoneObstacleModel();
@@ -128,13 +128,9 @@ namespace DreamBlastClone.Tests.EditMode
 
             var result = resolver.Resolve(board, colorResolver);
 
-            Assert.That(result.Spawns, Is.EqualTo(new[]
-            {
-                new ItemSpawn(new BoardCoordinate(0, 0), CubeColor.Green),
-                new ItemSpawn(new BoardCoordinate(1, 0), CubeColor.Blue)
-            }));
-            AssertSpawnedCube(board, new BoardCoordinate(0, 0), CubeColor.Green);
-            AssertSpawnedCube(board, new BoardCoordinate(1, 0), CubeColor.Blue);
+            Assert.That(result.Spawns, Is.Empty);
+            Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Item, Is.Null);
+            Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.Null);
             Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.SameAs(stone));
             Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Obstacle, Is.SameAs(vase));
         }

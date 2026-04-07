@@ -5,6 +5,7 @@ using DreamBlastClone.Data;
 using DreamBlastClone.Grid;
 using DreamBlastClone.Items;
 using DreamBlastClone.Obstacles;
+using DreamBlastClone.Systems;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -78,6 +79,37 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(session.Goals[1].InitialCount, Is.EqualTo(4));
             Assert.That(session.Goals[2].GoalType, Is.EqualTo(LevelGoalType.ChaliceBox));
             Assert.That(session.Goals[2].InitialCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void LevelOneTapDoesNotFillStoneCellsWithItems()
+        {
+            var parser = new LevelJsonParser();
+            var factory = new LevelSessionFactory();
+            var goalEvaluator = new LevelGoalProgressEvaluator();
+
+            var level = parser.Parse(ReadLevelJson("level_01.json"));
+            var session = factory.Create(level);
+
+            var result = session.ProcessTap(new BoardCoordinate(0, 2));
+            var goalProgress = goalEvaluator.Evaluate(session.Board, session.Goals);
+
+            Assert.That(result.Tap.NormalCube.IsValidTap, Is.True);
+
+            for (var y = 0; y <= 1; y++)
+            {
+                for (var x = 0; x < session.Board.Width; x++)
+                {
+                    var coordinate = new BoardCoordinate(x, y);
+                    var cell = session.Board.GetCell(coordinate);
+                    Assert.That(cell.Obstacle, Is.TypeOf<StoneObstacleModel>(), $"Expected stone to remain at {coordinate}.");
+                    Assert.That(cell.Item, Is.Null, $"Expected obstacle cell {coordinate} to stay empty of items.");
+                }
+            }
+
+            Assert.That(goalProgress, Has.Count.EqualTo(1));
+            Assert.That(goalProgress[0].GoalType, Is.EqualTo(LevelGoalType.Stone));
+            Assert.That(goalProgress[0].RemainingCount, Is.EqualTo(20));
         }
 
         private static string ReadLevelJson(string fileName)

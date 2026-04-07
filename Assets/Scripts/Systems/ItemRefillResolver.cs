@@ -28,12 +28,11 @@ namespace DreamBlastClone.Systems
                 {
                     var coordinate = new BoardCoordinate(x, y);
                     var cell = board.GetCell(coordinate);
-                    if (cell.HasItem)
+                    if (cell.HasItem || cell.HasObstacle)
                     {
                         continue;
                     }
 
-                    // Refill is item-layer-only for now, so obstacle occupancy does not block spawning.
                     var color = colorResolver.ResolveColor(coordinate);
                     if (!Enum.IsDefined(typeof(CubeColor), color))
                     {
