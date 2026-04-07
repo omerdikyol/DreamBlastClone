@@ -30,6 +30,7 @@ namespace DreamBlastClone.Systems
             var touchedChaliceCellsByBox = new Dictionary<ChaliceBoxObstacleModel, HashSet<BoardCoordinate>>();
             var chaliceBoxesInOrder = new List<ChaliceBoxObstacleModel>();
             var damages = new List<ObstacleDamage>();
+            var removedCoordinates = new List<BoardCoordinate>();
 
             foreach (var blastedCoordinate in blast.BlastCoordinates)
             {
@@ -72,6 +73,7 @@ namespace DreamBlastClone.Systems
                 if (vase.RemainingDurability <= 0)
                 {
                     board.ClearObstacle(vaseCoordinate);
+                    removedCoordinates.Add(vaseCoordinate);
                 }
 
                 damages.Add(new ObstacleDamage(vaseCoordinate, amount: 1));
@@ -103,12 +105,13 @@ namespace DreamBlastClone.Systems
                 if (chaliceBox.CollectedChaliceCount >= chaliceBox.RequiredChaliceCount)
                 {
                     board.ClearObstacle(chaliceBox);
+                    removedCoordinates.Add(chaliceBox.Anchor);
                 }
             }
 
             return damages.Count == 0
                 ? ObstacleDamageResolutionResult.Empty()
-                : new ObstacleDamageResolutionResult(damages);
+                : new ObstacleDamageResolutionResult(damages, removedCoordinates);
         }
     }
 }
