@@ -113,6 +113,26 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void RenderUpdatesConfiguredGridBackgroundToBoardFootprint()
+        {
+            var board = new BoardModel(10, 8);
+            var boardView = CreateConfiguredBoardView(origin: new Vector2(-2.5f, -3.9f), cellSize: 0.5f);
+            var background = CreateGameObject("GridBackground");
+            var renderer = background.AddComponent<SpriteRenderer>();
+
+            SetField(boardView, "gridBackgroundRenderer", renderer);
+            SetField(boardView, "gridBackgroundPadding", new Vector2(0.2f, 0.2f));
+            SetField(boardView, "gridBackgroundZ", 0.5f);
+
+            background.transform.SetParent(boardView.transform, false);
+
+            boardView.Render(board);
+
+            Assert.That(background.transform.localPosition, Is.EqualTo(new Vector3(0f, -1.9f, 0.5f)));
+            Assert.That(background.transform.localScale, Is.EqualTo(new Vector3(5.4f, 4.4f, 1f)));
+        }
+
+        [Test]
         public void RerenderClearsStaleVisualsAndRebuildsFromCurrentBoardState()
         {
             var board = new BoardModel(2, 2);

@@ -20,6 +20,11 @@ namespace DreamBlastClone.Views
         [SerializeField] private float itemZ = -0.1f;
         [SerializeField] private float obstacleZ = 0f;
 
+        [Header("Background")]
+        [SerializeField] private SpriteRenderer gridBackgroundRenderer;
+        [SerializeField] private Vector2 gridBackgroundPadding = new Vector2(0.2f, 0.2f);
+        [SerializeField] private float gridBackgroundZ = 0.5f;
+
         [Header("Item Prefabs")]
         [SerializeField] private GameObject cubePrefab;
         [SerializeField] private GameObject horizontalRocketPrefab;
@@ -47,6 +52,7 @@ namespace DreamBlastClone.Views
             }
 
             Clear();
+            UpdateGridBackground(board);
             RenderObstacles(board);
             RenderItems(board);
         }
@@ -224,6 +230,34 @@ namespace DreamBlastClone.Views
             }
         }
 
+        private void UpdateGridBackground(BoardModel board)
+        {
+            if (gridBackgroundRenderer is null)
+            {
+                return;
+            }
+
+            var targetSize = new Vector2(
+                board.Width * cellSize + gridBackgroundPadding.x * 2f,
+                board.Height * cellSize + gridBackgroundPadding.y * 2f);
+            var center = new Vector3(
+                origin.x + board.Width * cellSize * 0.5f,
+                origin.y + board.Height * cellSize * 0.5f,
+                gridBackgroundZ);
+
+            var backgroundTransform = gridBackgroundRenderer.transform;
+            backgroundTransform.localPosition = center;
+
+            if (gridBackgroundRenderer.drawMode == SpriteDrawMode.Simple)
+            {
+                backgroundTransform.localScale = GetSimpleSpriteScale(gridBackgroundRenderer, targetSize);
+                return;
+            }
+
+            backgroundTransform.localScale = Vector3.one;
+            gridBackgroundRenderer.size = targetSize;
+        }
+
         private Vector3 GetCellCenter(BoardCoordinate coordinate, float z)
         {
             return new Vector3(
@@ -278,6 +312,19 @@ namespace DreamBlastClone.Views
                 maxX = Math.Max(maxX, coordinate.X);
                 maxY = Math.Max(maxY, coordinate.Y);
             }
+        }
+
+        private static Vector3 GetSimpleSpriteScale(SpriteRenderer spriteRenderer, Vector2 targetSize)
+        {
+            if (spriteRenderer.sprite is null)
+            {
+                return new Vector3(targetSize.x, targetSize.y, 1f);
+            }
+
+            var nativeSize = spriteRenderer.sprite.bounds.size;
+            var safeWidth = nativeSize.x > 0f ? nativeSize.x : 1f;
+            var safeHeight = nativeSize.y > 0f ? nativeSize.y : 1f;
+            return new Vector3(targetSize.x / safeWidth, targetSize.y / safeHeight, 1f);
         }
     }
 }

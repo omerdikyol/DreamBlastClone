@@ -3,6 +3,7 @@
     "rootNamespace": "DreamBlastClone",
     "references": [
         "DreamBlastClone.Core",
+        "DreamBlastClone.Data",
         "DreamBlastClone.Grid",
         "DreamBlastClone.Items",
         "DreamBlastClone.Obstacles"

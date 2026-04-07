@@ -9,6 +9,7 @@ namespace DreamBlastClone.Controllers
     public sealed class LevelSessionFactory
     {
         private readonly LevelBoardBuilder levelBoardBuilder = new LevelBoardBuilder();
+        private readonly LevelGoalDefinitionBuilder levelGoalDefinitionBuilder = new LevelGoalDefinitionBuilder();
 
         public LevelSession Create(LevelDefinition levelDefinition)
         {
@@ -19,7 +20,8 @@ namespace DreamBlastClone.Controllers
 
             var colorResolver = new DeterministicCubeColorResolver();
             var board = levelBoardBuilder.Build(levelDefinition, colorResolver);
-            return new LevelSession(board, levelDefinition.MoveCount, colorResolver);
+            var goals = levelGoalDefinitionBuilder.Build(levelDefinition);
+            return new LevelSession(board, levelDefinition.MoveCount, colorResolver, goals);
         }
 
         private sealed class DeterministicCubeColorResolver : IRandomCubeColorResolver, IRefillCubeColorResolver

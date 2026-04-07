@@ -1,8 +1,8 @@
 ﻿<Solution>
   <Project Path="DreamBlastClone.Items.csproj" />
-  <Project Path="DreamBlastClone.Controllers.Unity.csproj" />
   <Project Path="DreamBlastClone.Domain.Tests.csproj" />
   <Project Path="DreamBlastClone.Systems.csproj" />
+  <Project Path="DreamBlastClone.Controllers.Unity.csproj" />
   <Project Path="DreamBlastClone.Data.csproj" />
   <Project Path="DreamBlastClone.Controllers.csproj" />
   <Project Path="DreamBlastClone.Grid.csproj" />

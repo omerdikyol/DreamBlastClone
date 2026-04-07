@@ -26,6 +26,9 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(session.Board.Height, Is.EqualTo(7));
             Assert.That(session.Board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.TypeOf<StoneObstacleModel>());
             Assert.That(session.Board.GetCell(new BoardCoordinate(0, 2)).Item, Is.TypeOf<CubeItemModel>());
+            Assert.That(session.Goals, Has.Count.EqualTo(1));
+            Assert.That(session.Goals[0].GoalType, Is.EqualTo(LevelGoalType.Stone));
+            Assert.That(session.Goals[0].InitialCount, Is.EqualTo(20));
         }
 
         [Test]
@@ -57,6 +60,24 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(chaliceBox, Is.TypeOf<ChaliceBoxObstacleModel>());
             Assert.That(session.Board.GetCell(new BoardCoordinate(1, 3)).Obstacle, Is.SameAs(chaliceBox));
+        }
+
+        [Test]
+        public void CreateCarriesMultipleGoalDefinitionsFromRealLevelData()
+        {
+            var parser = new LevelJsonParser();
+            var factory = new LevelSessionFactory();
+
+            var level = parser.Parse(ReadLevelJson("level_07.json"));
+            var session = factory.Create(level);
+
+            Assert.That(session.Goals, Has.Count.EqualTo(3));
+            Assert.That(session.Goals[0].GoalType, Is.EqualTo(LevelGoalType.Stone));
+            Assert.That(session.Goals[0].InitialCount, Is.EqualTo(12));
+            Assert.That(session.Goals[1].GoalType, Is.EqualTo(LevelGoalType.Vase));
+            Assert.That(session.Goals[1].InitialCount, Is.EqualTo(4));
+            Assert.That(session.Goals[2].GoalType, Is.EqualTo(LevelGoalType.ChaliceBox));
+            Assert.That(session.Goals[2].InitialCount, Is.EqualTo(2));
         }
 
         private static string ReadLevelJson(string fileName)

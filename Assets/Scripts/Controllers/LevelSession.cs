@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using DreamBlastClone.Core;
+using DreamBlastClone.Data;
 using DreamBlastClone.Grid;
 using DreamBlastClone.Systems;
 
@@ -13,6 +15,15 @@ namespace DreamBlastClone.Controllers
         private readonly LevelStateEvaluator levelStateEvaluator = new LevelStateEvaluator();
 
         public LevelSession(BoardModel board, int remainingMoves, IRefillCubeColorResolver refillColorResolver)
+            : this(board, remainingMoves, refillColorResolver, goals: null)
+        {
+        }
+
+        public LevelSession(
+            BoardModel board,
+            int remainingMoves,
+            IRefillCubeColorResolver refillColorResolver,
+            IEnumerable<LevelGoalDefinition> goals)
         {
             Board = board ?? throw new ArgumentNullException(nameof(board));
 
@@ -23,6 +34,7 @@ namespace DreamBlastClone.Controllers
 
             this.refillColorResolver = refillColorResolver ?? throw new ArgumentNullException(nameof(refillColorResolver));
             RemainingMoves = remainingMoves;
+            Goals = CollectGoals(goals);
             CurrentLevelState = levelStateEvaluator.Evaluate(Board, RemainingMoves);
         }
 
@@ -31,6 +43,8 @@ namespace DreamBlastClone.Controllers
         public int RemainingMoves { get; private set; }
 
         public LevelState CurrentLevelState { get; private set; }
+
+        public IReadOnlyList<LevelGoalDefinition> Goals { get; }
 
         public LevelSessionTapResult ProcessTap(BoardCoordinate tapCoordinate)
         {
@@ -59,6 +73,28 @@ namespace DreamBlastClone.Controllers
                 didSpendMove,
                 RemainingMoves,
                 CurrentLevelState);
+        }
+
+        private static IReadOnlyList<LevelGoalDefinition> CollectGoals(IEnumerable<LevelGoalDefinition> goals)
+        {
+            if (goals is null)
+            {
+                return Array.Empty<LevelGoalDefinition>();
+            }
+
+            var collectedGoals = new List<LevelGoalDefinition>();
+
+            foreach (var goal in goals)
+            {
+                if (goal is null)
+                {
+                    throw new ArgumentNullException(nameof(goals), "Goal definitions cannot contain null entries.");
+                }
+
+                collectedGoals.Add(goal);
+            }
+
+            return collectedGoals.AsReadOnly();
         }
     }
 }
