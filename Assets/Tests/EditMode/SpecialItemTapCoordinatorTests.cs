@@ -182,10 +182,12 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
-        public void ComboTapUsesComboResultSkipsObstacleDamageAndThenRunsGravityAndRefill()
+        public void ComboTapUsesComboResultThenRunsObstacleDamageGravityAndRefill()
         {
             var board = new BoardModel(3, 3);
             var tap = new BoardCoordinate(1, 1);
+            var vaseCoordinate = new BoardCoordinate(0, 1);
+            var vase = new VaseObstacleModel();
             var refillResolver = new FakeRefillCubeColorResolver(new Dictionary<BoardCoordinate, CubeColor>
             {
                 { new BoardCoordinate(0, 2), CubeColor.Red },
@@ -204,6 +206,7 @@ namespace DreamBlastClone.Tests.EditMode
             board.PlaceItem(new BoardCoordinate(0, 2), new CubeItemModel(CubeColor.Red));
             board.PlaceItem(new BoardCoordinate(1, 2), new RocketItemModel(RocketOrientation.Vertical));
             board.PlaceItem(new BoardCoordinate(2, 2), new CubeItemModel(CubeColor.Green));
+            board.PlaceObstacle(vaseCoordinate, vase);
 
             var result = coordinator.Resolve(board, tap, refillResolver);
 
@@ -225,7 +228,12 @@ namespace DreamBlastClone.Tests.EditMode
             }));
             Assert.That(result.Combo.RemovedItemCoordinates, Is.EqualTo(result.Combo.AffectedCoordinates));
             Assert.That(result.Activation.IsValidActivation, Is.False);
-            Assert.That(result.ObstacleDamage.HasAnyDamage, Is.False);
+            Assert.That(result.ObstacleDamage.Damages, Is.EqualTo(new[]
+            {
+                new ObstacleDamage(vaseCoordinate, 1)
+            }));
+            Assert.That(result.ObstacleDamage.RemovedCoordinates, Is.Empty);
+            Assert.That(vase.RemainingDurability, Is.EqualTo(1));
             Assert.That(result.Gravity.Moves, Is.EqualTo(new[]
             {
                 new ItemFallMove(new BoardCoordinate(0, 2), new BoardCoordinate(0, 1)),
@@ -239,6 +247,7 @@ namespace DreamBlastClone.Tests.EditMode
                 new ItemSpawn(new BoardCoordinate(1, 2), CubeColor.Yellow),
                 new ItemSpawn(new BoardCoordinate(2, 2), CubeColor.Red)
             }));
+            Assert.That(board.GetCell(vaseCoordinate).Obstacle, Is.SameAs(vase));
         }
 
         private static void AssertInvalidResult(SpecialItemTapPipelineResult result)

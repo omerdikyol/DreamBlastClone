@@ -192,6 +192,58 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(chaliceBox.CollectedChaliceCount, Is.EqualTo(0));
         }
 
+        [Test]
+        public void ComboTapRoutesThroughSpecialPipelineAndSurfacesComboObstacleDamage()
+        {
+            var board = new BoardModel(3, 3);
+            var tap = new BoardCoordinate(1, 1);
+            var vaseCoordinate = new BoardCoordinate(0, 1);
+            var vase = new VaseObstacleModel();
+            var refillResolver = new FakeRefillCubeColorResolver(new Dictionary<BoardCoordinate, CubeColor>
+            {
+                { new BoardCoordinate(0, 2), CubeColor.Red },
+                { new BoardCoordinate(1, 0), CubeColor.Green },
+                { new BoardCoordinate(1, 1), CubeColor.Blue },
+                { new BoardCoordinate(1, 2), CubeColor.Yellow },
+                { new BoardCoordinate(2, 2), CubeColor.Red }
+            });
+
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(2, 0), new CubeItemModel(CubeColor.Green));
+            board.PlaceItem(new BoardCoordinate(0, 1), new CubeItemModel(CubeColor.Yellow));
+            board.PlaceItem(tap, new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(2, 1), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(0, 2), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 2), new RocketItemModel(RocketOrientation.Vertical));
+            board.PlaceItem(new BoardCoordinate(2, 2), new CubeItemModel(CubeColor.Green));
+            board.PlaceObstacle(vaseCoordinate, vase);
+
+            var result = dispatcher.Resolve(board, tap, refillResolver);
+
+            Assert.That(result.IsValidTap, Is.True);
+            Assert.That(result.RouteType, Is.EqualTo(TapRouteType.SpecialItem));
+            Assert.That(result.SpecialItem.Combo.IsComboActivated, Is.True);
+            Assert.That(result.SpecialItem.Activation.IsValidActivation, Is.False);
+            Assert.That(result.SpecialItem.ObstacleDamage.Damages, Is.EqualTo(new[]
+            {
+                new ObstacleDamage(vaseCoordinate, 1)
+            }));
+            Assert.That(result.SpecialItem.Gravity.Moves, Is.EqualTo(new[]
+            {
+                new ItemFallMove(new BoardCoordinate(0, 2), new BoardCoordinate(0, 1)),
+                new ItemFallMove(new BoardCoordinate(2, 2), new BoardCoordinate(2, 1))
+            }));
+            Assert.That(result.SpecialItem.Refill.Spawns, Is.EqualTo(new[]
+            {
+                new ItemSpawn(new BoardCoordinate(1, 0), CubeColor.Green),
+                new ItemSpawn(new BoardCoordinate(1, 1), CubeColor.Blue),
+                new ItemSpawn(new BoardCoordinate(0, 2), CubeColor.Red),
+                new ItemSpawn(new BoardCoordinate(1, 2), CubeColor.Yellow),
+                new ItemSpawn(new BoardCoordinate(2, 2), CubeColor.Red)
+            }));
+        }
+
         private static void AssertInvalidResult(BoardTapDispatchResult result)
         {
             Assert.That(result.IsValidTap, Is.False);

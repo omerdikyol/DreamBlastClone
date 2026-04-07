@@ -7,6 +7,7 @@ namespace DreamBlastClone.Systems
     public sealed class SpecialItemTapCoordinator
     {
         private readonly SpecialItemComboResolver specialItemComboResolver = new SpecialItemComboResolver();
+        private readonly SpecialComboObstacleDamageResolver specialComboObstacleDamageResolver = new SpecialComboObstacleDamageResolver();
         private readonly SpecialItemTapResolver specialItemTapResolver = new SpecialItemTapResolver();
         private readonly SpecialActivationObstacleDamageResolver specialActivationObstacleDamageResolver = new SpecialActivationObstacleDamageResolver();
         private readonly ItemGravityResolver itemGravityResolver = new ItemGravityResolver();
@@ -27,6 +28,7 @@ namespace DreamBlastClone.Systems
             var combo = specialItemComboResolver.Resolve(board, tapCoordinate);
             if (combo.IsComboActivated)
             {
+                var comboObstacleDamage = specialComboObstacleDamageResolver.Resolve(board, combo);
                 var comboGravity = itemGravityResolver.Resolve(board);
                 var comboRefill = itemRefillResolver.Resolve(board, refillColorResolver);
 
@@ -34,7 +36,7 @@ namespace DreamBlastClone.Systems
                     isValidTap: true,
                     combo: combo,
                     activation: SpecialItemActivationResult.Invalid(),
-                    obstacleDamage: ObstacleDamageResolutionResult.Empty(),
+                    obstacleDamage: comboObstacleDamage,
                     gravity: comboGravity,
                     refill: comboRefill);
             }
