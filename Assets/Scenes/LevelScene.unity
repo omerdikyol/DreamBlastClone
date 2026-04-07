@@ -1034,10 +1034,6 @@ MonoBehaviour:
   vasePrefab: {fileID: 8448764213876687020, guid: 397a0fee2bf84c54baa97dbffe379aee, type: 3}
   stonePrefab: {fileID: 1915895631931306450, guid: 94df9758e7ae776459fa1f40ef5adc58, type: 3}
   chaliceBoxPrefab: {fileID: 3632859418613727848, guid: 5af7955349e617b4ebb2e5921fe6290f, type: 3}
-  redCubeColor: {r: 1, g: 0, b: 0, a: 1}
-  greenCubeColor: {r: 0, g: 1, b: 0, a: 1}
-  blueCubeColor: {r: 0, g: 0, b: 1, a: 1}
-  yellowCubeColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
 --- !u!4 &1517054706
 Transform:
   m_ObjectHideFlags: 0

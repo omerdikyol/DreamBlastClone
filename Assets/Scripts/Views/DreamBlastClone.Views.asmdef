@@ -5,7 +5,8 @@
         "DreamBlastClone.Core",
         "DreamBlastClone.Grid",
         "DreamBlastClone.Items",
-        "DreamBlastClone.Obstacles"
+        "DreamBlastClone.Obstacles",
+        "DreamBlastClone.Systems"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

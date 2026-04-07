@@ -14,10 +14,32 @@ namespace DreamBlastClone.Tests.EditMode
     public sealed class BoardViewTests
     {
         private readonly List<GameObject> createdGameObjects = new List<GameObject>();
+        private readonly List<Sprite> createdSprites = new List<Sprite>();
+        private readonly List<Texture2D> createdTextures = new List<Texture2D>();
 
         [TearDown]
         public void TearDown()
         {
+            for (var index = createdSprites.Count - 1; index >= 0; index--)
+            {
+                if (createdSprites[index] is not null)
+                {
+                    UnityEngine.Object.DestroyImmediate(createdSprites[index]);
+                }
+            }
+
+            createdSprites.Clear();
+
+            for (var index = createdTextures.Count - 1; index >= 0; index--)
+            {
+                if (createdTextures[index] is not null)
+                {
+                    UnityEngine.Object.DestroyImmediate(createdTextures[index]);
+                }
+            }
+
+            createdTextures.Clear();
+
             for (var index = createdGameObjects.Count - 1; index >= 0; index--)
             {
                 var gameObject = createdGameObjects[index];
@@ -81,7 +103,7 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
-        public void RenderUsesCorrectPrefabsAndCubeTintForSupportedTypes()
+        public void RenderUsesCorrectPrefabsAndCubeDefaultSpritesForSupportedTypes()
         {
             var board = new BoardModel(4, 2);
             var boardView = CreateConfiguredBoardView();
@@ -109,7 +131,209 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(obstacleNames, Has.Some.StartsWith("ChaliceBoxPrefab"));
 
             var cubeRenderer = FindChildByPrefix(GetItemRoot(boardView), "CubePrefab").GetComponent<SpriteRenderer>();
-            Assert.That(cubeRenderer.color, Is.EqualTo(Color.green));
+            var cubeView = cubeRenderer.GetComponent<CubeItemView>();
+            Assert.That(cubeRenderer.sprite, Is.SameAs(GetField(cubeView, "greenDefaultSprite")));
+            Assert.That(cubeRenderer.color, Is.EqualTo(Color.white));
+        }
+
+        [Test]
+        public void RenderUsesConfiguredCubeSpriteInsteadOfTintingBaseSprite()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView();
+            var baseSprite = CreateSprite(width: 8, height: 8, pixelsPerUnit: 8f);
+            var redSprite = CreateSprite(width: 9, height: 9, pixelsPerUnit: 9f);
+            var greenSprite = CreateSprite(width: 10, height: 10, pixelsPerUnit: 10f);
+            var blueSprite = CreateSprite(width: 11, height: 11, pixelsPerUnit: 11f);
+            var yellowSprite = CreateSprite(width: 12, height: 12, pixelsPerUnit: 12f);
+            var cubePrefab = (GameObject)GetField(boardView, "cubePrefab");
+            var cubeView = cubePrefab.GetComponent<CubeItemView>();
+
+            cubePrefab.GetComponent<SpriteRenderer>().sprite = baseSprite;
+            SetField(cubeView, "redDefaultSprite", redSprite);
+            SetField(cubeView, "greenDefaultSprite", greenSprite);
+            SetField(cubeView, "blueDefaultSprite", blueSprite);
+            SetField(cubeView, "yellowDefaultSprite", yellowSprite);
+
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Green));
+
+            boardView.Render(board);
+
+            var cubeRenderer = GetItemRoot(boardView).GetChild(0).GetComponent<SpriteRenderer>();
+            Assert.That(cubeRenderer.sprite, Is.SameAs(greenSprite));
+            Assert.That(cubeRenderer.color, Is.EqualTo(Color.white));
+        }
+
+        [Test]
+        public void RenderCubeWithoutCubeItemViewThrows()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView();
+            var cubePrefab = (GameObject)GetField(boardView, "cubePrefab");
+
+            UnityEngine.Object.DestroyImmediate(cubePrefab.GetComponent<CubeItemView>());
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+
+            Assert.That(
+                () => boardView.Render(board),
+                Throws.InvalidOperationException.With.Message.Contains("CubeItemView"));
+        }
+
+        [Test]
+        public void RenderUsesDefaultSpritesForSizeTwoAndThreeGroups()
+        {
+            var board = new BoardModel(3, 2);
+            var boardView = CreateConfiguredBoardView();
+
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(0, 1), new CubeItemModel(CubeColor.Green));
+            board.PlaceItem(new BoardCoordinate(1, 1), new CubeItemModel(CubeColor.Green));
+            board.PlaceItem(new BoardCoordinate(2, 1), new CubeItemModel(CubeColor.Green));
+
+            boardView.Render(board);
+
+            AssertCubeVisual(boardView, new BoardCoordinate(0, 0), "redDefaultSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(1, 0), "redDefaultSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(0, 1), "greenDefaultSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(1, 1), "greenDefaultSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(2, 1), "greenDefaultSprite");
+        }
+
+        [Test]
+        public void RenderUsesRocketSpritesForEveryCubeInSizeFourGroup()
+        {
+            var board = new BoardModel(3, 2);
+            var boardView = CreateConfiguredBoardView();
+
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(2, 0), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(1, 1), new CubeItemModel(CubeColor.Blue));
+
+            boardView.Render(board);
+
+            AssertCubeVisual(boardView, new BoardCoordinate(0, 0), "blueRocketSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(1, 0), "blueRocketSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(2, 0), "blueRocketSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(1, 1), "blueRocketSprite");
+        }
+
+        [Test]
+        public void RenderUsesDefaultSpritesForSizeFiveGroup()
+        {
+            var board = new BoardModel(3, 2);
+            var boardView = CreateConfiguredBoardView();
+
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Yellow));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Yellow));
+            board.PlaceItem(new BoardCoordinate(2, 0), new CubeItemModel(CubeColor.Yellow));
+            board.PlaceItem(new BoardCoordinate(0, 1), new CubeItemModel(CubeColor.Yellow));
+            board.PlaceItem(new BoardCoordinate(1, 1), new CubeItemModel(CubeColor.Yellow));
+
+            boardView.Render(board);
+
+            AssertCubeVisual(boardView, new BoardCoordinate(0, 0), "yellowDefaultSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(1, 0), "yellowDefaultSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(2, 0), "yellowDefaultSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(0, 1), "yellowDefaultSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(1, 1), "yellowDefaultSprite");
+        }
+
+        [Test]
+        public void RenderUsesTntSpritesForEveryCubeInSizeSixGroup()
+        {
+            var board = new BoardModel(3, 2);
+            var boardView = CreateConfiguredBoardView();
+
+            for (var y = 0; y < 2; y++)
+            {
+                for (var x = 0; x < 3; x++)
+                {
+                    board.PlaceItem(new BoardCoordinate(x, y), new CubeItemModel(CubeColor.Green));
+                }
+            }
+
+            boardView.Render(board);
+
+            for (var y = 0; y < 2; y++)
+            {
+                for (var x = 0; x < 3; x++)
+                {
+                    AssertCubeVisual(boardView, new BoardCoordinate(x, y), "greenTntSprite");
+                }
+            }
+        }
+
+        [Test]
+        public void RenderIgnoresDiagonalNeighborsWhenChoosingCubeStateSprites()
+        {
+            var board = new BoardModel(2, 2);
+            var boardView = CreateConfiguredBoardView();
+
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 1), new CubeItemModel(CubeColor.Red));
+
+            boardView.Render(board);
+
+            AssertCubeVisual(boardView, new BoardCoordinate(0, 0), "redDefaultSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(1, 1), "redDefaultSprite");
+        }
+
+        [Test]
+        public void RenderChoosesIndependentStatesForSeparateSameColorGroups()
+        {
+            var board = new BoardModel(5, 2);
+            var boardView = CreateConfiguredBoardView();
+
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(3, 0), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(4, 0), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(3, 1), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(4, 1), new CubeItemModel(CubeColor.Blue));
+
+            boardView.Render(board);
+
+            AssertCubeVisual(boardView, new BoardCoordinate(0, 0), "blueDefaultSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(1, 0), "blueDefaultSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(3, 0), "blueRocketSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(4, 0), "blueRocketSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(3, 1), "blueRocketSprite");
+            AssertCubeVisual(boardView, new BoardCoordinate(4, 1), "blueRocketSprite");
+        }
+
+        [Test]
+        public void RenderLeavesSpecialItemsOnTheirOwnPrefabs()
+        {
+            var board = new BoardModel(2, 1);
+            var boardView = CreateConfiguredBoardView();
+
+            board.PlaceItem(new BoardCoordinate(0, 0), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(1, 0), new TntItemModel());
+
+            boardView.Render(board);
+
+            var itemNames = GetChildNames(GetItemRoot(boardView));
+            Assert.That(itemNames, Has.Some.StartsWith("HorizontalRocketPrefab"));
+            Assert.That(itemNames, Has.Some.StartsWith("TntPrefab"));
+            Assert.That(itemNames, Has.None.StartsWith("CubePrefab"));
+        }
+
+        [Test]
+        public void RenderFitsTallItemSpritesInsideLogicalCellSize()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView(cellSize: 1f);
+            var tallSprite = CreateSprite(width: 10, height: 20, pixelsPerUnit: 10f);
+
+            SetField(((GameObject)GetField(boardView, "cubePrefab")).GetComponent<CubeItemView>(), "redDefaultSprite", tallSprite);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+
+            boardView.Render(board);
+
+            var itemVisual = GetItemRoot(boardView).GetChild(0);
+            Assert.That(itemVisual.localScale, Is.EqualTo(new Vector3(1f, 0.5f, 1f)));
         }
 
         [Test]
@@ -238,17 +462,13 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(boardView, "cellSize", cellSize);
             SetField(boardView, "itemZ", itemZ);
             SetField(boardView, "obstacleZ", obstacleZ);
-            SetField(boardView, "cubePrefab", CreateVisualPrefab("CubePrefab"));
+            SetField(boardView, "cubePrefab", CreateCubePrefab());
             SetField(boardView, "horizontalRocketPrefab", CreateVisualPrefab("HorizontalRocketPrefab"));
             SetField(boardView, "verticalRocketPrefab", CreateVisualPrefab("VerticalRocketPrefab"));
             SetField(boardView, "tntPrefab", CreateVisualPrefab("TntPrefab"));
             SetField(boardView, "vasePrefab", CreateVisualPrefab("VasePrefab"));
             SetField(boardView, "stonePrefab", CreateVisualPrefab("StonePrefab"));
             SetField(boardView, "chaliceBoxPrefab", CreateVisualPrefab("ChaliceBoxPrefab"));
-            SetField(boardView, "redCubeColor", Color.red);
-            SetField(boardView, "greenCubeColor", Color.green);
-            SetField(boardView, "blueCubeColor", Color.blue);
-            SetField(boardView, "yellowCubeColor", Color.yellow);
 
             return boardView;
         }
@@ -270,11 +490,46 @@ namespace DreamBlastClone.Tests.EditMode
             return prefab;
         }
 
+        private GameObject CreateCubePrefab()
+        {
+            var prefab = CreateVisualPrefab("CubePrefab");
+            var cubeView = prefab.AddComponent<CubeItemView>();
+            var spriteRenderer = prefab.GetComponent<SpriteRenderer>();
+
+            SetField(cubeView, "spriteRenderer", spriteRenderer);
+            SetField(cubeView, "redDefaultSprite", CreateSprite(width: 14, height: 16, pixelsPerUnit: 14f));
+            SetField(cubeView, "greenDefaultSprite", CreateSprite(width: 15, height: 16, pixelsPerUnit: 15f));
+            SetField(cubeView, "blueDefaultSprite", CreateSprite(width: 16, height: 16, pixelsPerUnit: 16f));
+            SetField(cubeView, "yellowDefaultSprite", CreateSprite(width: 17, height: 16, pixelsPerUnit: 17f));
+            SetField(cubeView, "redRocketSprite", CreateSprite(width: 18, height: 16, pixelsPerUnit: 18f));
+            SetField(cubeView, "greenRocketSprite", CreateSprite(width: 19, height: 16, pixelsPerUnit: 19f));
+            SetField(cubeView, "blueRocketSprite", CreateSprite(width: 20, height: 16, pixelsPerUnit: 20f));
+            SetField(cubeView, "yellowRocketSprite", CreateSprite(width: 21, height: 16, pixelsPerUnit: 21f));
+            SetField(cubeView, "redTntSprite", CreateSprite(width: 22, height: 16, pixelsPerUnit: 22f));
+            SetField(cubeView, "greenTntSprite", CreateSprite(width: 23, height: 16, pixelsPerUnit: 23f));
+            SetField(cubeView, "blueTntSprite", CreateSprite(width: 24, height: 16, pixelsPerUnit: 24f));
+            SetField(cubeView, "yellowTntSprite", CreateSprite(width: 25, height: 16, pixelsPerUnit: 25f));
+            return prefab;
+        }
+
         private GameObject CreateGameObject(string name)
         {
             var gameObject = new GameObject(name);
             createdGameObjects.Add(gameObject);
             return gameObject;
+        }
+
+        private Sprite CreateSprite(int width, int height, float pixelsPerUnit)
+        {
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, mipChain: false);
+            var sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, width, height),
+                new Vector2(0.5f, 0.5f),
+                pixelsPerUnit);
+            createdTextures.Add(texture);
+            createdSprites.Add(sprite);
+            return sprite;
         }
 
         private static GameObject FindChildByPrefix(Transform root, string prefix)
@@ -303,6 +558,16 @@ namespace DreamBlastClone.Tests.EditMode
             }
 
             return names;
+        }
+
+        private void AssertCubeVisual(BoardView boardView, BoardCoordinate coordinate, string expectedSpriteFieldName)
+        {
+            var cubeRenderer = FindChildByPrefix(GetItemRoot(boardView), $"CubePrefab_{coordinate}")
+                .GetComponent<SpriteRenderer>();
+            var cubeView = ((GameObject)GetField(boardView, "cubePrefab")).GetComponent<CubeItemView>();
+            var expectedSprite = (Sprite)GetField(cubeView, expectedSpriteFieldName);
+            Assert.That(cubeRenderer.sprite, Is.SameAs(expectedSprite));
+            Assert.That(cubeRenderer.color, Is.EqualTo(Color.white));
         }
 
         private static void SetField(object target, string fieldName, object value)

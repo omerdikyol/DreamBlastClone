@@ -83,6 +83,51 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void TwoCubeOrthogonalGroupIsAValidBlast()
+        {
+            var board = new BoardModel(2, 2);
+            var first = new BoardCoordinate(0, 0);
+            var second = new BoardCoordinate(1, 0);
+
+            board.PlaceItem(first, new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(second, new CubeItemModel(CubeColor.Blue));
+
+            var result = resolver.Resolve(board, first);
+
+            Assert.That(result.IsValidBlast, Is.True);
+            Assert.That(result.BlastedGroupSize, Is.EqualTo(2));
+            Assert.That(result.RemovedCoordinates, Is.EqualTo(new[] { first, second }));
+            Assert.That(board.GetCell(first).Item, Is.Null);
+            Assert.That(board.GetCell(second).Item, Is.Null);
+        }
+
+        [Test]
+        public void LShapedGroupClearsAllOrthogonallyConnectedSameColorCubes()
+        {
+            var board = new BoardModel(3, 3);
+            var tap = new BoardCoordinate(1, 1);
+            var up = new BoardCoordinate(1, 2);
+            var right = new BoardCoordinate(2, 1);
+            var diagonal = new BoardCoordinate(2, 2);
+
+            board.PlaceItem(tap, new CubeItemModel(CubeColor.Yellow));
+            board.PlaceItem(up, new CubeItemModel(CubeColor.Yellow));
+            board.PlaceItem(right, new CubeItemModel(CubeColor.Yellow));
+            board.PlaceItem(diagonal, new CubeItemModel(CubeColor.Yellow));
+
+            var result = resolver.Resolve(board, tap);
+
+            Assert.That(result.IsValidBlast, Is.True);
+            Assert.That(result.BlastedGroupSize, Is.EqualTo(3));
+            Assert.That(result.BlastCoordinates, Is.EqualTo(new[] { tap, up, right }));
+            Assert.That(result.RemovedCoordinates, Is.EqualTo(new[] { tap, up, right }));
+            Assert.That(board.GetCell(tap).Item, Is.Null);
+            Assert.That(board.GetCell(up).Item, Is.Null);
+            Assert.That(board.GetCell(right).Item, Is.Null);
+            Assert.That(board.GetCell(diagonal).Item, Is.TypeOf<CubeItemModel>());
+        }
+
+        [Test]
         public void BlastClearsOnlyItemLayerWhenObstaclesShareThoseCells()
         {
             var board = new BoardModel(3, 1);

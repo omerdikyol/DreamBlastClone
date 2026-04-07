@@ -4,6 +4,7 @@ using DreamBlastClone.Core;
 using DreamBlastClone.Grid;
 using DreamBlastClone.Items;
 using DreamBlastClone.Obstacles;
+using DreamBlastClone.Systems;
 using UnityEngine;
 
 namespace DreamBlastClone.Views
@@ -36,13 +37,10 @@ namespace DreamBlastClone.Views
         [SerializeField] private GameObject stonePrefab;
         [SerializeField] private GameObject chaliceBoxPrefab;
 
-        [Header("Cube Colors")]
-        [SerializeField] private Color redCubeColor = Color.red;
-        [SerializeField] private Color greenCubeColor = Color.green;
-        [SerializeField] private Color blueCubeColor = Color.blue;
-        [SerializeField] private Color yellowCubeColor = Color.yellow;
-
         private readonly List<GameObject> spawnedVisuals = new List<GameObject>();
+        private readonly CubeGroupDetector cubeGroupDetector = new CubeGroupDetector();
+
+        public float CellSize => cellSize;
 
         public void Render(BoardModel board)
         {
@@ -104,8 +102,15 @@ namespace DreamBlastClone.Views
             return true;
         }
 
+        public Vector3 GetCellCenterWorld(BoardCoordinate coordinate)
+        {
+            return transform.TransformPoint(GetCellCenter(coordinate, 0f));
+        }
+
         private void RenderItems(BoardModel board)
         {
+            var cubeVisualStates = BuildCubeVisualStates(board);
+
             foreach (var cell in board.GetAllCells())
             {
                 if (!cell.HasItem)
@@ -117,8 +122,8 @@ namespace DreamBlastClone.Views
                 var instance = Instantiate(prefab, ResolveItemRoot(), worldPositionStays: false);
                 instance.name = $"{prefab.name}_{cell.Coordinate}";
                 instance.transform.localPosition = GetCellCenter(cell.Coordinate, itemZ);
-                instance.transform.localScale = new Vector3(cellSize, cellSize, 1f);
-                ApplyColor(instance, ResolveItemColor(cell.Item));
+                ApplyItemAppearance(instance, cell.Item, cell.Coordinate, cubeVisualStates);
+                instance.transform.localScale = GetVisualScale(instance.transform, new Vector2(cellSize, cellSize));
                 spawnedVisuals.Add(instance);
             }
         }
@@ -153,7 +158,9 @@ namespace DreamBlastClone.Views
                 var instance = Instantiate(prefab, ResolveObstacleRoot(), worldPositionStays: false);
                 instance.name = $"{prefab.name}_{DescribeObstacleFootprint(occupiedCoordinates)}";
                 instance.transform.localPosition = GetFootprintCenter(occupiedCoordinates, obstacleZ);
-                instance.transform.localScale = GetFootprintScale(occupiedCoordinates);
+                instance.transform.localScale = GetVisualScale(
+                    instance.transform,
+                    GetFootprintSize(occupiedCoordinates));
                 spawnedVisuals.Add(instance);
             }
         }
@@ -191,25 +198,84 @@ namespace DreamBlastClone.Views
             };
         }
 
-        private Color ResolveItemColor(ItemModel item)
+        private void ApplyItemAppearance(
+            GameObject instance,
+            ItemModel item,
+            BoardCoordinate coordinate,
+            IReadOnlyDictionary<BoardCoordinate, CubeVisualState> cubeVisualStates)
         {
-            return item switch
+            if (item is CubeItemModel cube)
             {
-                CubeItemModel cube => ResolveCubeColor(cube.Color),
-                _ => Color.white
-            };
+                ApplyCubeAppearance(instance, cube.Color, ResolveCubeVisualState(coordinate, cubeVisualStates));
+                return;
+            }
+
+            ApplyDefaultItemAppearance(instance);
         }
 
-        private Color ResolveCubeColor(CubeColor color)
+        private void ApplyCubeAppearance(GameObject instance, CubeColor color, CubeVisualState visualState)
         {
-            return color switch
+            if (!instance.TryGetComponent<CubeItemView>(out var cubeItemView))
             {
-                CubeColor.Red => redCubeColor,
-                CubeColor.Green => greenCubeColor,
-                CubeColor.Blue => blueCubeColor,
-                CubeColor.Yellow => yellowCubeColor,
-                _ => throw new InvalidOperationException($"Unsupported cube color '{color}'.")
-            };
+                throw new InvalidOperationException("BoardView requires cubePrefab to include a CubeItemView component.");
+            }
+
+            cubeItemView.SetAppearance(color, visualState);
+        }
+
+        private void ApplyDefaultItemAppearance(GameObject instance)
+        {
+            if (instance.TryGetComponent<SpriteRenderer>(out var spriteRenderer))
+            {
+                spriteRenderer.color = Color.white;
+            }
+        }
+
+        private IReadOnlyDictionary<BoardCoordinate, CubeVisualState> BuildCubeVisualStates(BoardModel board)
+        {
+            var visualStates = new Dictionary<BoardCoordinate, CubeVisualState>();
+
+            foreach (var cell in board.GetAllCells())
+            {
+                if (!cell.HasItem || cell.Item is not CubeItemModel || visualStates.ContainsKey(cell.Coordinate))
+                {
+                    continue;
+                }
+
+                var group = cubeGroupDetector.FindGroup(board, cell.Coordinate);
+                var visualState = ResolveCubeVisualState(group.Count);
+
+                foreach (var coordinate in group.Coordinates)
+                {
+                    visualStates[coordinate] = visualState;
+                }
+            }
+
+            return visualStates;
+        }
+
+        private static CubeVisualState ResolveCubeVisualState(
+            BoardCoordinate coordinate,
+            IReadOnlyDictionary<BoardCoordinate, CubeVisualState> cubeVisualStates)
+        {
+            return cubeVisualStates.TryGetValue(coordinate, out var visualState)
+                ? visualState
+                : CubeVisualState.Default;
+        }
+
+        private static CubeVisualState ResolveCubeVisualState(int groupSize)
+        {
+            if (groupSize == 4)
+            {
+                return CubeVisualState.RocketEligible;
+            }
+
+            if (groupSize >= 6)
+            {
+                return CubeVisualState.TntEligible;
+            }
+
+            return CubeVisualState.Default;
         }
 
         private static GameObject RequirePrefab(GameObject prefab, string fieldName)
@@ -278,13 +344,12 @@ namespace DreamBlastClone.Views
                 z);
         }
 
-        private Vector3 GetFootprintScale(IReadOnlyList<BoardCoordinate> occupiedCoordinates)
+        private Vector2 GetFootprintSize(IReadOnlyList<BoardCoordinate> occupiedCoordinates)
         {
             GetFootprintBounds(occupiedCoordinates, out var minX, out var minY, out var maxX, out var maxY);
-            return new Vector3(
+            return new Vector2(
                 (maxX - minX + 1) * cellSize,
-                (maxY - minY + 1) * cellSize,
-                1f);
+                (maxY - minY + 1) * cellSize);
         }
 
         private static string DescribeObstacleFootprint(IReadOnlyList<BoardCoordinate> occupiedCoordinates)
@@ -325,6 +390,63 @@ namespace DreamBlastClone.Views
             var safeWidth = nativeSize.x > 0f ? nativeSize.x : 1f;
             var safeHeight = nativeSize.y > 0f ? nativeSize.y : 1f;
             return new Vector3(targetSize.x / safeWidth, targetSize.y / safeHeight, 1f);
+        }
+
+        private static Vector3 GetVisualScale(Transform visualRoot, Vector2 targetSize)
+        {
+            if (!TryGetVisualSize(visualRoot, out var nativeSize))
+            {
+                return new Vector3(targetSize.x, targetSize.y, 1f);
+            }
+
+            var safeWidth = nativeSize.x > 0f ? nativeSize.x : 1f;
+            var safeHeight = nativeSize.y > 0f ? nativeSize.y : 1f;
+            return new Vector3(targetSize.x / safeWidth, targetSize.y / safeHeight, 1f);
+        }
+
+        private static bool TryGetVisualSize(Transform visualRoot, out Vector2 nativeSize)
+        {
+            var renderers = visualRoot.GetComponentsInChildren<SpriteRenderer>(includeInactive: true);
+            var hasAnySprite = false;
+            var min = Vector2.zero;
+            var max = Vector2.zero;
+
+            foreach (var spriteRenderer in renderers)
+            {
+                if (spriteRenderer.sprite is null)
+                {
+                    continue;
+                }
+
+                var spriteBounds = spriteRenderer.sprite.bounds;
+                var corners = new[]
+                {
+                    new Vector3(spriteBounds.min.x, spriteBounds.min.y, 0f),
+                    new Vector3(spriteBounds.min.x, spriteBounds.max.y, 0f),
+                    new Vector3(spriteBounds.max.x, spriteBounds.min.y, 0f),
+                    new Vector3(spriteBounds.max.x, spriteBounds.max.y, 0f)
+                };
+
+                for (var index = 0; index < 4; index++)
+                {
+                    var rootSpacePoint = (Vector2)visualRoot.InverseTransformPoint(
+                        spriteRenderer.transform.TransformPoint(corners[index]));
+
+                    if (!hasAnySprite)
+                    {
+                        min = rootSpacePoint;
+                        max = rootSpacePoint;
+                        hasAnySprite = true;
+                        continue;
+                    }
+
+                    min = Vector2.Min(min, rootSpacePoint);
+                    max = Vector2.Max(max, rootSpacePoint);
+                }
+            }
+
+            nativeSize = hasAnySprite ? max - min : default;
+            return hasAnySprite;
         }
     }
 }

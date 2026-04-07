@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8016032807320633382}
   - component: {fileID: 8870843009768699367}
+  - component: {fileID: 6221900184467919543}
   m_Layer: 0
   m_Name: CubePrefab
   m_TagString: Untagged
@@ -91,3 +92,28 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &6221900184467919543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5005002260436004955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31f09ea1bf7e47ac8f4cdd1c5a7730db, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.CubeItemView
+  spriteRenderer: {fileID: 8870843009768699367}
+  redDefaultSprite: {fileID: 21300000, guid: ded825254a6ed394cb03e3952c57b596, type: 3}
+  greenDefaultSprite: {fileID: 21300000, guid: c590693e309f38447befe1a7f809a021, type: 3}
+  blueDefaultSprite: {fileID: 21300000, guid: 32cb3c307ee5fdc42ada4deac3b69c93, type: 3}
+  yellowDefaultSprite: {fileID: 21300000, guid: b850eb26656025f4f806e9d737fb7ed1, type: 3}
+  redRocketSprite: {fileID: 21300000, guid: 84196a9d504879246a7a06f33f44b067, type: 3}
+  greenRocketSprite: {fileID: 21300000, guid: bd790a3340cce4e459fbc4e4e4901183, type: 3}
+  blueRocketSprite: {fileID: 21300000, guid: f2c3d89d47bfcaf44a8dbb648eacab0a, type: 3}
+  yellowRocketSprite: {fileID: 21300000, guid: 52d3bb9a11942de4daf7c5b92c4aedf4, type: 3}
+  redTntSprite: {fileID: 21300000, guid: 8d22e40c2ad24e84bba82c1aa2e4f7cf, type: 3}
+  greenTntSprite: {fileID: 21300000, guid: 32c87d06d0d20994580a828a69d2604a, type: 3}
+  blueTntSprite: {fileID: 21300000, guid: 6e105ee6835738d4b9bdcdb056e5af41, type: 3}
+  yellowTntSprite: {fileID: 21300000, guid: 866f9ff9171e8d54d86ddfe6f96546c0, type: 3}

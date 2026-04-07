@@ -1,0 +1,99 @@
+using System;
+using DreamBlastClone.Grid;
+using DreamBlastClone.Obstacles;
+
+namespace DreamBlastClone.Systems
+{
+    public sealed class NormalCubeTapPreviewBoardBuilder
+    {
+        private readonly BoardModelCloner boardModelCloner = new BoardModelCloner();
+
+        public BoardModel Build(BoardModel preTapBoard, NormalCubeTapPipelineResult tap)
+        {
+            if (preTapBoard is null)
+            {
+                throw new ArgumentNullException(nameof(preTapBoard));
+            }
+
+            if (tap is null)
+            {
+                throw new ArgumentNullException(nameof(tap));
+            }
+
+            var previewBoard = boardModelCloner.Clone(preTapBoard);
+            if (!tap.IsValidTap)
+            {
+                return previewBoard;
+            }
+
+            foreach (var removedCoordinate in tap.Blast.RemovedCoordinates)
+            {
+                previewBoard.ClearItem(removedCoordinate);
+            }
+
+            if (tap.Blast.CreatedSpecialCoordinate.HasValue && tap.Blast.CreatedSpecialItem is not null)
+            {
+                var createdSpecialCoordinate = tap.Blast.CreatedSpecialCoordinate.Value;
+                previewBoard.ClearItem(createdSpecialCoordinate);
+                previewBoard.PlaceItem(createdSpecialCoordinate, CloneCreatedSpecialItem(tap));
+            }
+
+            ApplyObstacleDamagePreview(previewBoard, tap.ObstacleDamage);
+            return previewBoard;
+        }
+
+        private static void ApplyObstacleDamagePreview(BoardModel previewBoard, ObstacleDamageResolutionResult obstacleDamage)
+        {
+            foreach (var damage in obstacleDamage.Damages)
+            {
+                if (!previewBoard.TryGetCell(damage.Coordinate, out var cell) || cell.Obstacle is null)
+                {
+                    continue;
+                }
+
+                switch (cell.Obstacle)
+                {
+                    case VaseObstacleModel vase:
+                        vase.RemainingDurability = Math.Max(0, vase.RemainingDurability - damage.Amount);
+                        break;
+                    case StoneObstacleModel stone:
+                        stone.RemainingDurability = Math.Max(0, stone.RemainingDurability - damage.Amount);
+                        break;
+                    case ChaliceBoxObstacleModel chaliceBox:
+                        if (chaliceBox.RemainingDoorDurability > 0)
+                        {
+                            chaliceBox.RemainingDoorDurability = Math.Max(0, chaliceBox.RemainingDoorDurability - damage.Amount);
+                        }
+                        else
+                        {
+                            chaliceBox.CollectedChaliceCount = Math.Min(
+                                chaliceBox.RequiredChaliceCount,
+                                chaliceBox.CollectedChaliceCount + damage.Amount);
+                        }
+
+                        break;
+                }
+            }
+
+            foreach (var removedCoordinate in obstacleDamage.RemovedCoordinates)
+            {
+                if (!previewBoard.TryGetCell(removedCoordinate, out var cell) || cell.Obstacle is null)
+                {
+                    continue;
+                }
+
+                previewBoard.ClearObstacle(cell.Obstacle);
+            }
+        }
+
+        private static Items.ItemModel CloneCreatedSpecialItem(NormalCubeTapPipelineResult tap)
+        {
+            return tap.Blast.CreatedSpecialItem switch
+            {
+                Items.RocketItemModel rocket => new Items.RocketItemModel(rocket.Orientation),
+                Items.TntItemModel => new Items.TntItemModel(),
+                _ => throw new InvalidOperationException($"Unsupported created special preview item '{tap.Blast.CreatedSpecialItem.GetType().Name}'.")
+            };
+        }
+    }
+}

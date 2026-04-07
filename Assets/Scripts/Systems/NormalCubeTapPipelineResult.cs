@@ -7,11 +7,13 @@ namespace DreamBlastClone.Systems
         public NormalCubeTapPipelineResult(
             bool isValidTap,
             CubeBlastResolutionResult blast,
+            ObstacleDamageResolutionResult obstacleDamage,
             ItemGravityResolutionResult gravity,
             ItemRefillResolutionResult refill)
         {
             IsValidTap = isValidTap;
             Blast = blast ?? throw new ArgumentNullException(nameof(blast));
+            ObstacleDamage = obstacleDamage ?? throw new ArgumentNullException(nameof(obstacleDamage));
             Gravity = gravity ?? throw new ArgumentNullException(nameof(gravity));
             Refill = refill ?? throw new ArgumentNullException(nameof(refill));
         }
@@ -19,6 +21,8 @@ namespace DreamBlastClone.Systems
         public bool IsValidTap { get; }
 
         public CubeBlastResolutionResult Blast { get; }
+
+        public ObstacleDamageResolutionResult ObstacleDamage { get; }
 
         public ItemGravityResolutionResult Gravity { get; }
 
@@ -29,6 +33,7 @@ namespace DreamBlastClone.Systems
             return new NormalCubeTapPipelineResult(
                 isValidTap: false,
                 blast: CubeBlastResolutionResult.Invalid(),
+                obstacleDamage: ObstacleDamageResolutionResult.Empty(),
                 gravity: ItemGravityResolutionResult.Empty(),
                 refill: ItemRefillResolutionResult.Empty());
         }

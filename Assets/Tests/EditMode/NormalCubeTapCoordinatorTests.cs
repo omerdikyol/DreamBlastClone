@@ -81,6 +81,8 @@ namespace DreamBlastClone.Tests.EditMode
                 new BoardCoordinate(0, 1),
                 new BoardCoordinate(1, 1)
             }));
+            Assert.That(result.ObstacleDamage.HasAnyDamage, Is.False);
+            Assert.That(result.ObstacleDamage.HasAnyRemoval, Is.False);
 
             Assert.That(result.Gravity.Moves, Is.EqualTo(new[]
             {
@@ -104,35 +106,138 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
-        public void ObstacleLayerRemainsUntouchedThroughPipeline()
+        public void ValidBlastAppliesObstacleDamageBeforeGravityAndRefill()
         {
-            var board = new BoardModel(2, 2);
-            var vase = new VaseObstacleModel();
+            var board = new BoardModel(3, 2);
+            var vaseCoordinate = new BoardCoordinate(2, 0);
             var stone = new StoneObstacleModel();
             var refillResolver = new FakeRefillCubeColorResolver(new Dictionary<BoardCoordinate, CubeColor>
             {
                 { new BoardCoordinate(0, 1), CubeColor.Blue },
-                { new BoardCoordinate(1, 1), CubeColor.Yellow }
+                { new BoardCoordinate(1, 1), CubeColor.Yellow },
+                { new BoardCoordinate(2, 1), CubeColor.Red }
             });
 
+            board.PlaceObstacle(vaseCoordinate, new VaseObstacleModel(remainingDurability: 1));
             board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
-            board.PlaceObstacle(new BoardCoordinate(0, 0), vase);
             board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
             board.PlaceObstacle(new BoardCoordinate(1, 1), stone);
 
             var result = coordinator.Resolve(board, new BoardCoordinate(0, 0), refillResolver);
 
             Assert.That(result.IsValidTap, Is.True);
-            Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.SameAs(vase));
+            Assert.That(result.ObstacleDamage.Damages, Is.EqualTo(new[]
+            {
+                new ObstacleDamage(vaseCoordinate, 1)
+            }));
+            Assert.That(result.ObstacleDamage.RemovedCoordinates, Is.EqualTo(new[]
+            {
+                vaseCoordinate
+            }));
+            Assert.That(board.GetCell(vaseCoordinate).Obstacle, Is.Null);
             Assert.That(board.GetCell(new BoardCoordinate(1, 1)).Obstacle, Is.SameAs(stone));
             AssertCube(board, new BoardCoordinate(0, 1), CubeColor.Blue);
             AssertCube(board, new BoardCoordinate(1, 1), CubeColor.Yellow);
+            AssertCube(board, new BoardCoordinate(2, 1), CubeColor.Red);
+        }
+
+        [Test]
+        public void RocketCreatingBlastStillDamagesObstacleAdjacentToTappedCoordinate()
+        {
+            var board = new BoardModel(4, 3);
+            var tap = new BoardCoordinate(1, 0);
+            var vaseCoordinate = new BoardCoordinate(1, 1);
+
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(tap, new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(2, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 1), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(vaseCoordinate, new VaseObstacleModel(remainingDurability: 1));
+
+            var result = coordinator.Resolve(board, tap, new FakeRefillCubeColorResolver());
+
+            Assert.That(result.IsValidTap, Is.True);
+            Assert.That(result.Blast.CreatedSpecialCoordinate, Is.EqualTo(tap));
+            Assert.That(result.Blast.RemovedCoordinates, Has.No.Member(tap));
+            Assert.That(result.ObstacleDamage.Damages, Is.EqualTo(new[]
+            {
+                new ObstacleDamage(vaseCoordinate, 1)
+            }));
+            Assert.That(result.ObstacleDamage.RemovedCoordinates, Is.EqualTo(new[]
+            {
+                vaseCoordinate
+            }));
+            Assert.That(board.GetCell(tap).Item, Is.TypeOf<RocketItemModel>());
+            Assert.That(board.GetCell(vaseCoordinate).Obstacle, Is.Null);
+        }
+
+        [Test]
+        public void LShapedThreeCubeTapRemovesWholeGroupAndLeavesDiagonalCube()
+        {
+            var board = new BoardModel(3, 4);
+            var tap = new BoardCoordinate(1, 1);
+            var up = new BoardCoordinate(1, 2);
+            var right = new BoardCoordinate(2, 1);
+            var diagonal = new BoardCoordinate(2, 2);
+            var refillResolver = new FakeRefillCubeColorResolver(new Dictionary<BoardCoordinate, CubeColor>
+            {
+                { new BoardCoordinate(1, 3), CubeColor.Red },
+                { new BoardCoordinate(2, 2), CubeColor.Blue },
+                { new BoardCoordinate(2, 3), CubeColor.Green }
+            });
+
+            board.PlaceItem(tap, new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(up, new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(right, new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(diagonal, new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(1, 3), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(2, 3), new CubeItemModel(CubeColor.Green));
+
+            var result = coordinator.Resolve(board, tap, refillResolver);
+
+            Assert.That(result.IsValidTap, Is.True);
+            Assert.That(result.Blast.BlastedGroupSize, Is.EqualTo(3));
+            Assert.That(result.Blast.RemovedCoordinates, Is.EqualTo(new[] { tap, up, right }));
+            AssertCube(board, diagonal, CubeColor.Blue);
+        }
+
+        [Test]
+        public void NormalBlastDamagesOnlyAdjacentEligibleObstacles()
+        {
+            var board = new BoardModel(4, 3);
+            var tap = new BoardCoordinate(1, 1);
+            var adjacentVaseCoordinate = new BoardCoordinate(2, 1);
+            var diagonalVaseCoordinate = new BoardCoordinate(2, 2);
+            var stoneCoordinate = new BoardCoordinate(1, 2);
+
+            board.PlaceItem(tap, new CubeItemModel(CubeColor.Green));
+            board.PlaceItem(new BoardCoordinate(0, 1), new CubeItemModel(CubeColor.Green));
+            board.PlaceObstacle(adjacentVaseCoordinate, new VaseObstacleModel(remainingDurability: 1));
+            board.PlaceObstacle(diagonalVaseCoordinate, new VaseObstacleModel(remainingDurability: 1));
+            board.PlaceObstacle(stoneCoordinate, new StoneObstacleModel());
+
+            var result = coordinator.Resolve(board, tap, new FakeRefillCubeColorResolver());
+
+            Assert.That(result.IsValidTap, Is.True);
+            Assert.That(result.ObstacleDamage.Damages, Is.EqualTo(new[]
+            {
+                new ObstacleDamage(adjacentVaseCoordinate, 1)
+            }));
+            Assert.That(result.ObstacleDamage.RemovedCoordinates, Is.EqualTo(new[]
+            {
+                adjacentVaseCoordinate
+            }));
+            Assert.That(board.GetCell(adjacentVaseCoordinate).Obstacle, Is.Null);
+            Assert.That(board.GetCell(diagonalVaseCoordinate).Obstacle, Is.Not.Null);
+            Assert.That(board.GetCell(stoneCoordinate).Obstacle, Is.Not.Null);
         }
 
         private static void AssertInvalidResult(NormalCubeTapPipelineResult result)
         {
             Assert.That(result.IsValidTap, Is.False);
             Assert.That(result.Blast.IsValidBlast, Is.False);
+            Assert.That(result.ObstacleDamage.HasAnyDamage, Is.False);
+            Assert.That(result.ObstacleDamage.HasAnyRemoval, Is.False);
             Assert.That(result.Gravity.HasAnyMovement, Is.False);
             Assert.That(result.Refill.HasAnySpawn, Is.False);
         }

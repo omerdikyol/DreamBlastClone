@@ -96,10 +96,30 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(result.Tap.RouteType, Is.EqualTo(TapRouteType.NormalCube));
             Assert.That(result.Tap.NormalCube.IsValidTap, Is.True);
+            Assert.That(result.Tap.NormalCube.ObstacleDamage.HasAnyDamage, Is.False);
             Assert.That(result.DidSpendMove, Is.True);
             Assert.That(result.RemainingMoves, Is.EqualTo(2));
             Assert.That(result.LevelState, Is.EqualTo(LevelState.Continue));
             Assert.That(session.RemainingMoves, Is.EqualTo(2));
+            Assert.That(session.CurrentLevelState, Is.EqualTo(LevelState.Continue));
+        }
+
+        [Test]
+        public void InvalidIsolatedCubeTapDoesNotSpendMove()
+        {
+            var board = new BoardModel(2, 2);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(new BoardCoordinate(1, 1), new VaseObstacleModel());
+
+            var session = new LevelSession(board, remainingMoves: 3, new FakeRefillCubeColorResolver());
+
+            var result = session.ProcessTap(new BoardCoordinate(0, 0));
+
+            Assert.That(result.Tap.RouteType, Is.EqualTo(TapRouteType.None));
+            Assert.That(result.Tap.NormalCube.IsValidTap, Is.False);
+            Assert.That(result.DidSpendMove, Is.False);
+            Assert.That(result.RemainingMoves, Is.EqualTo(3));
+            Assert.That(session.RemainingMoves, Is.EqualTo(3));
             Assert.That(session.CurrentLevelState, Is.EqualTo(LevelState.Continue));
         }
 
@@ -180,12 +200,12 @@ namespace DreamBlastClone.Tests.EditMode
         [Test]
         public void FinalGoalClearedOnTapTransitionsSessionToWin()
         {
-            var board = new BoardModel(2, 2);
-            var vase = new VaseObstacleModel(remainingDurability: 1);
+            var board = new BoardModel(3, 1);
+            var vaseCoordinate = new BoardCoordinate(2, 0);
 
             board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
             board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
-            board.PlaceObstacle(new BoardCoordinate(0, 0), vase);
+            board.PlaceObstacle(vaseCoordinate, new VaseObstacleModel(remainingDurability: 1));
 
             var session = new LevelSession(board, remainingMoves: 2, new FakeRefillCubeColorResolver());
 
@@ -195,7 +215,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(result.RemainingMoves, Is.EqualTo(1));
             Assert.That(result.LevelState, Is.EqualTo(LevelState.Win));
             Assert.That(session.CurrentLevelState, Is.EqualTo(LevelState.Win));
-            Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.Null);
+            Assert.That(board.GetCell(vaseCoordinate).Obstacle, Is.Null);
         }
 
         [Test]
@@ -220,12 +240,12 @@ namespace DreamBlastClone.Tests.EditMode
         [Test]
         public void ClearingFinalGoalOnLastMoveStillReturnsWin()
         {
-            var board = new BoardModel(2, 2);
-            var vase = new VaseObstacleModel(remainingDurability: 1);
+            var board = new BoardModel(3, 1);
+            var vaseCoordinate = new BoardCoordinate(2, 0);
 
             board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
             board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
-            board.PlaceObstacle(new BoardCoordinate(0, 0), vase);
+            board.PlaceObstacle(vaseCoordinate, new VaseObstacleModel(remainingDurability: 1));
 
             var session = new LevelSession(board, remainingMoves: 1, new FakeRefillCubeColorResolver());
 

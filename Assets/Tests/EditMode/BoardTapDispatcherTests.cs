@@ -78,6 +78,7 @@ namespace DreamBlastClone.Tests.EditMode
                 new BoardCoordinate(0, 1),
                 new BoardCoordinate(1, 1)
             }));
+            Assert.That(result.NormalCube.ObstacleDamage.HasAnyDamage, Is.False);
             Assert.That(result.NormalCube.Gravity.Moves, Is.EqualTo(new[]
             {
                 new ItemFallMove(new BoardCoordinate(2, 2), new BoardCoordinate(2, 1))
@@ -89,6 +90,33 @@ namespace DreamBlastClone.Tests.EditMode
                 new ItemSpawn(new BoardCoordinate(2, 2), CubeColor.Red)
             }));
             Assert.That(result.SpecialItem.IsValidTap, Is.False);
+        }
+
+        [Test]
+        public void CubeTapSurfacesNormalObstacleDamageThroughDispatcher()
+        {
+            var board = new BoardModel(3, 1);
+            var tap = new BoardCoordinate(0, 0);
+            var vaseCoordinate = new BoardCoordinate(2, 0);
+
+            board.PlaceItem(tap, new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(vaseCoordinate, new VaseObstacleModel(remainingDurability: 1));
+
+            var result = dispatcher.Resolve(board, tap, new FakeRefillCubeColorResolver());
+
+            Assert.That(result.IsValidTap, Is.True);
+            Assert.That(result.RouteType, Is.EqualTo(TapRouteType.NormalCube));
+            Assert.That(result.NormalCube.IsValidTap, Is.True);
+            Assert.That(result.NormalCube.ObstacleDamage.Damages, Is.EqualTo(new[]
+            {
+                new ObstacleDamage(vaseCoordinate, 1)
+            }));
+            Assert.That(result.NormalCube.ObstacleDamage.RemovedCoordinates, Is.EqualTo(new[]
+            {
+                vaseCoordinate
+            }));
+            Assert.That(board.GetCell(vaseCoordinate).Obstacle, Is.Null);
         }
 
         [Test]
