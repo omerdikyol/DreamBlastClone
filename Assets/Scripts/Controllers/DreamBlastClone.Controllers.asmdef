@@ -1,9 +1,10 @@
-{
+﻿{
     "name": "DreamBlastClone.Controllers",
     "rootNamespace": "DreamBlastClone",
     "references": [
         "DreamBlastClone.Core",
         "DreamBlastClone.Grid",
+        "DreamBlastClone.Data",
         "DreamBlastClone.Systems"
     ],
     "includePlatforms": [],
@@ -16,3 +17,4 @@
     "versionDefines": [],
     "noEngineReferences": true
 }
+

@@ -1,15 +1,17 @@
-{
+﻿{
     "name": "DreamBlastClone.Domain.Tests",
     "rootNamespace": "DreamBlastClone.Tests",
     "references": [
         "DreamBlastClone.Controllers",
+        "DreamBlastClone.Controllers.Unity",
         "DreamBlastClone.Core",
         "DreamBlastClone.Grid",
         "DreamBlastClone.Items",
         "DreamBlastClone.Obstacles",
         "DreamBlastClone.Data",
         "DreamBlastClone.Systems",
-        "DreamBlastClone.Views"
+        "DreamBlastClone.Views",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"
@@ -26,3 +28,4 @@
         "TestAssemblies"
     ]
 }
+

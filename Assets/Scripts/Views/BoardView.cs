@@ -75,6 +75,29 @@ namespace DreamBlastClone.Views
             spawnedVisuals.Clear();
         }
 
+        public bool TryWorldToBoardCoordinate(BoardModel board, Vector3 worldPoint, out BoardCoordinate coordinate)
+        {
+            if (board is null)
+            {
+                throw new ArgumentNullException(nameof(board));
+            }
+
+            var localPoint = transform.InverseTransformPoint(worldPoint);
+            var localX = (localPoint.x - origin.x) / cellSize;
+            var localY = (localPoint.y - origin.y) / cellSize;
+
+            if (localX < 0f || localY < 0f || localX >= board.Width || localY >= board.Height)
+            {
+                coordinate = default;
+                return false;
+            }
+
+            coordinate = new BoardCoordinate(
+                (int)Math.Floor(localX),
+                (int)Math.Floor(localY));
+            return true;
+        }
+
         private void RenderItems(BoardModel board)
         {
             foreach (var cell in board.GetAllCells())

@@ -101,3 +101,6 @@ InitTestScene*.unity*
 # User-specific files
 REQUIREMENTS.md
 AGENTS.md
+
+# Case Study Assets
+/[Aa]ssets/CaseStudyAssets2026/

@@ -172,6 +172,31 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(itemVisual.transform.localPosition.z, Is.LessThan(obstacleVisual.transform.localPosition.z));
         }
 
+        [Test]
+        public void TryWorldToBoardCoordinateMapsCellCentersDeterministically()
+        {
+            var board = new BoardModel(3, 2);
+            var boardView = CreateConfiguredBoardView(origin: new Vector2(1f, 2f), cellSize: 2f);
+
+            var bottomLeftWorld = boardView.transform.TransformPoint(new Vector3(2f, 3f, 0f));
+            var topRightWorld = boardView.transform.TransformPoint(new Vector3(6f, 5f, 0f));
+
+            Assert.That(boardView.TryWorldToBoardCoordinate(board, bottomLeftWorld, out var bottomLeft), Is.True);
+            Assert.That(bottomLeft, Is.EqualTo(new BoardCoordinate(0, 0)));
+            Assert.That(boardView.TryWorldToBoardCoordinate(board, topRightWorld, out var topRight), Is.True);
+            Assert.That(topRight, Is.EqualTo(new BoardCoordinate(2, 1)));
+        }
+
+        [Test]
+        public void TryWorldToBoardCoordinateReturnsFalseOutsideBoardBounds()
+        {
+            var board = new BoardModel(3, 2);
+            var boardView = CreateConfiguredBoardView(origin: new Vector2(1f, 2f), cellSize: 2f);
+            var outsideWorld = boardView.transform.TransformPoint(new Vector3(0.9f, 2.5f, 0f));
+
+            Assert.That(boardView.TryWorldToBoardCoordinate(board, outsideWorld, out _), Is.False);
+        }
+
         private BoardView CreateConfiguredBoardView(
             Vector2? origin = null,
             float cellSize = 1f,

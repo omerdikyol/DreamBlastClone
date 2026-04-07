@@ -1,4 +1,4 @@
-{
+﻿{
     "name": "DreamBlastClone.Data",
     "rootNamespace": "DreamBlastClone",
     "references": [
@@ -17,3 +17,4 @@
     "versionDefines": [],
     "noEngineReferences": true
 }
+

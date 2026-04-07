@@ -1,0 +1,26 @@
+﻿{
+    "name": "DreamBlastClone.Controllers.Unity",
+    "rootNamespace": "DreamBlastClone",
+    "references": [
+        "DreamBlastClone.Controllers",
+        "DreamBlastClone.Views",
+        "DreamBlastClone.Core",
+        "DreamBlastClone.Grid",
+        "DreamBlastClone.Items",
+        "DreamBlastClone.Obstacles",
+        "DreamBlastClone.Data",
+        "UnityEngine.UI",
+        "Unity.InputSystem",
+        "DreamBlastClone.Systems"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
+
