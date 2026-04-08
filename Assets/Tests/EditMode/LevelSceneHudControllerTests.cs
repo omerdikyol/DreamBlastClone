@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using DreamBlastClone.Controllers;
@@ -141,6 +142,172 @@ namespace DreamBlastClone.Tests.EditMode
             InvokeMethod(controller, "OnDisable");
         }
 
+        [Test]
+        public void RefreshHudShowsAllGoalsForRealMultiGoalLevel()
+        {
+            var session = CreateSessionFromLevel("level_07.json");
+            var controller = CreateConfiguredHudController(session, out var moveLabel, out var goalContainer, out _);
+            SetField(controller, "stoneGoalIcon", CreateSprite());
+            SetField(controller, "vaseGoalIcon", CreateSprite());
+            SetField(controller, "chaliceGoalIcon", CreateSprite());
+
+            InvokeMethod(controller, "OnEnable");
+            InvokeMethod(controller, "Start");
+
+            Assert.That(moveLabel.text, Is.EqualTo("24"));
+
+            var goalItems = GetActiveGoalItems(goalContainer).ToArray();
+            Assert.That(goalItems, Has.Length.EqualTo(3));
+            Assert.That(GetCountText(goalItems[0]), Is.EqualTo("12"));
+            Assert.That(GetCountText(goalItems[1]), Is.EqualTo("04"));
+            Assert.That(GetCountText(goalItems[2]), Is.EqualTo("20"));
+
+            InvokeMethod(controller, "OnDisable");
+        }
+
+        [Test]
+        public void RefreshHudShowsNormalizedChaliceTotalsForRealChaliceOnlyLevels()
+        {
+            Assert.That(GetDisplayedGoalCountsForLevel("level_03.json"), Is.EqualTo(new[] { "40" }));
+            Assert.That(GetDisplayedGoalCountsForLevel("level_09.json"), Is.EqualTo(new[] { "40" }));
+        }
+
+        [Test]
+        public void RefreshHudShowsAllGoalsForRealTwoGoalLevel()
+        {
+            Assert.That(GetDisplayedGoalCountsForLevel("level_08.json"), Is.EqualTo(new[] { "17", "05" }));
+        }
+
+        [Test]
+        public void LayoutPlacesTwoGoalsOnSingleHorizontalLine()
+        {
+            var session = CreateSessionWithGoals(
+                new LevelGoalDefinition(LevelGoalType.Stone, 1),
+                new LevelGoalDefinition(LevelGoalType.Vase, 1));
+            var controller = CreateConfiguredHudController(session, out _, out var goalContainer, out _);
+
+            InvokeMethod(controller, "OnEnable");
+            InvokeMethod(controller, "Start");
+
+            var goalItems = GetActiveGoalItems(goalContainer).ToArray();
+            Assert.That(goalItems, Has.Length.EqualTo(2));
+            Assert.That(goalItems[0].anchoredPosition.y, Is.EqualTo(goalItems[1].anchoredPosition.y).Within(0.01f));
+            Assert.That(goalItems[0].anchoredPosition.x, Is.LessThan(goalItems[1].anchoredPosition.x));
+            Assert.That(goalItems[0].localScale.x, Is.LessThan(1f));
+            Assert.That(goalItems[1].localScale.x, Is.LessThan(1f));
+
+            InvokeMethod(controller, "OnDisable");
+        }
+
+        [Test]
+        public void LayoutPlacesThreeGoalsAsTriangle()
+        {
+            var session = CreateSessionWithGoals(
+                new LevelGoalDefinition(LevelGoalType.Stone, 1),
+                new LevelGoalDefinition(LevelGoalType.Vase, 1),
+                new LevelGoalDefinition(LevelGoalType.ChaliceBox, 10));
+            var controller = CreateConfiguredHudController(session, out _, out var goalContainer, out _);
+
+            InvokeMethod(controller, "OnEnable");
+            InvokeMethod(controller, "Start");
+
+            var goalItems = GetActiveGoalItems(goalContainer)
+                .OrderByDescending(item => item.anchoredPosition.y)
+                .ToArray();
+
+            Assert.That(goalItems, Has.Length.EqualTo(3));
+            Assert.That(goalItems[0].anchoredPosition.x, Is.EqualTo(10f).Within(0.01f));
+            Assert.That(goalItems[1].anchoredPosition.y, Is.EqualTo(goalItems[2].anchoredPosition.y).Within(0.01f));
+            Assert.That(goalItems[1].anchoredPosition.x, Is.LessThan(goalItems[2].anchoredPosition.x));
+            Assert.That(goalItems[0].localScale.x, Is.LessThan(1f));
+
+            InvokeMethod(controller, "OnDisable");
+        }
+
+        [Test]
+        public void LayoutPlacesFourGoalsAsSquare()
+        {
+            var session = CreateSessionWithGoals(
+                new LevelGoalDefinition(LevelGoalType.Stone, 1),
+                new LevelGoalDefinition(LevelGoalType.Vase, 1),
+                new LevelGoalDefinition(LevelGoalType.ChaliceBox, 10),
+                new LevelGoalDefinition(LevelGoalType.Stone, 1));
+            var controller = CreateConfiguredHudController(session, out _, out var goalContainer, out _);
+
+            InvokeMethod(controller, "OnEnable");
+            InvokeMethod(controller, "Start");
+
+            var goalItems = GetActiveGoalItems(goalContainer).ToArray();
+            var distinctX = goalItems.Select(item => Mathf.Round(item.anchoredPosition.x * 100f) / 100f).Distinct().Count();
+            var distinctY = goalItems.Select(item => Mathf.Round(item.anchoredPosition.y * 100f) / 100f).Distinct().Count();
+
+            Assert.That(goalItems, Has.Length.EqualTo(4));
+            Assert.That(distinctX, Is.EqualTo(2));
+            Assert.That(distinctY, Is.EqualTo(2));
+            Assert.That(goalItems.All(item => item.localScale.x < 1f), Is.True);
+
+            InvokeMethod(controller, "OnDisable");
+        }
+
+        [Test]
+        public void LayoutFallsBackToCompactGridForFiveGoals()
+        {
+            var session = CreateSessionWithGoals(
+                new LevelGoalDefinition(LevelGoalType.Stone, 1),
+                new LevelGoalDefinition(LevelGoalType.Vase, 1),
+                new LevelGoalDefinition(LevelGoalType.ChaliceBox, 10),
+                new LevelGoalDefinition(LevelGoalType.Stone, 1),
+                new LevelGoalDefinition(LevelGoalType.Vase, 1));
+            var controller = CreateConfiguredHudController(session, out _, out var goalContainer, out _);
+
+            InvokeMethod(controller, "OnEnable");
+            InvokeMethod(controller, "Start");
+
+            var goalItems = GetActiveGoalItems(goalContainer).ToArray();
+
+            Assert.That(goalItems, Has.Length.EqualTo(5));
+            Assert.That(goalItems.All(item => item.localScale.x < 0.55f), Is.True);
+            Assert.That(goalItems.All(item => Mathf.Abs(item.anchoredPosition.x - 10f) <= 28f), Is.True);
+            Assert.That(goalItems.All(item => Mathf.Abs(item.anchoredPosition.y) <= 28f), Is.True);
+
+            InvokeMethod(controller, "OnDisable");
+        }
+
+        [Test]
+        public void HandleTapProcessedLeavesHudUnchangedAfterInvalidTap()
+        {
+            var board = new BoardModel(2, 2);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(new BoardCoordinate(1, 1), new StoneObstacleModel());
+
+            var session = new LevelSession(
+                board,
+                remainingMoves: 3,
+                new FixedRefillCubeColorResolver(),
+                new[]
+                {
+                    new LevelGoalDefinition(LevelGoalType.Stone, 1)
+                });
+
+            var controller = CreateConfiguredHudController(session, out var moveLabel, out var goalContainer, out _);
+
+            InvokeMethod(controller, "OnEnable");
+            InvokeMethod(controller, "Start");
+
+            Assert.That(moveLabel.text, Is.EqualTo("03"));
+            Assert.That(GetCountText(GetActiveGoalItems(goalContainer).Single()), Is.EqualTo("01"));
+
+            var tapResult = session.ProcessTap(new BoardCoordinate(0, 0));
+            Assert.That(tapResult.Tap.IsValidTap, Is.False);
+            Assert.That(tapResult.DidSpendMove, Is.False);
+            InvokeMethod(controller, "HandleTapProcessed", tapResult);
+
+            Assert.That(moveLabel.text, Is.EqualTo("03"));
+            Assert.That(GetCountText(GetActiveGoalItems(goalContainer).Single()), Is.EqualTo("01"));
+
+            InvokeMethod(controller, "OnDisable");
+        }
+
         private LevelSceneHudController CreateConfiguredHudController(
             LevelSession session,
             out Text moveLabel,
@@ -162,8 +329,41 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(controller, "moveCountLabel", moveLabel);
             SetField(controller, "goalItemTemplate", goalTemplate);
             SetField(controller, "goalItemsContainer", goalContainer);
-            SetField(controller, "goalItemSpacing", 120f);
+            SetField(controller, "multiGoalLayoutSize", 56f);
             return controller;
+        }
+
+        private string[] GetDisplayedGoalCountsForLevel(string levelFileName)
+        {
+            var session = CreateSessionFromLevel(levelFileName);
+            var controller = CreateConfiguredHudController(session, out _, out var goalContainer, out _);
+            SetField(controller, "stoneGoalIcon", CreateSprite());
+            SetField(controller, "vaseGoalIcon", CreateSprite());
+            SetField(controller, "chaliceGoalIcon", CreateSprite());
+
+            InvokeMethod(controller, "OnEnable");
+            InvokeMethod(controller, "Start");
+
+            var counts = GetActiveGoalItems(goalContainer)
+                .Select(GetCountText)
+                .ToArray();
+
+            InvokeMethod(controller, "OnDisable");
+            return counts;
+        }
+
+        private static LevelSession CreateSessionFromLevel(string levelFileName)
+        {
+            var parser = new LevelJsonParser();
+            var factory = new LevelSessionFactory();
+            var level = parser.Parse(ReadLevelJson(levelFileName));
+            return factory.Create(level);
+        }
+
+        private static LevelSession CreateSessionWithGoals(params LevelGoalDefinition[] goals)
+        {
+            var board = new BoardModel(2, 2);
+            return new LevelSession(board, remainingMoves: 7, new FixedRefillCubeColorResolver(), goals);
         }
 
         private RectTransform CreateGoalTemplate(Transform parent)
@@ -250,6 +450,12 @@ namespace DreamBlastClone.Tests.EditMode
         private static string GetTitleText(RectTransform goalItem)
         {
             return goalItem.Find("Title").GetComponent<Text>().text;
+        }
+
+        private static string ReadLevelJson(string fileName)
+        {
+            var path = Path.Combine(Application.dataPath, "GameContent", "Levels", fileName);
+            return File.ReadAllText(path);
         }
 
         private static void InvokeMethod(object target, string methodName, params object[] parameters)

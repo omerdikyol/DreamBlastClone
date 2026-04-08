@@ -14,7 +14,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private Component moveCountLabel;
         [SerializeField] private RectTransform goalItemTemplate;
         [SerializeField] private Transform goalItemsContainer;
-        [SerializeField] private float goalItemSpacing = 140f;
+        [SerializeField] private float multiGoalLayoutSize = 56f;
         [SerializeField] private Sprite stoneGoalIcon;
         [SerializeField] private Sprite vaseGoalIcon;
         [SerializeField] private Sprite chaliceGoalIcon;
@@ -131,16 +131,52 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             var templatePosition = goalItemTemplate.anchoredPosition;
-            var centeredOffset = (goalCount - 1) * 0.5f * goalItemSpacing;
+            var layout = BuildGoalLayout(goalCount);
 
             for (var index = 0; index < goalCount; index++)
             {
                 var itemTransform = (RectTransform)spawnedGoalItems[index].transform;
-                itemTransform.anchoredPosition = new Vector2(
-                    templatePosition.x + index * goalItemSpacing - centeredOffset,
-                    templatePosition.y);
-                itemTransform.localScale = goalItemTemplate.localScale;
+                itemTransform.anchoredPosition = templatePosition + layout[index].Offset * multiGoalLayoutSize;
+                itemTransform.localScale = goalItemTemplate.localScale * layout[index].ScaleMultiplier;
             }
+        }
+
+        private static IReadOnlyList<GoalLayoutSlot> BuildGoalLayout(int goalCount)
+        {
+            if (goalCount <= 1)
+            {
+                return new[]
+                {
+                    new GoalLayoutSlot(Vector2.zero, 1f)
+                };
+            }
+
+            return BuildGridGoalLayout(goalCount);
+        }
+
+        private static IReadOnlyList<GoalLayoutSlot> BuildGridGoalLayout(int goalCount)
+        {
+            var columns = Mathf.CeilToInt(Mathf.Sqrt(goalCount));
+            var rows = Mathf.CeilToInt((float)goalCount / columns);
+            const float layoutSpan = 0.72f;
+            var horizontalStep = columns <= 1 ? 0f : layoutSpan / (columns - 1);
+            var verticalStep = rows <= 1 ? 0f : layoutSpan / (rows - 1);
+            var horizontalRoom = columns <= 1 ? layoutSpan : horizontalStep;
+            var verticalRoom = rows <= 1 ? layoutSpan : verticalStep;
+            var scaleMultiplier = Mathf.Clamp(Mathf.Min(horizontalRoom, verticalRoom) * 0.78f, 0.3f, 1f);
+            var slots = new List<GoalLayoutSlot>(goalCount);
+
+            for (var index = 0; index < goalCount; index++)
+            {
+                var row = index / columns;
+                var column = index % columns;
+                var rowCount = row == rows - 1 ? goalCount - row * columns : columns;
+                var x = rowCount <= 1 ? 0f : (column - (rowCount - 1) * 0.5f) * horizontalStep;
+                var y = rows <= 1 ? 0f : ((rows - 1) * 0.5f - row) * verticalStep;
+                slots.Add(new GoalLayoutSlot(new Vector2(x, y), scaleMultiplier));
+            }
+
+            return slots;
         }
 
         private Sprite ResolveGoalIcon(LevelGoalType goalType)
@@ -163,6 +199,19 @@ namespace DreamBlastClone.Controllers.Unity
                 LevelGoalType.ChaliceBox => "Chalices",
                 _ => goalType.ToString()
             };
+        }
+
+        private readonly struct GoalLayoutSlot
+        {
+            public GoalLayoutSlot(Vector2 offset, float scaleMultiplier)
+            {
+                Offset = offset;
+                ScaleMultiplier = scaleMultiplier;
+            }
+
+            public Vector2 Offset { get; }
+
+            public float ScaleMultiplier { get; }
         }
     }
 }

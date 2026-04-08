@@ -30,6 +30,22 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void AuthoredLevelsCanContainTwoSimultaneousGoalTypes()
+        {
+            var parser = new LevelJsonParser();
+            var builder = new LevelGoalDefinitionBuilder();
+
+            var level = parser.Parse(ReadLevelJson("level_08.json"));
+            var goals = builder.Build(level);
+
+            Assert.That(goals, Has.Count.EqualTo(2));
+            Assert.That(goals[0].GoalType, Is.EqualTo(LevelGoalType.Stone));
+            Assert.That(goals[0].InitialCount, Is.EqualTo(17));
+            Assert.That(goals[1].GoalType, Is.EqualTo(LevelGoalType.Vase));
+            Assert.That(goals[1].InitialCount, Is.EqualTo(5));
+        }
+
+        [Test]
         public void SingleGoalLevelProducesOneGoalDefinition()
         {
             var parser = new LevelJsonParser();

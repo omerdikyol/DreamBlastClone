@@ -993,7 +993,7 @@ MonoBehaviour:
   moveCountLabel: {fileID: 593086824}
   goalItemTemplate: {fileID: 735411716}
   goalItemsContainer: {fileID: 755320357}
-  goalItemSpacing: 92
+  multiGoalLayoutSize: 56
   stoneGoalIcon: {fileID: 21300000, guid: 62cec442f5b015344bc9860a87acd897, type: 3}
   vaseGoalIcon: {fileID: 21300000, guid: 6261ba4588be4d649876b2e7aab336ba, type: 3}
   chaliceGoalIcon: {fileID: 21300000, guid: a69b5a486ab641a4ca3d6144691cec70, type: 3}
