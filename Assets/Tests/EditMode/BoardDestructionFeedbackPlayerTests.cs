@@ -96,6 +96,37 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(effectRoot.childCount, Is.EqualTo(1));
         }
 
+        [Test]
+        public void TryPlaySpawnsAndCleansUpRemovedStoneVisual()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView();
+            var player = CreatePlayer(out var effectRoot);
+            board.PlaceObstacle(new BoardCoordinate(0, 0), new StoneObstacleModel());
+
+            var descriptor = new BoardDestructionFeedbackDescriptor(
+                System.Array.Empty<BoardCoordinate>(),
+                new[]
+                {
+                    new RemovedObstacleFeedback(new[] { new BoardCoordinate(0, 0) })
+                });
+
+            Assert.That(player.TryPlay(boardView, board, descriptor), Is.True);
+            Assert.That(effectRoot.childCount, Is.EqualTo(1));
+
+            var effectVisual = effectRoot.GetChild(0).GetComponent<SpriteRenderer>();
+            var stonePrefab = (GameObject)GetField(boardView, "stonePrefab");
+            Assert.That(effectVisual.sprite, Is.SameAs(stonePrefab.GetComponent<SpriteRenderer>().sprite));
+            Assert.That(effectVisual.color.r, Is.EqualTo(1f));
+            Assert.That(effectVisual.color.g, Is.EqualTo(1f));
+            Assert.That(effectVisual.color.b, Is.EqualTo(1f));
+
+            player.Advance(player.Duration);
+
+            Assert.That(player.IsPlaying, Is.False);
+            Assert.That(effectRoot.childCount, Is.EqualTo(0));
+        }
+
         private BoardView CreateConfiguredBoardView()
         {
             var host = CreateGameObject("BoardViewHost");
@@ -116,7 +147,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(boardView, "verticalRocketPrefab", CreateVisualPrefab("VerticalRocketPrefab"));
             SetField(boardView, "tntPrefab", CreateVisualPrefab("TntPrefab"));
             SetField(boardView, "vasePrefab", CreateVisualPrefab("VasePrefab"));
-            SetField(boardView, "stonePrefab", CreateVisualPrefab("StonePrefab"));
+            SetField(boardView, "stonePrefab", CreateStonePrefab());
             SetField(boardView, "chaliceBoxPrefab", CreateVisualPrefab("ChaliceBoxPrefab"));
             return boardView;
         }
@@ -161,6 +192,13 @@ namespace DreamBlastClone.Tests.EditMode
             return prefab;
         }
 
+        private GameObject CreateStonePrefab()
+        {
+            var prefab = CreateVisualPrefab("StonePrefab");
+            prefab.GetComponent<SpriteRenderer>().sprite = CreateSprite(26, 16, 26f);
+            return prefab;
+        }
+
         private Sprite CreateSprite(int width, int height, float pixelsPerUnit)
         {
             var texture = new Texture2D(width, height, TextureFormat.RGBA32, mipChain: false);
@@ -185,6 +223,12 @@ namespace DreamBlastClone.Tests.EditMode
         {
             var field = target.GetType().GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             field.SetValue(target, value);
+        }
+
+        private static object GetField(object target, string fieldName)
+        {
+            var field = target.GetType().GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            return field.GetValue(target);
         }
     }
 }

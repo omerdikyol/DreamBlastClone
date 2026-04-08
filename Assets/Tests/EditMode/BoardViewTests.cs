@@ -199,6 +199,44 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void RenderUsesStonePrefabSpriteAndWhiteColor()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView();
+
+            board.PlaceObstacle(new BoardCoordinate(0, 0), new StoneObstacleModel());
+
+            boardView.Render(board);
+
+            var stoneRenderer = FindChildByPrefix(GetObstacleRoot(boardView), "StonePrefab").GetComponent<SpriteRenderer>();
+            var stonePrefab = (GameObject)GetField(boardView, "stonePrefab");
+            var expectedSprite = stonePrefab.GetComponent<SpriteRenderer>().sprite;
+            Assert.That(stoneRenderer.sprite, Is.SameAs(expectedSprite));
+            Assert.That(stoneRenderer.color, Is.EqualTo(Color.white));
+        }
+
+        [Test]
+        public void CreateTransientObstacleVisualUsesStonePrefabSprite()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView();
+
+            board.PlaceObstacle(new BoardCoordinate(0, 0), new StoneObstacleModel());
+
+            var transientVisual = boardView.CreateTransientObstacleVisual(
+                board,
+                new[] { new BoardCoordinate(0, 0) },
+                boardView.transform,
+                z: 0f);
+
+            var stonePrefab = (GameObject)GetField(boardView, "stonePrefab");
+            var expectedSprite = stonePrefab.GetComponent<SpriteRenderer>().sprite;
+            var stoneRenderer = transientVisual.GetComponent<SpriteRenderer>();
+            Assert.That(stoneRenderer.sprite, Is.SameAs(expectedSprite));
+            Assert.That(stoneRenderer.color, Is.EqualTo(Color.white));
+        }
+
+        [Test]
         public void RenderVaseWithoutVaseObstacleViewThrows()
         {
             var board = new BoardModel(1, 1);
@@ -544,7 +582,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(boardView, "verticalRocketPrefab", CreateVisualPrefab("VerticalRocketPrefab"));
             SetField(boardView, "tntPrefab", CreateVisualPrefab("TntPrefab"));
             SetField(boardView, "vasePrefab", CreateVasePrefab());
-            SetField(boardView, "stonePrefab", CreateVisualPrefab("StonePrefab"));
+            SetField(boardView, "stonePrefab", CreateStonePrefab());
             SetField(boardView, "chaliceBoxPrefab", CreateVisualPrefab("ChaliceBoxPrefab"));
 
             return boardView;
@@ -576,6 +614,13 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(vaseView, "spriteRenderer", spriteRenderer);
             SetField(vaseView, "undamagedSprite", CreateSprite(width: 26, height: 16, pixelsPerUnit: 26f));
             SetField(vaseView, "damagedSprite", CreateSprite(width: 27, height: 16, pixelsPerUnit: 27f));
+            return prefab;
+        }
+
+        private GameObject CreateStonePrefab()
+        {
+            var prefab = CreateVisualPrefab("StonePrefab");
+            prefab.GetComponent<SpriteRenderer>().sprite = CreateSprite(width: 28, height: 16, pixelsPerUnit: 28f);
             return prefab;
         }
 

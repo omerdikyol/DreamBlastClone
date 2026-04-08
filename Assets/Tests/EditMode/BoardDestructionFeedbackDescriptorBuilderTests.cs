@@ -117,6 +117,36 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(descriptor.RemovedObstacles[0].OccupiedCoordinates, Is.EquivalentTo(chaliceBox.OccupiedCoordinates));
         }
 
+        [Test]
+        public void BuildDoesNotIncludeStoneForNormalCubeTapNextToStone()
+        {
+            var board = new BoardModel(2, 2);
+            var tap = new BoardCoordinate(0, 0);
+            board.PlaceItem(tap, new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(new BoardCoordinate(0, 1), new StoneObstacleModel());
+
+            var descriptor = BuildDescriptor(board, tap);
+
+            Assert.That(descriptor.RemovedObstacles, Is.Empty);
+        }
+
+        [Test]
+        public void BuildCollectsRemovedStoneForSpecialActivation()
+        {
+            var board = new BoardModel(3, 1);
+            var tap = new BoardCoordinate(1, 0);
+            board.PlaceItem(tap, new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceObstacle(new BoardCoordinate(0, 0), new StoneObstacleModel());
+
+            var descriptor = BuildDescriptor(board, tap);
+
+            Assert.That(descriptor.RemovedObstacles, Has.Count.EqualTo(1));
+            Assert.That(
+                descriptor.RemovedObstacles[0].OccupiedCoordinates,
+                Is.EquivalentTo(new[] { new BoardCoordinate(0, 0) }));
+        }
+
         private BoardDestructionFeedbackDescriptor BuildDescriptor(BoardModel board, BoardCoordinate tapCoordinate)
         {
             var preTapBoard = boardModelCloner.Clone(board);

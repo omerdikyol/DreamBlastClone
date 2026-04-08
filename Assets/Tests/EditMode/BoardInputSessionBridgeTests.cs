@@ -294,6 +294,56 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void TryHandleScreenTapNextToStoneDoesNotProduceStoneRemovalFeedback()
+        {
+            var board = new BoardModel(2, 2);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(new BoardCoordinate(0, 1), new StoneObstacleModel());
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(0.5f, 0.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(session.Board.GetCell(new BoardCoordinate(0, 1)).Obstacle, Is.TypeOf<StoneObstacleModel>());
+
+            var feedbackRoot = GetDestructionFeedbackPlayer(bridge).transform;
+            Assert.That(feedbackRoot.childCount, Is.EqualTo(2));
+            Assert.That(ContainsChildNameWithFragment(feedbackRoot, "StoneObstacleModel"), Is.False);
+        }
+
+        [Test]
+        public void TryHandleScreenTapThatRemovesStoneUsesCurrentDestructionFeedbackFlow()
+        {
+            var board = new BoardModel(3, 1);
+            board.PlaceItem(new BoardCoordinate(1, 0), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceObstacle(new BoardCoordinate(0, 0), new StoneObstacleModel());
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(1.5f, 0.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+
+            var feedbackRoot = GetDestructionFeedbackPlayer(bridge).transform;
+            Assert.That(ContainsChildNameWithFragment(feedbackRoot, "StoneObstacleModel"), Is.True);
+
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
+
+            Assert.That(session.Board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.Null);
+        }
+
+        [Test]
         public void TryHandleScreenTapIgnoresFurtherTapsWhileSingleRocketEffectIsActive()
         {
             var board = new BoardModel(4, 4);
@@ -648,6 +698,19 @@ namespace DreamBlastClone.Tests.EditMode
         private static float GetRemainingPreviewSeconds(BoardInputSessionBridge bridge)
         {
             return (float)GetField(bridge, "remainingPreviewSeconds");
+        }
+
+        private static bool ContainsChildNameWithFragment(Transform root, string fragment)
+        {
+            for (var index = 0; index < root.childCount; index++)
+            {
+                if (root.GetChild(index).name.Contains(fragment, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static string ReadLevelJson(string fileName)
