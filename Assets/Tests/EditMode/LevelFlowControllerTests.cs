@@ -136,43 +136,36 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
-        public void LevelSceneFlowControllerAdvancesCurrentLevelOnWin()
+        public void LevelSceneFlowControllerCompletesWinAndAdvancesCurrentLevelOnce()
         {
             var catalog = CreateCatalog(new TextAsset("1"), new TextAsset("2"), new TextAsset("3"));
-            var bridge = CreateGameObject("Bridge").AddComponent<BoardInputSessionBridge>();
             var controller = CreateGameObject("FlowController").AddComponent<TestLevelSceneFlowController>();
             var store = new CurrentLevelStore(PlayerPrefsKey);
             store.SetCurrentLevel(1);
 
-            SetField(controller, "inputBridge", bridge);
             SetField(controller, "levelCatalog", catalog);
 
-            InvokeMethod(controller, "OnEnable");
-            controller.HandleTapProcessed(new LevelSessionTapResult(BoardTapDispatchResult.Invalid(), false, 0, LevelState.Win));
-            InvokeMethod(controller, "OnDisable");
+            controller.CompleteWinAndReturnToMainScene();
+            controller.CompleteWinAndReturnToMainScene();
 
             Assert.That(store.GetCurrentLevel(), Is.EqualTo(2));
             Assert.That(controller.LoadedSceneName, Is.EqualTo("MainScene"));
         }
 
         [Test]
-        public void LevelSceneFlowControllerKeepsCurrentLevelOnLose()
+        public void LevelSceneFlowControllerCompleteWinAndReturnToMainSceneSupportsFinishedSentinel()
         {
             var catalog = CreateCatalog(new TextAsset("1"), new TextAsset("2"), new TextAsset("3"));
-            var bridge = CreateGameObject("Bridge").AddComponent<BoardInputSessionBridge>();
             var controller = CreateGameObject("FlowController").AddComponent<TestLevelSceneFlowController>();
             var store = new CurrentLevelStore(PlayerPrefsKey);
-            store.SetCurrentLevel(2);
-
-            SetField(controller, "inputBridge", bridge);
+            store.SetCurrentLevel(3);
             SetField(controller, "levelCatalog", catalog);
 
-            InvokeMethod(controller, "OnEnable");
-            controller.HandleTapProcessed(new LevelSessionTapResult(BoardTapDispatchResult.Invalid(), false, 0, LevelState.Lose));
-            InvokeMethod(controller, "OnDisable");
+            controller.CompleteWinAndReturnToMainScene();
 
-            Assert.That(store.GetCurrentLevel(), Is.EqualTo(2));
-            Assert.That(controller.LoadedSceneName, Is.Null);
+            Assert.That(store.IsFinished(3), Is.True);
+            Assert.That(store.GetPlayableLevel(3), Is.EqualTo(3));
+            Assert.That(controller.LoadedSceneName, Is.EqualTo("MainScene"));
         }
 
         [Test]
@@ -193,6 +186,46 @@ namespace DreamBlastClone.Tests.EditMode
             controller.ReturnToMainScene();
 
             Assert.That(controller.LoadedSceneName, Is.EqualTo("MainScene"));
+        }
+
+        [Test]
+        public void MainSceneLauncherShowsNextLevelAfterProgressionAdvances()
+        {
+            var catalog = CreateCatalog(new TextAsset("1"), new TextAsset("2"), new TextAsset("3"));
+            var launcher = CreateGameObject("Launcher").AddComponent<TestMainSceneLauncher>();
+            var levelLabel = CreateLabel("LevelLabel");
+            var store = new CurrentLevelStore(PlayerPrefsKey);
+            store.SetCurrentLevel(1);
+            store.AdvanceOnWin(3);
+
+            SetField(launcher, "levelCatalog", catalog);
+            SetField(launcher, "levelLabel", levelLabel);
+
+            InvokeMethod(launcher, "Awake");
+
+            Assert.That(launcher.CurrentLevelNumber, Is.EqualTo(2));
+            Assert.That(launcher.IsFinished, Is.False);
+            Assert.That(levelLabel.text, Is.EqualTo("Level 2"));
+        }
+
+        [Test]
+        public void MainSceneLauncherShowsFinishedAfterFinalWinProgression()
+        {
+            var catalog = CreateCatalog(new TextAsset("1"), new TextAsset("2"), new TextAsset("3"));
+            var launcher = CreateGameObject("Launcher").AddComponent<TestMainSceneLauncher>();
+            var levelLabel = CreateLabel("LevelLabel");
+            var store = new CurrentLevelStore(PlayerPrefsKey);
+            store.SetCurrentLevel(3);
+            store.AdvanceOnWin(3);
+
+            SetField(launcher, "levelCatalog", catalog);
+            SetField(launcher, "levelLabel", levelLabel);
+
+            InvokeMethod(launcher, "Awake");
+
+            Assert.That(launcher.CurrentLevelNumber, Is.EqualTo(3));
+            Assert.That(launcher.IsFinished, Is.True);
+            Assert.That(levelLabel.text, Is.EqualTo("Finished"));
         }
 
         private LevelCatalogAsset CreateCatalog(params TextAsset[] files)

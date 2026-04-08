@@ -1,6 +1,4 @@
 using System;
-using DreamBlastClone.Controllers;
-using DreamBlastClone.Systems;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -8,57 +6,12 @@ namespace DreamBlastClone.Controllers.Unity
 {
     public class LevelSceneFlowController : MonoBehaviour
     {
-        [SerializeField] private BoardInputSessionBridge inputBridge;
         [SerializeField] private LevelCatalogAsset levelCatalog;
         [SerializeField] private string levelSceneName = "LevelScene";
         [SerializeField] private string mainSceneName = "MainScene";
 
         private readonly CurrentLevelStore currentLevelStore = new CurrentLevelStore();
-
-        private void OnEnable()
-        {
-            var targetInputBridge = inputBridge is not null ? inputBridge : GetComponent<BoardInputSessionBridge>();
-
-            if (targetInputBridge is null)
-            {
-                return;
-            }
-
-            inputBridge = targetInputBridge;
-            inputBridge.TapProcessed += HandleTapProcessed;
-        }
-
-        private void OnDisable()
-        {
-            if (inputBridge is not null)
-            {
-                inputBridge.TapProcessed -= HandleTapProcessed;
-            }
-        }
-
-        public void HandleTapProcessed(LevelSessionTapResult result)
-        {
-            if (result is null || result.LevelState == LevelState.Continue)
-            {
-                return;
-            }
-
-            if (result.LevelState == LevelState.Win)
-            {
-                if (levelCatalog is not null && levelCatalog.LevelCount > 0)
-                {
-                    currentLevelStore.AdvanceOnWin(levelCatalog.LevelCount);
-                }
-
-                ReturnToMainScene();
-                return;
-            }
-
-            if (result.LevelState == LevelState.Lose)
-            {
-                return;
-            }
-        }
+        private bool hasCompletedWinFlow;
 
         public void ReturnToMainScene()
         {
@@ -68,6 +21,23 @@ namespace DreamBlastClone.Controllers.Unity
         public void RetryCurrentLevel()
         {
             LoadScene(levelSceneName);
+        }
+
+        public void CompleteWinAndReturnToMainScene()
+        {
+            if (hasCompletedWinFlow)
+            {
+                return;
+            }
+
+            hasCompletedWinFlow = true;
+
+            if (levelCatalog is not null && levelCatalog.LevelCount > 0)
+            {
+                currentLevelStore.AdvanceOnWin(levelCatalog.LevelCount);
+            }
+
+            ReturnToMainScene();
         }
 
         protected virtual void LoadScene(string sceneName)
