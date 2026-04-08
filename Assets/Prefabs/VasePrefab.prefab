@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8123177929346271635}
   - component: {fileID: 4079417007109854712}
+  - component: {fileID: 1944154716834492408}
   m_Layer: 0
   m_Name: VasePrefab
   m_TagString: Untagged
@@ -91,3 +92,18 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &1944154716834492408
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8448764213876687020}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b779eb1cc98843e983ca90911db645e7, type: 3}
+  m_Name: ''
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.VaseObstacleView
+  spriteRenderer: {fileID: 4079417007109854712}
+  undamagedSprite: {fileID: 21300000, guid: 6261ba4588be4d649876b2e7aab336ba, type: 3}
+  damagedSprite: {fileID: 21300000, guid: 21205d740730eb440ba933bae4b100c9, type: 3}

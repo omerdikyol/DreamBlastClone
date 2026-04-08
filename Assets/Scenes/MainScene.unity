@@ -162,7 +162,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 95f4dc75dd0a4e49bb25e7d00f91d71c, type: 3}
-  m_Name: ''
+  m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Controllers.Unity::DreamBlastClone.Controllers.Unity.MainSceneLauncher
   levelCatalog: {fileID: 11400000, guid: 1a64d9d4f43845778a59cbefc459f7b8, type: 2}
   startButton: {fileID: 885875321}
@@ -178,10 +178,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c64d804266764dd3a327d68ff14c4649, type: 3}
-  m_Name: ''
+  m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Controllers.Unity::DreamBlastClone.Controllers.Unity.CurrentLevelDebugTool
   levelCatalog: {fileID: 11400000, guid: 1a64d9d4f43845778a59cbefc459f7b8, type: 2}
-  selectedLevel: 1
+  selectedLevel: 3
 --- !u!1 &234748939
 GameObject:
   m_ObjectHideFlags: 0
@@ -709,7 +709,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: I am Text
+  m_text: Level 3
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: c0ff7bc9195904049acaef0df93102a8, type: 2}
   m_sharedMaterial: {fileID: -1154676297339140024, guid: c0ff7bc9195904049acaef0df93102a8, type: 2}

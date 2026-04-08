@@ -137,6 +137,83 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void RenderUsesUndamagedVaseSpriteForFullDurability()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView();
+
+            board.PlaceObstacle(new BoardCoordinate(0, 0), new VaseObstacleModel(remainingDurability: 2));
+
+            boardView.Render(board);
+
+            AssertVaseVisual(boardView, "undamagedSprite");
+        }
+
+        [Test]
+        public void RenderUsesDamagedVaseSpriteForOneRemainingDurability()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView();
+
+            board.PlaceObstacle(new BoardCoordinate(0, 0), new VaseObstacleModel(remainingDurability: 1));
+
+            boardView.Render(board);
+
+            AssertVaseVisual(boardView, "damagedSprite");
+        }
+
+        [Test]
+        public void RerenderUpdatesVaseSpriteWhenDurabilityChanges()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView();
+            var vase = new VaseObstacleModel(remainingDurability: 2);
+
+            board.PlaceObstacle(new BoardCoordinate(0, 0), vase);
+            boardView.Render(board);
+            AssertVaseVisual(boardView, "undamagedSprite");
+
+            vase.RemainingDurability = 1;
+            boardView.Render(board);
+
+            AssertVaseVisual(boardView, "damagedSprite");
+        }
+
+        [Test]
+        public void CreateTransientObstacleVisualUsesDamagedVaseSprite()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView();
+
+            board.PlaceObstacle(new BoardCoordinate(0, 0), new VaseObstacleModel(remainingDurability: 1));
+
+            var transientVisual = boardView.CreateTransientObstacleVisual(
+                board,
+                new[] { new BoardCoordinate(0, 0) },
+                boardView.transform,
+                z: 0f);
+
+            var vaseView = transientVisual.GetComponent<VaseObstacleView>();
+            Assert.That(vaseView, Is.Not.Null);
+            Assert.That(transientVisual.GetComponent<SpriteRenderer>().sprite, Is.SameAs(GetField(vaseView, "damagedSprite")));
+        }
+
+        [Test]
+        public void RenderVaseWithoutVaseObstacleViewThrows()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView();
+            var vasePrefab = (GameObject)GetField(boardView, "vasePrefab");
+
+            UnityEngine.Object.DestroyImmediate(vasePrefab.GetComponent<VaseObstacleView>());
+            board.PlaceObstacle(new BoardCoordinate(0, 0), new VaseObstacleModel());
+
+            Assert.That(
+                () => boardView.Render(board),
+                Throws.InvalidOperationException.With.Message.Contains("VaseObstacleView"));
+        }
+
+        [Test]
         public void RenderUsesConfiguredCubeSpriteInsteadOfTintingBaseSprite()
         {
             var board = new BoardModel(1, 1);
@@ -466,7 +543,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(boardView, "horizontalRocketPrefab", CreateVisualPrefab("HorizontalRocketPrefab"));
             SetField(boardView, "verticalRocketPrefab", CreateVisualPrefab("VerticalRocketPrefab"));
             SetField(boardView, "tntPrefab", CreateVisualPrefab("TntPrefab"));
-            SetField(boardView, "vasePrefab", CreateVisualPrefab("VasePrefab"));
+            SetField(boardView, "vasePrefab", CreateVasePrefab());
             SetField(boardView, "stonePrefab", CreateVisualPrefab("StonePrefab"));
             SetField(boardView, "chaliceBoxPrefab", CreateVisualPrefab("ChaliceBoxPrefab"));
 
@@ -487,6 +564,18 @@ namespace DreamBlastClone.Tests.EditMode
         {
             var prefab = CreateGameObject(name);
             prefab.AddComponent<SpriteRenderer>();
+            return prefab;
+        }
+
+        private GameObject CreateVasePrefab()
+        {
+            var prefab = CreateVisualPrefab("VasePrefab");
+            var vaseView = prefab.AddComponent<VaseObstacleView>();
+            var spriteRenderer = prefab.GetComponent<SpriteRenderer>();
+
+            SetField(vaseView, "spriteRenderer", spriteRenderer);
+            SetField(vaseView, "undamagedSprite", CreateSprite(width: 26, height: 16, pixelsPerUnit: 26f));
+            SetField(vaseView, "damagedSprite", CreateSprite(width: 27, height: 16, pixelsPerUnit: 27f));
             return prefab;
         }
 
@@ -568,6 +657,15 @@ namespace DreamBlastClone.Tests.EditMode
             var expectedSprite = (Sprite)GetField(cubeView, expectedSpriteFieldName);
             Assert.That(cubeRenderer.sprite, Is.SameAs(expectedSprite));
             Assert.That(cubeRenderer.color, Is.EqualTo(Color.white));
+        }
+
+        private void AssertVaseVisual(BoardView boardView, string expectedSpriteFieldName)
+        {
+            var vaseRenderer = FindChildByPrefix(GetObstacleRoot(boardView), "VasePrefab").GetComponent<SpriteRenderer>();
+            var vaseView = ((GameObject)GetField(boardView, "vasePrefab")).GetComponent<VaseObstacleView>();
+            var expectedSprite = (Sprite)GetField(vaseView, expectedSpriteFieldName);
+            Assert.That(vaseRenderer.sprite, Is.SameAs(expectedSprite));
+            Assert.That(vaseRenderer.color, Is.EqualTo(Color.white));
         }
 
         private static void SetField(object target, string fieldName, object value)

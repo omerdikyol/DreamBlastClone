@@ -179,6 +179,7 @@ namespace DreamBlastClone.Views
             instance.name = $"Transient_{cell.Obstacle.GetType().Name}_{DescribeObstacleFootprint(occupiedCoordinates)}";
             instance.transform.position = transform.TransformPoint(GetFootprintCenter(occupiedCoordinates, z));
             instance.transform.rotation = transform.rotation;
+            ApplyObstacleAppearance(instance, cell.Obstacle);
             instance.transform.localScale = GetVisualScale(instance.transform, GetFootprintSize(occupiedCoordinates));
             return instance;
         }
@@ -234,6 +235,7 @@ namespace DreamBlastClone.Views
                 var instance = Instantiate(prefab, ResolveObstacleRoot(), worldPositionStays: false);
                 instance.name = $"{prefab.name}_{DescribeObstacleFootprint(occupiedCoordinates)}";
                 instance.transform.localPosition = GetFootprintCenter(occupiedCoordinates, obstacleZ);
+                ApplyObstacleAppearance(instance, obstacle);
                 instance.transform.localScale = GetVisualScale(
                     instance.transform,
                     GetFootprintSize(occupiedCoordinates));
@@ -300,6 +302,37 @@ namespace DreamBlastClone.Views
         }
 
         private void ApplyDefaultItemAppearance(GameObject instance)
+        {
+            if (instance.TryGetComponent<SpriteRenderer>(out var spriteRenderer))
+            {
+                spriteRenderer.color = Color.white;
+            }
+        }
+
+        private void ApplyObstacleAppearance(GameObject instance, ObstacleModel obstacle)
+        {
+            switch (obstacle)
+            {
+                case VaseObstacleModel vase:
+                    ApplyVaseAppearance(instance, vase);
+                    break;
+                default:
+                    ApplyDefaultObstacleAppearance(instance);
+                    break;
+            }
+        }
+
+        private void ApplyVaseAppearance(GameObject instance, VaseObstacleModel vase)
+        {
+            if (!instance.TryGetComponent<VaseObstacleView>(out var vaseObstacleView))
+            {
+                throw new InvalidOperationException("BoardView requires vasePrefab to include a VaseObstacleView component.");
+            }
+
+            vaseObstacleView.SetAppearance(vase.RemainingDurability);
+        }
+
+        private void ApplyDefaultObstacleAppearance(GameObject instance)
         {
             if (instance.TryGetComponent<SpriteRenderer>(out var spriteRenderer))
             {
