@@ -76,6 +76,12 @@ namespace DreamBlastClone.Controllers.Unity
             return true;
         }
 
+        public void RefreshForInspector()
+        {
+            RefreshCurrentLevel();
+            RefreshUi();
+        }
+
         protected virtual void LoadScene(string sceneName)
         {
             SceneManager.LoadScene(sceneName);

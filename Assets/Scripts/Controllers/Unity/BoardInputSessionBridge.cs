@@ -19,6 +19,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private Camera inputCamera;
         [SerializeField] private float normalCubePreviewDuration = 0.12f;
         [SerializeField] private BoardDestructionFeedbackPlayer destructionFeedbackPlayer;
+        [SerializeField] private BoardSettleMotionPlayer settleMotionPlayer;
         [SerializeField] private SingleRocketActivationEffectPlayer singleRocketEffectPlayer;
 
         private readonly CubeGroupDetector cubeGroupDetector = new CubeGroupDetector();
@@ -26,11 +27,15 @@ namespace DreamBlastClone.Controllers.Unity
         private readonly NormalCubeTapPreviewBoardBuilder previewBoardBuilder = new NormalCubeTapPreviewBoardBuilder();
         private readonly SpecialItemTapPreviewBoardBuilder specialItemPreviewBoardBuilder = new SpecialItemTapPreviewBoardBuilder();
         private readonly BoardDestructionFeedbackDescriptorBuilder destructionFeedbackDescriptorBuilder = new BoardDestructionFeedbackDescriptorBuilder();
+        private readonly BoardSettleMotionDescriptorBuilder settleMotionDescriptorBuilder = new BoardSettleMotionDescriptorBuilder();
+        private readonly BoardSettleStartBoardBuilder settleStartBoardBuilder = new BoardSettleStartBoardBuilder();
         private readonly SingleRocketActivationEffectDescriptorBuilder singleRocketEffectDescriptorBuilder = new SingleRocketActivationEffectDescriptorBuilder();
         private static readonly bool EnableTapDebugLogging = false;
         private const float CubeTapSnapRadiusFactor = 1.1f;
         private const float CubeTapStickinessFactor = 0.35f;
         private BoardModel pendingFinalBoard;
+        private BoardModel pendingSettleStartBoard;
+        private BoardSettleMotionDescriptor pendingSettleMotionDescriptor;
         private float remainingPreviewSeconds;
 
         public event Action<LevelSessionTapResult> TapProcessed;
@@ -124,6 +129,11 @@ namespace DreamBlastClone.Controllers.Unity
                 return;
             }
 
+            var settleMotionDescriptor = settleMotionDescriptorBuilder.Build(previewBoard, tapResult.Tap, finalBoard);
+            var settleStartBoard = settleMotionDescriptor.HasAnyMotion
+                ? settleStartBoardBuilder.Build(previewBoard, tapResult.Tap)
+                : null;
+
             boardView.Render(previewBoard);
 
             var presentationDuration = 0f;
@@ -137,18 +147,27 @@ namespace DreamBlastClone.Controllers.Unity
                 presentationDuration = Math.Max(presentationDuration, rocketDuration);
             }
 
+            pendingFinalBoard = finalBoard;
+            pendingSettleStartBoard = settleStartBoard;
+            pendingSettleMotionDescriptor = settleMotionDescriptor;
+
             if (presentationDuration <= 0f)
             {
+                if (TryStartPendingSettleMotion())
+                {
+                    return;
+                }
+
                 if (normalCubePreviewDuration <= 0f)
                 {
                     boardView.Render(finalBoard);
+                    ClearPendingPreview();
                     return;
                 }
 
                 presentationDuration = normalCubePreviewDuration;
             }
 
-            pendingFinalBoard = finalBoard;
             remainingPreviewSeconds = presentationDuration;
         }
 
@@ -157,6 +176,11 @@ namespace DreamBlastClone.Controllers.Unity
             if (destructionFeedbackPlayer is not null)
             {
                 destructionFeedbackPlayer.Advance(deltaTime);
+            }
+
+            if (settleMotionPlayer is not null)
+            {
+                settleMotionPlayer.Advance(deltaTime);
             }
 
             if (singleRocketEffectPlayer is not null)
@@ -175,6 +199,11 @@ namespace DreamBlastClone.Controllers.Unity
                 return;
             }
 
+            if (TryStartPendingSettleMotion())
+            {
+                return;
+            }
+
             boardView.Render(pendingFinalBoard);
             ClearPendingPreview();
         }
@@ -187,9 +216,39 @@ namespace DreamBlastClone.Controllers.Unity
         private void ClearPendingPreview()
         {
             destructionFeedbackPlayer?.Stop();
+            settleMotionPlayer?.Stop();
             singleRocketEffectPlayer?.Stop();
             pendingFinalBoard = null;
+            pendingSettleStartBoard = null;
+            pendingSettleMotionDescriptor = null;
             remainingPreviewSeconds = 0f;
+        }
+
+        private bool TryStartPendingSettleMotion()
+        {
+            if (pendingFinalBoard is null
+                || pendingSettleStartBoard is null
+                || pendingSettleMotionDescriptor is null
+                || !pendingSettleMotionDescriptor.HasAnyMotion
+                || settleMotionPlayer is null
+                || boardView is null)
+            {
+                return false;
+            }
+
+            boardView.Render(pendingSettleStartBoard);
+
+            if (!settleMotionPlayer.TryPlay(boardView, pendingFinalBoard, pendingSettleMotionDescriptor))
+            {
+                pendingSettleStartBoard = null;
+                pendingSettleMotionDescriptor = null;
+                return false;
+            }
+
+            pendingSettleStartBoard = null;
+            pendingSettleMotionDescriptor = null;
+            remainingPreviewSeconds = settleMotionPlayer.Duration;
+            return true;
         }
 
         private BoardModel BuildPreviewBoard(BoardModel preTapBoard, BoardTapDispatchResult tap)

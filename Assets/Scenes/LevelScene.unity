@@ -892,6 +892,8 @@ GameObject:
   - component: {fileID: 1374160544}
   - component: {fileID: 1374160545}
   - component: {fileID: 1374160546}
+  - component: {fileID: 1374160547}
+  - component: {fileID: 1374160548}
   m_Layer: 0
   m_Name: LevelSceneRuntime
   m_TagString: Untagged
@@ -957,6 +959,7 @@ MonoBehaviour:
   inputCamera: {fileID: 519420031}
   normalCubePreviewDuration: 0.12
   destructionFeedbackPlayer: {fileID: 1374160546}
+  settleMotionPlayer: {fileID: 1374160547}
   singleRocketEffectPlayer: {fileID: 1374160545}
 --- !u!114 &1374160543
 MonoBehaviour:
@@ -1030,6 +1033,36 @@ MonoBehaviour:
   effectZ: -0.15
   startScaleMultiplier: 1.08
   endScaleMultiplier: 0.15
+--- !u!114 &1374160547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1374160538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5428e469f6f47d2b41c2f0f0f4e06d6, type: 3}
+  m_Name: ''
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.BoardSettleMotionPlayer
+  effectRoot: {fileID: 0}
+  secondsPerCell: 0.08
+  minimumDuration: 0.12
+  effectZ: -0.12
+--- !u!114 &1374160548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1374160538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c64d804266764dd3a327d68ff14c4649, type: 3}
+  m_Name: ''
+  m_EditorClassIdentifier: DreamBlastClone.Controllers.Unity::DreamBlastClone.Controllers.Unity.CurrentLevelDebugTool
+  levelCatalog: {fileID: 11400000, guid: 1a64d9d4f43845778a59cbefc459f7b8, type: 2}
+  selectedLevel: 1
 --- !u!1 &1517054704
 GameObject:
   m_ObjectHideFlags: 0

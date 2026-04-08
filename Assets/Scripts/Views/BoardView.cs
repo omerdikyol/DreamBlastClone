@@ -128,6 +128,27 @@ namespace DreamBlastClone.Views
             return instance;
         }
 
+        public GameObject CreateTransientCubeVisual(
+            BoardModel boardContext,
+            BoardCoordinate coordinate,
+            CubeColor color,
+            Transform parent,
+            float z)
+        {
+            if (boardContext is null)
+            {
+                throw new ArgumentNullException(nameof(boardContext));
+            }
+
+            var instance = Instantiate(RequirePrefab(cubePrefab, nameof(cubePrefab)), parent, worldPositionStays: false);
+            instance.name = $"Transient_Cube_{color}_{coordinate}";
+            instance.transform.position = transform.TransformPoint(GetCellCenter(coordinate, z));
+            instance.transform.rotation = transform.rotation;
+            ApplyCubeAppearance(instance, color, ResolveCubeVisualState(coordinate, BuildCubeVisualStates(boardContext)));
+            instance.transform.localScale = GetVisualScale(instance.transform, new Vector2(cellSize, cellSize));
+            return instance;
+        }
+
         public GameObject CreateTransientObstacleVisual(
             BoardModel sourceBoard,
             IReadOnlyList<BoardCoordinate> occupiedCoordinates,
