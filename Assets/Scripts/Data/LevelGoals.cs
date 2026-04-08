@@ -40,7 +40,7 @@ namespace DreamBlastClone.Data
 
             var countsByType = new Dictionary<LevelGoalType, int>();
             var orderedGoalTypes = new List<LevelGoalType>();
-            var chaliceAnchors = new HashSet<BoardCoordinate>();
+            var chaliceParts = new Dictionary<BoardCoordinate, ChaliceBoxPart>();
 
             foreach (var cell in levelDefinition.CellDefinitions)
             {
@@ -57,13 +57,23 @@ namespace DreamBlastClone.Data
                     orderedGoalTypes.Add(goalType);
                 }
 
-                if (cell.Obstacle is ChaliceBoxPartLevelObstacleDefinition chalicePart
-                    && !chaliceAnchors.Add(GetAnchor(cell.Coordinate, chalicePart.Part)))
+                if (cell.Obstacle is ChaliceBoxPartLevelObstacleDefinition chalicePart)
                 {
+                    chaliceParts.Add(cell.Coordinate, chalicePart.Part);
                     continue;
                 }
 
                 countsByType[goalType]++;
+            }
+
+            if (chaliceParts.Count > 0)
+            {
+                var chaliceRegions = ChaliceBoxRegionNormalizer.Normalize(
+                    chaliceParts,
+                    levelDefinition.GridWidth,
+                    levelDefinition.GridHeight,
+                    levelDefinition.LevelNumber);
+                countsByType[LevelGoalType.ChaliceBox] = chaliceRegions.Count * 10;
             }
 
             var goals = new List<LevelGoalDefinition>(orderedGoalTypes.Count);
@@ -84,18 +94,6 @@ namespace DreamBlastClone.Data
                 VaseLevelObstacleDefinition => LevelGoalType.Vase,
                 ChaliceBoxPartLevelObstacleDefinition => LevelGoalType.ChaliceBox,
                 _ => throw new InvalidOperationException($"Unsupported goal obstacle definition '{obstacle.GetType().Name}'.")
-            };
-        }
-
-        private static BoardCoordinate GetAnchor(BoardCoordinate coordinate, ChaliceBoxPart part)
-        {
-            return part switch
-            {
-                ChaliceBoxPart.BottomLeft => coordinate,
-                ChaliceBoxPart.BottomRight => coordinate.Offset(-1, 0),
-                ChaliceBoxPart.TopLeft => coordinate.Offset(0, -1),
-                ChaliceBoxPart.TopRight => coordinate.Offset(-1, -1),
-                _ => throw new InvalidOperationException($"Unsupported chalice box part '{part}'.")
             };
         }
     }

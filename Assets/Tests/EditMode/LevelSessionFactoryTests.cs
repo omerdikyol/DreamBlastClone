@@ -78,7 +78,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(session.Goals[1].GoalType, Is.EqualTo(LevelGoalType.Vase));
             Assert.That(session.Goals[1].InitialCount, Is.EqualTo(4));
             Assert.That(session.Goals[2].GoalType, Is.EqualTo(LevelGoalType.ChaliceBox));
-            Assert.That(session.Goals[2].InitialCount, Is.EqualTo(2));
+            Assert.That(session.Goals[2].InitialCount, Is.EqualTo(20));
         }
 
         [Test]

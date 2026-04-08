@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5344876140323505267}
   - component: {fileID: 7380942099855516956}
+  - component: {fileID: 6486282021577092625}
   m_Layer: 0
   m_Name: ChalicePrefab
   m_TagString: Untagged
@@ -94,6 +95,21 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!114 &6486282021577092625
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3632859418613727848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f034f0da4fe43a297505946f0820638, type: 3}
+  m_Name: ''
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.ChaliceBoxObstacleView
+  backgroundRenderer: {fileID: 6370362287213213511}
+  doorsRenderer: {fileID: 1014604525497019039}
+  chaliceRenderer: {fileID: 9007498975695966546}
 --- !u!1 &4484423719539291708
 GameObject:
   m_ObjectHideFlags: 0

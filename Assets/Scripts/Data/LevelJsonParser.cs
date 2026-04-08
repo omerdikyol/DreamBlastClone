@@ -80,66 +80,7 @@ namespace DreamBlastClone.Data
             int gridHeight,
             int levelNumber)
         {
-            var partsByAnchor = new Dictionary<BoardCoordinate, Dictionary<ChaliceBoxPart, BoardCoordinate>>();
-
-            foreach (var partEntry in chaliceParts)
-            {
-                var anchor = GetAnchor(partEntry.Key, partEntry.Value);
-
-                if (!partsByAnchor.TryGetValue(anchor, out var anchoredParts))
-                {
-                    anchoredParts = new Dictionary<ChaliceBoxPart, BoardCoordinate>();
-                    partsByAnchor.Add(anchor, anchoredParts);
-                }
-
-                anchoredParts.Add(partEntry.Value, partEntry.Key);
-            }
-
-            foreach (var chaliceEntry in partsByAnchor)
-            {
-                var anchor = chaliceEntry.Key;
-                var parts = chaliceEntry.Value;
-                var expectedCoordinates = new Dictionary<ChaliceBoxPart, BoardCoordinate>
-                {
-                    { ChaliceBoxPart.BottomLeft, anchor },
-                    { ChaliceBoxPart.BottomRight, anchor.Offset(1, 0) },
-                    { ChaliceBoxPart.TopLeft, anchor.Offset(0, 1) },
-                    { ChaliceBoxPart.TopRight, anchor.Offset(1, 1) }
-                };
-
-                if (parts.Count != expectedCoordinates.Count)
-                {
-                    throw new InvalidOperationException($"Level {levelNumber} contains an incomplete chalice box anchored at {anchor}.");
-                }
-
-                foreach (var expectedPart in expectedCoordinates)
-                {
-                    if (!parts.TryGetValue(expectedPart.Key, out var actualCoordinate) || actualCoordinate != expectedPart.Value)
-                    {
-                        throw new InvalidOperationException($"Level {levelNumber} contains a malformed chalice box anchored at {anchor}.");
-                    }
-
-                    if (actualCoordinate.X < 0
-                        || actualCoordinate.X >= gridWidth
-                        || actualCoordinate.Y < 0
-                        || actualCoordinate.Y >= gridHeight)
-                    {
-                        throw new InvalidOperationException($"Level {levelNumber} contains a chalice box that extends beyond the board bounds.");
-                    }
-                }
-            }
-        }
-
-        private static BoardCoordinate GetAnchor(BoardCoordinate coordinate, ChaliceBoxPart part)
-        {
-            return part switch
-            {
-                ChaliceBoxPart.BottomLeft => coordinate,
-                ChaliceBoxPart.BottomRight => coordinate.Offset(-1, 0),
-                ChaliceBoxPart.TopLeft => coordinate.Offset(0, -1),
-                ChaliceBoxPart.TopRight => coordinate.Offset(-1, -1),
-                _ => throw new InvalidOperationException($"Unsupported chalice box part '{part}'.")
-            };
+            ChaliceBoxRegionNormalizer.Normalize(chaliceParts, gridWidth, gridHeight, levelNumber);
         }
 
         private static int ReadRequiredInt(string json, string propertyName)

@@ -37,8 +37,12 @@ namespace DreamBlastClone.Views
         [SerializeField] private GameObject stonePrefab;
         [SerializeField] private GameObject chaliceBoxPrefab;
 
+        private const int ChaliceSlotCount = 10;
+        private static readonly bool[] HiddenChaliceSlotMask = new bool[ChaliceSlotCount];
         private readonly List<GameObject> spawnedVisuals = new List<GameObject>();
         private readonly CubeGroupDetector cubeGroupDetector = new CubeGroupDetector();
+        private readonly Dictionary<BoardCoordinate, ChaliceBoxPresentationState> chalicePresentationStates = new Dictionary<BoardCoordinate, ChaliceBoxPresentationState>();
+        private readonly System.Random chalicePresentationRandom = new System.Random();
 
         public float CellSize => cellSize;
 
@@ -179,8 +183,8 @@ namespace DreamBlastClone.Views
             instance.name = $"Transient_{cell.Obstacle.GetType().Name}_{DescribeObstacleFootprint(occupiedCoordinates)}";
             instance.transform.position = transform.TransformPoint(GetFootprintCenter(occupiedCoordinates, z));
             instance.transform.rotation = transform.rotation;
-            ApplyObstacleAppearance(instance, cell.Obstacle);
             instance.transform.localScale = GetVisualScale(instance.transform, GetFootprintSize(occupiedCoordinates));
+            ApplyObstacleAppearance(instance, cell.Obstacle);
             return instance;
         }
 
@@ -235,10 +239,10 @@ namespace DreamBlastClone.Views
                 var instance = Instantiate(prefab, ResolveObstacleRoot(), worldPositionStays: false);
                 instance.name = $"{prefab.name}_{DescribeObstacleFootprint(occupiedCoordinates)}";
                 instance.transform.localPosition = GetFootprintCenter(occupiedCoordinates, obstacleZ);
-                ApplyObstacleAppearance(instance, obstacle);
                 instance.transform.localScale = GetVisualScale(
                     instance.transform,
                     GetFootprintSize(occupiedCoordinates));
+                ApplyObstacleAppearance(instance, obstacle);
                 spawnedVisuals.Add(instance);
             }
         }
@@ -316,6 +320,9 @@ namespace DreamBlastClone.Views
                 case VaseObstacleModel vase:
                     ApplyVaseAppearance(instance, vase);
                     break;
+                case ChaliceBoxObstacleModel chaliceBox:
+                    ApplyChaliceBoxAppearance(instance, chaliceBox);
+                    break;
                 default:
                     ApplyDefaultObstacleAppearance(instance);
                     break;
@@ -330,6 +337,18 @@ namespace DreamBlastClone.Views
             }
 
             vaseObstacleView.SetAppearance(vase.RemainingDurability);
+        }
+
+        private void ApplyChaliceBoxAppearance(GameObject instance, ChaliceBoxObstacleModel chaliceBox)
+        {
+            if (!instance.TryGetComponent<ChaliceBoxObstacleView>(out var chaliceBoxView))
+            {
+                throw new InvalidOperationException("BoardView requires chaliceBoxPrefab to include a ChaliceBoxObstacleView component.");
+            }
+
+            chaliceBoxView.SetAppearance(
+                chaliceBox.RemainingDoorDurability > 0,
+                ResolveChaliceSlotMask(chaliceBox));
         }
 
         private void ApplyDefaultObstacleAppearance(GameObject instance)
@@ -403,6 +422,58 @@ namespace DreamBlastClone.Views
             {
                 spriteRenderer.color = color;
             }
+        }
+
+        private IReadOnlyList<bool> ResolveChaliceSlotMask(ChaliceBoxObstacleModel chaliceBox)
+        {
+            if (chaliceBox.RemainingDoorDurability > 0)
+            {
+                chalicePresentationStates.Remove(chaliceBox.Anchor);
+                return HiddenChaliceSlotMask;
+            }
+
+            var remainingChalices = Math.Max(0, Math.Min(ChaliceSlotCount, chaliceBox.RemainingChaliceCount));
+            if (!chalicePresentationStates.TryGetValue(chaliceBox.Anchor, out var state)
+                || remainingChalices > state.LastRemainingChalices)
+            {
+                state = new ChaliceBoxPresentationState(CreateRandomRemovalOrder(), remainingChalices);
+                chalicePresentationStates[chaliceBox.Anchor] = state;
+            }
+            else
+            {
+                state.LastRemainingChalices = remainingChalices;
+            }
+
+            var visibleSlotMask = new bool[ChaliceSlotCount];
+            for (var index = 0; index < ChaliceSlotCount; index++)
+            {
+                visibleSlotMask[index] = true;
+            }
+
+            for (var removedCount = 0; removedCount < ChaliceSlotCount - remainingChalices; removedCount++)
+            {
+                visibleSlotMask[state.RemovalOrder[removedCount]] = false;
+            }
+
+            return visibleSlotMask;
+        }
+
+        private int[] CreateRandomRemovalOrder()
+        {
+            var removalOrder = new int[ChaliceSlotCount];
+
+            for (var index = 0; index < removalOrder.Length; index++)
+            {
+                removalOrder[index] = index;
+            }
+
+            for (var index = removalOrder.Length - 1; index > 0; index--)
+            {
+                var swapIndex = chalicePresentationRandom.Next(index + 1);
+                (removalOrder[index], removalOrder[swapIndex]) = (removalOrder[swapIndex], removalOrder[index]);
+            }
+
+            return removalOrder;
         }
 
         private void UpdateGridBackground(BoardModel board)
@@ -556,6 +627,19 @@ namespace DreamBlastClone.Views
 
             nativeSize = hasAnySprite ? max - min : default;
             return hasAnySprite;
+        }
+
+        private sealed class ChaliceBoxPresentationState
+        {
+            public ChaliceBoxPresentationState(int[] removalOrder, int lastRemainingChalices)
+            {
+                RemovalOrder = removalOrder ?? throw new ArgumentNullException(nameof(removalOrder));
+                LastRemainingChalices = lastRemainingChalices;
+            }
+
+            public int[] RemovalOrder { get; }
+
+            public int LastRemainingChalices { get; set; }
         }
     }
 }

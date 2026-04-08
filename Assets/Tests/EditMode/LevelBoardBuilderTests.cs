@@ -125,6 +125,87 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void BuildsWideAuthoredChaliceRegionAsMultipleTwoByTwoRuntimeObstacles()
+        {
+            var builder = new LevelBoardBuilder();
+            var level = new LevelDefinition(
+                1,
+                7,
+                3,
+                10,
+                new[]
+                {
+                    new LevelCellDefinition(new BoardCoordinate(1, 0), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.BottomLeft)),
+                    new LevelCellDefinition(new BoardCoordinate(2, 0), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.BottomLeft)),
+                    new LevelCellDefinition(new BoardCoordinate(3, 0), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.BottomLeft)),
+                    new LevelCellDefinition(new BoardCoordinate(4, 0), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.BottomRight)),
+                    new LevelCellDefinition(new BoardCoordinate(1, 1), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.TopLeft)),
+                    new LevelCellDefinition(new BoardCoordinate(2, 1), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.TopLeft)),
+                    new LevelCellDefinition(new BoardCoordinate(3, 1), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.TopLeft)),
+                    new LevelCellDefinition(new BoardCoordinate(4, 1), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.TopRight))
+                });
+
+            var board = builder.Build(level, randomCubeColorResolver: null);
+            var leftChaliceBox = (ChaliceBoxObstacleModel)board.GetCell(new BoardCoordinate(1, 0)).Obstacle;
+            var rightChaliceBox = (ChaliceBoxObstacleModel)board.GetCell(new BoardCoordinate(3, 0)).Obstacle;
+
+            Assert.That(leftChaliceBox.Anchor, Is.EqualTo(new BoardCoordinate(1, 0)));
+            Assert.That(leftChaliceBox.FootprintWidth, Is.EqualTo(2));
+            Assert.That(leftChaliceBox.FootprintHeight, Is.EqualTo(2));
+            Assert.That(board.GetCell(new BoardCoordinate(2, 0)).Obstacle, Is.SameAs(leftChaliceBox));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 1)).Obstacle, Is.SameAs(leftChaliceBox));
+            Assert.That(board.GetCell(new BoardCoordinate(2, 1)).Obstacle, Is.SameAs(leftChaliceBox));
+
+            Assert.That(rightChaliceBox.Anchor, Is.EqualTo(new BoardCoordinate(3, 0)));
+            Assert.That(rightChaliceBox.FootprintWidth, Is.EqualTo(2));
+            Assert.That(rightChaliceBox.FootprintHeight, Is.EqualTo(2));
+            Assert.That(board.GetCell(new BoardCoordinate(4, 0)).Obstacle, Is.SameAs(rightChaliceBox));
+            Assert.That(board.GetCell(new BoardCoordinate(3, 1)).Obstacle, Is.SameAs(rightChaliceBox));
+            Assert.That(board.GetCell(new BoardCoordinate(4, 1)).Obstacle, Is.SameAs(rightChaliceBox));
+            Assert.That(rightChaliceBox, Is.Not.SameAs(leftChaliceBox));
+        }
+
+        [Test]
+        public void BuildsTallAuthoredChaliceRegionAsMultipleTwoByTwoRuntimeObstacles()
+        {
+            var builder = new LevelBoardBuilder();
+            var level = new LevelDefinition(
+                1,
+                3,
+                6,
+                10,
+                new[]
+                {
+                    new LevelCellDefinition(new BoardCoordinate(0, 0), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.BottomLeft)),
+                    new LevelCellDefinition(new BoardCoordinate(1, 0), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.BottomRight)),
+                    new LevelCellDefinition(new BoardCoordinate(0, 1), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.BottomLeft)),
+                    new LevelCellDefinition(new BoardCoordinate(1, 1), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.BottomRight)),
+                    new LevelCellDefinition(new BoardCoordinate(0, 2), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.BottomLeft)),
+                    new LevelCellDefinition(new BoardCoordinate(1, 2), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.BottomRight)),
+                    new LevelCellDefinition(new BoardCoordinate(0, 3), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.TopLeft)),
+                    new LevelCellDefinition(new BoardCoordinate(1, 3), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.TopRight))
+                });
+
+            var board = builder.Build(level, randomCubeColorResolver: null);
+            var bottomChaliceBox = (ChaliceBoxObstacleModel)board.GetCell(new BoardCoordinate(0, 0)).Obstacle;
+            var topChaliceBox = (ChaliceBoxObstacleModel)board.GetCell(new BoardCoordinate(0, 2)).Obstacle;
+
+            Assert.That(bottomChaliceBox.Anchor, Is.EqualTo(new BoardCoordinate(0, 0)));
+            Assert.That(topChaliceBox.Anchor, Is.EqualTo(new BoardCoordinate(0, 2)));
+            Assert.That(bottomChaliceBox, Is.Not.SameAs(topChaliceBox));
+
+            foreach (var coordinate in bottomChaliceBox.OccupiedCoordinates)
+            {
+                Assert.That(board.GetCell(coordinate).Obstacle, Is.SameAs(bottomChaliceBox));
+            }
+
+            foreach (var coordinate in topChaliceBox.OccupiedCoordinates)
+            {
+                Assert.That(board.GetCell(coordinate).Obstacle, Is.SameAs(topChaliceBox));
+            }
+        }
+
+        [Test]
         public void ThrowsWhenRandomCubeResolverIsMissing()
         {
             var builder = new LevelBoardBuilder();
@@ -189,15 +270,15 @@ namespace DreamBlastClone.Tests.EditMode
             var builder = new LevelBoardBuilder();
             var level = new LevelDefinition(
                 1,
-                4,
-                4,
+                3,
+                2,
                 10,
                 new[]
                 {
                     new LevelCellDefinition(new BoardCoordinate(0, 0), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.BottomLeft)),
                     new LevelCellDefinition(new BoardCoordinate(1, 0), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.BottomRight)),
                     new LevelCellDefinition(new BoardCoordinate(0, 1), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.TopLeft)),
-                    new LevelCellDefinition(new BoardCoordinate(2, 1), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.TopRight))
+                    new LevelCellDefinition(new BoardCoordinate(1, 1), obstacle: new ChaliceBoxPartLevelObstacleDefinition(ChaliceBoxPart.TopLeft))
                 });
 
             Assert.That(

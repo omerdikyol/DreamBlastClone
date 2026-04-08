@@ -55,7 +55,7 @@ namespace DreamBlastClone.Data
                 board.PlaceObstacle(cellDefinition.Coordinate, obstacle);
             }
 
-            PlaceChaliceBoxes(board, chaliceBoxParts);
+            PlaceChaliceBoxes(board, chaliceBoxParts, levelDefinition.LevelNumber);
             return board;
         }
 
@@ -110,75 +110,19 @@ namespace DreamBlastClone.Data
             };
         }
 
-        private static void PlaceChaliceBoxes(BoardModel board, IReadOnlyDictionary<BoardCoordinate, ChaliceBoxPart> chaliceBoxParts)
+        private static void PlaceChaliceBoxes(BoardModel board, IReadOnlyDictionary<BoardCoordinate, ChaliceBoxPart> chaliceBoxParts, int levelNumber)
         {
-            var groupsByAnchor = new Dictionary<BoardCoordinate, Dictionary<ChaliceBoxPart, BoardCoordinate>>();
+            var regions = ChaliceBoxRegionNormalizer.Normalize(chaliceBoxParts, board.Width, board.Height, levelNumber);
 
-            foreach (var entry in chaliceBoxParts)
+            foreach (var region in regions)
             {
-                var anchor = GetAnchorFromPart(entry.Key, entry.Value);
-
-                if (!groupsByAnchor.TryGetValue(anchor, out var group))
-                {
-                    group = new Dictionary<ChaliceBoxPart, BoardCoordinate>();
-                    groupsByAnchor.Add(anchor, group);
-                }
-
-                if (!group.TryAdd(entry.Value, entry.Key))
-                {
-                    throw new InvalidOperationException($"Chalice box at {anchor} contains duplicate '{entry.Value}' parts.");
-                }
+                var chaliceBox = new ChaliceBoxObstacleModel(
+                    region.Anchor,
+                    remainingDoorDurability: 4,
+                    requiredChaliceCount: 10,
+                    collectedChaliceCount: 0);
+                board.PlaceObstacle(region.OccupiedCoordinates, chaliceBox);
             }
-
-            foreach (var groupEntry in groupsByAnchor)
-            {
-                var anchor = groupEntry.Key;
-                var partsByType = groupEntry.Value;
-                var expectedCoordinates = new Dictionary<ChaliceBoxPart, BoardCoordinate>
-                {
-                    { ChaliceBoxPart.BottomLeft, anchor },
-                    { ChaliceBoxPart.BottomRight, anchor.Offset(1, 0) },
-                    { ChaliceBoxPart.TopLeft, anchor.Offset(0, 1) },
-                    { ChaliceBoxPart.TopRight, anchor.Offset(1, 1) }
-                };
-
-                if (partsByType.Count != expectedCoordinates.Count)
-                {
-                    throw new InvalidOperationException($"Chalice box at {anchor} is incomplete and must contain exactly four parts.");
-                }
-
-                foreach (var expectedPart in expectedCoordinates)
-                {
-                    if (!partsByType.TryGetValue(expectedPart.Key, out var actualCoordinate))
-                    {
-                        throw new InvalidOperationException($"Chalice box at {anchor} is missing the '{expectedPart.Key}' part.");
-                    }
-
-                    if (actualCoordinate != expectedPart.Value)
-                    {
-                        throw new InvalidOperationException(
-                            $"Chalice box at {anchor} has '{expectedPart.Key}' at {actualCoordinate}, expected {expectedPart.Value}.");
-                    }
-
-                    ValidateCellIsWithinBoard(board, actualCoordinate);
-                }
-
-                // Chalice box authored parts are normalized into one runtime obstacle anchored at the bottom-left cell.
-                var chaliceBox = new ChaliceBoxObstacleModel(anchor, remainingDoorDurability: 4, requiredChaliceCount: 10, collectedChaliceCount: 0);
-                board.PlaceObstacle(expectedCoordinates.Values, chaliceBox);
-            }
-        }
-
-        private static BoardCoordinate GetAnchorFromPart(BoardCoordinate coordinate, ChaliceBoxPart part)
-        {
-            return part switch
-            {
-                ChaliceBoxPart.BottomLeft => coordinate,
-                ChaliceBoxPart.BottomRight => coordinate.Offset(-1, 0),
-                ChaliceBoxPart.TopLeft => coordinate.Offset(0, -1),
-                ChaliceBoxPart.TopRight => coordinate.Offset(-1, -1),
-                _ => throw new InvalidOperationException($"Unsupported chalice box part '{part}'.")
-            };
         }
     }
 }

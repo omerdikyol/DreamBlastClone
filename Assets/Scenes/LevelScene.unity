@@ -996,7 +996,7 @@ MonoBehaviour:
   goalItemSpacing: 92
   stoneGoalIcon: {fileID: 21300000, guid: 62cec442f5b015344bc9860a87acd897, type: 3}
   vaseGoalIcon: {fileID: 21300000, guid: 6261ba4588be4d649876b2e7aab336ba, type: 3}
-  chaliceBoxGoalIcon: {fileID: 21300000, guid: 6c41c4b30b3e8e440859e225f3334a99, type: 3}
+  chaliceGoalIcon: {fileID: 21300000, guid: a69b5a486ab641a4ca3d6144691cec70, type: 3}
 --- !u!114 &1374160545
 MonoBehaviour:
   m_ObjectHideFlags: 0

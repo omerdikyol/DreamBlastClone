@@ -17,7 +17,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private float goalItemSpacing = 140f;
         [SerializeField] private Sprite stoneGoalIcon;
         [SerializeField] private Sprite vaseGoalIcon;
-        [SerializeField] private Sprite chaliceBoxGoalIcon;
+        [SerializeField] private Sprite chaliceGoalIcon;
 
         private readonly LevelGoalProgressEvaluator goalProgressEvaluator = new LevelGoalProgressEvaluator();
         private readonly List<LevelGoalItemView> spawnedGoalItems = new List<LevelGoalItemView>();
@@ -149,7 +149,7 @@ namespace DreamBlastClone.Controllers.Unity
             {
                 LevelGoalType.Stone => stoneGoalIcon,
                 LevelGoalType.Vase => vaseGoalIcon,
-                LevelGoalType.ChaliceBox => chaliceBoxGoalIcon,
+                LevelGoalType.ChaliceBox => chaliceGoalIcon,
                 _ => null
             };
         }
@@ -160,7 +160,7 @@ namespace DreamBlastClone.Controllers.Unity
             {
                 LevelGoalType.Stone => "Stone",
                 LevelGoalType.Vase => "Vase",
-                LevelGoalType.ChaliceBox => "Chalice Box",
+                LevelGoalType.ChaliceBox => "Chalices",
                 _ => goalType.ToString()
             };
         }

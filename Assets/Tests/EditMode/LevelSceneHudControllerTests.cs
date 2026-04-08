@@ -49,13 +49,13 @@ namespace DreamBlastClone.Tests.EditMode
                 {
                     new LevelGoalDefinition(LevelGoalType.Stone, 1),
                     new LevelGoalDefinition(LevelGoalType.Vase, 1),
-                    new LevelGoalDefinition(LevelGoalType.ChaliceBox, 1)
+                    new LevelGoalDefinition(LevelGoalType.ChaliceBox, 10)
                 });
 
             var controller = CreateConfiguredHudController(session, out var moveLabel, out var goalContainer, out var goalTemplate);
             SetField(controller, "stoneGoalIcon", CreateSprite());
             SetField(controller, "vaseGoalIcon", CreateSprite());
-            SetField(controller, "chaliceBoxGoalIcon", CreateSprite());
+            SetField(controller, "chaliceGoalIcon", CreateSprite());
 
             InvokeMethod(controller, "OnEnable");
             InvokeMethod(controller, "Start");
@@ -68,7 +68,8 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetCountText(goalItems[0]), Is.EqualTo("01"));
             Assert.That(GetCountText(goalItems[1]), Is.EqualTo("01"));
             Assert.That(GetCountText(goalItems[2]), Is.EqualTo("00"));
-            Assert.That(goalItems[2].GetComponentInChildren<Text>().color.a, Is.EqualTo(0.5f).Within(0.01f));
+            Assert.That(GetTitleText(goalItems[2]), Is.EqualTo("Chalices"));
+            Assert.That(goalItems[2].Find("Count").GetComponent<Text>().color.a, Is.EqualTo(0.5f).Within(0.01f));
 
             InvokeMethod(controller, "OnDisable");
         }
@@ -103,6 +104,39 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(moveLabel.text, Is.EqualTo("02"));
             Assert.That(GetCountText(GetActiveGoalItems(goalContainer).Single()), Is.EqualTo("00"));
+
+            InvokeMethod(controller, "OnDisable");
+        }
+
+        [Test]
+        public void RefreshHudShowsRemainingChalicesInsteadOfBoxCount()
+        {
+            var board = new BoardModel(2, 2);
+            var chaliceBox = new ChaliceBoxObstacleModel(
+                new BoardCoordinate(0, 0),
+                remainingDoorDurability: 0,
+                requiredChaliceCount: 10,
+                collectedChaliceCount: 4);
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+
+            var session = new LevelSession(
+                board,
+                remainingMoves: 7,
+                new FixedRefillCubeColorResolver(),
+                new[]
+                {
+                    new LevelGoalDefinition(LevelGoalType.ChaliceBox, 10)
+                });
+
+            var controller = CreateConfiguredHudController(session, out _, out var goalContainer, out _);
+            SetField(controller, "chaliceGoalIcon", CreateSprite());
+
+            InvokeMethod(controller, "OnEnable");
+            InvokeMethod(controller, "Start");
+
+            var goalItem = GetActiveGoalItems(goalContainer).Single();
+            Assert.That(GetTitleText(goalItem), Is.EqualTo("Chalices"));
+            Assert.That(GetCountText(goalItem), Is.EqualTo("06"));
 
             InvokeMethod(controller, "OnDisable");
         }
@@ -150,11 +184,19 @@ namespace DreamBlastClone.Tests.EditMode
             var countRect = count.GetComponent<RectTransform>();
             countRect.SetParent(root.transform, false);
 
+            var title = new GameObject("Title", typeof(RectTransform), typeof(Text));
+            createdObjects.Add(title);
+            var titleRect = title.GetComponent<RectTransform>();
+            titleRect.SetParent(root.transform, false);
+
             var countText = count.GetComponent<Text>();
             countText.text = "00";
+            var titleText = title.GetComponent<Text>();
+            titleText.text = string.Empty;
 
             var goalItemView = root.GetComponent<LevelGoalItemView>();
             SetField(goalItemView, "iconTarget", icon.GetComponent<Image>());
+            SetField(goalItemView, "titleLabel", titleText);
             SetField(goalItemView, "countLabel", countText);
             SetField(goalItemView, "activeColor", Color.white);
             SetField(goalItemView, "completedColor", new Color(1f, 1f, 1f, 0.5f));
@@ -202,7 +244,12 @@ namespace DreamBlastClone.Tests.EditMode
 
         private static string GetCountText(RectTransform goalItem)
         {
-            return goalItem.GetComponentInChildren<Text>().text;
+            return goalItem.Find("Count").GetComponent<Text>().text;
+        }
+
+        private static string GetTitleText(RectTransform goalItem)
+        {
+            return goalItem.Find("Title").GetComponent<Text>().text;
         }
 
         private static void InvokeMethod(object target, string methodName, params object[] parameters)

@@ -127,7 +127,7 @@ namespace DreamBlastClone.Tests.EditMode
         [Test]
         public void ClearObstacleRemovesAllCellsOccupiedByTheSameInstance()
         {
-            var board = new BoardModel(4, 4);
+            var board = new BoardModel(5, 4);
             var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(0, 0), remainingDoorDurability: 4);
             var rocket = new RocketItemModel(RocketOrientation.Horizontal);
 
@@ -142,6 +142,28 @@ namespace DreamBlastClone.Tests.EditMode
             }
 
             Assert.That(board.GetCell(new BoardCoordinate(3, 3)).Item, Is.SameAs(rocket));
+        }
+
+        [Test]
+        public void ChaliceBoxAllowsZeroDoorDurabilityForChalicePhase()
+        {
+            var chaliceBox = new ChaliceBoxObstacleModel(
+                new BoardCoordinate(2, 3),
+                remainingDoorDurability: 0,
+                requiredChaliceCount: 10,
+                collectedChaliceCount: 4);
+
+            Assert.That(chaliceBox.Anchor, Is.EqualTo(new BoardCoordinate(2, 3)));
+            Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(0));
+            Assert.That(chaliceBox.FootprintWidth, Is.EqualTo(2));
+            Assert.That(chaliceBox.FootprintHeight, Is.EqualTo(2));
+            Assert.That(chaliceBox.OccupiedCoordinates, Is.EqualTo(new[]
+            {
+                new BoardCoordinate(2, 3),
+                new BoardCoordinate(3, 3),
+                new BoardCoordinate(2, 4),
+                new BoardCoordinate(3, 4)
+            }));
         }
 
         [Test]

@@ -14,7 +14,7 @@ namespace DreamBlastClone.Obstacles
             int requiredChaliceCount = 10,
             int collectedChaliceCount = 0)
         {
-            ValidatePositive(nameof(remainingDoorDurability), remainingDoorDurability);
+            ValidateNonNegative(nameof(remainingDoorDurability), remainingDoorDurability);
             ValidatePositive(nameof(requiredChaliceCount), requiredChaliceCount);
             ValidateNonNegative(nameof(collectedChaliceCount), collectedChaliceCount);
 
@@ -28,7 +28,7 @@ namespace DreamBlastClone.Obstacles
             RequiredChaliceCount = requiredChaliceCount;
             CollectedChaliceCount = collectedChaliceCount;
 
-            // Anchor is the bottom-left cell of the 2x2 obstacle footprint.
+            // Anchor is always the bottom-left cell of the fixed 2x2 footprint.
             occupiedCoordinates = new[]
             {
                 anchor,
@@ -49,6 +49,8 @@ namespace DreamBlastClone.Obstacles
         public int RequiredChaliceCount { get; }
 
         public int CollectedChaliceCount { get; set; }
+
+        public int RemainingChaliceCount => RequiredChaliceCount - CollectedChaliceCount;
 
         public IReadOnlyList<BoardCoordinate> OccupiedCoordinates => occupiedCoordinates;
     }

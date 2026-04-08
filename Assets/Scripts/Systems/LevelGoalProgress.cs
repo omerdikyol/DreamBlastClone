@@ -65,7 +65,7 @@ namespace DreamBlastClone.Systems
                     remainingByType.Add(goalType, 0);
                 }
 
-                remainingByType[goalType]++;
+                remainingByType[goalType] += ResolveRemainingGoalCount(cell.Obstacle);
             }
 
             var progress = new List<LevelGoalProgress>(goals.Count);
@@ -92,6 +92,15 @@ namespace DreamBlastClone.Systems
                 VaseObstacleModel => LevelGoalType.Vase,
                 ChaliceBoxObstacleModel => LevelGoalType.ChaliceBox,
                 _ => throw new InvalidOperationException($"Unsupported runtime goal obstacle '{obstacle.GetType().Name}'.")
+            };
+        }
+
+        private static int ResolveRemainingGoalCount(ObstacleModel obstacle)
+        {
+            return obstacle switch
+            {
+                ChaliceBoxObstacleModel chaliceBox => chaliceBox.RemainingChaliceCount,
+                _ => 1
             };
         }
     }

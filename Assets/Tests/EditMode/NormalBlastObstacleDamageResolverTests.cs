@@ -168,6 +168,33 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void DoorPhaseEachTouchedChaliceBoxTakesOneDamagePerBlastEvent()
+        {
+            var board = new BoardModel(3, 4);
+            var bottomChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 0), remainingDoorDurability: 4);
+            var topChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 2), remainingDoorDurability: 4);
+
+            for (var y = 0; y < 4; y++)
+            {
+                board.PlaceItem(new BoardCoordinate(0, y), new CubeItemModel(CubeColor.Blue));
+            }
+
+            board.PlaceObstacle(bottomChaliceBox.OccupiedCoordinates, bottomChaliceBox);
+            board.PlaceObstacle(topChaliceBox.OccupiedCoordinates, topChaliceBox);
+
+            var blast = cubeBlastResolver.Resolve(board, new BoardCoordinate(0, 1));
+            var result = damageResolver.Resolve(board, blast);
+
+            Assert.That(result.Damages, Is.EquivalentTo(new[]
+            {
+                new ObstacleDamage(bottomChaliceBox.Anchor, 1),
+                new ObstacleDamage(topChaliceBox.Anchor, 1)
+            }));
+            Assert.That(bottomChaliceBox.RemainingDoorDurability, Is.EqualTo(3));
+            Assert.That(topChaliceBox.RemainingDoorDurability, Is.EqualTo(3));
+        }
+
+        [Test]
         public void BreakingDoorDoesNotCollectChalicesInSameBlastEvent()
         {
             var board = new BoardModel(3, 2);
@@ -232,6 +259,33 @@ namespace DreamBlastClone.Tests.EditMode
                 new ObstacleDamage(chaliceBox.Anchor, 1)
             }));
             Assert.That(chaliceBox.CollectedChaliceCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ChalicePhaseCountsUniqueTouchedCellsPerTouchedChaliceBox()
+        {
+            var board = new BoardModel(3, 4);
+            var bottomChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 0), remainingDoorDurability: 0);
+            var topChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 2), remainingDoorDurability: 0);
+
+            for (var y = 0; y < 4; y++)
+            {
+                board.PlaceItem(new BoardCoordinate(0, y), new CubeItemModel(CubeColor.Red));
+            }
+
+            board.PlaceObstacle(bottomChaliceBox.OccupiedCoordinates, bottomChaliceBox);
+            board.PlaceObstacle(topChaliceBox.OccupiedCoordinates, topChaliceBox);
+
+            var blast = cubeBlastResolver.Resolve(board, new BoardCoordinate(0, 1));
+            var result = damageResolver.Resolve(board, blast);
+
+            Assert.That(result.Damages, Is.EquivalentTo(new[]
+            {
+                new ObstacleDamage(bottomChaliceBox.Anchor, 2),
+                new ObstacleDamage(topChaliceBox.Anchor, 2)
+            }));
+            Assert.That(bottomChaliceBox.CollectedChaliceCount, Is.EqualTo(2));
+            Assert.That(topChaliceBox.CollectedChaliceCount, Is.EqualTo(2));
         }
 
         [Test]

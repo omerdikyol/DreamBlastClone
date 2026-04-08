@@ -94,6 +94,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(player.TryPlay(boardView, board, descriptor), Is.True);
             Assert.That(effectRoot.childCount, Is.EqualTo(1));
+            Assert.That(effectRoot.GetChild(0).GetComponent<ChaliceBoxObstacleView>(), Is.Not.Null);
         }
 
         [Test]
@@ -148,7 +149,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(boardView, "tntPrefab", CreateVisualPrefab("TntPrefab"));
             SetField(boardView, "vasePrefab", CreateVisualPrefab("VasePrefab"));
             SetField(boardView, "stonePrefab", CreateStonePrefab());
-            SetField(boardView, "chaliceBoxPrefab", CreateVisualPrefab("ChaliceBoxPrefab"));
+            SetField(boardView, "chaliceBoxPrefab", CreateChaliceBoxPrefab());
             return boardView;
         }
 
@@ -196,6 +197,31 @@ namespace DreamBlastClone.Tests.EditMode
         {
             var prefab = CreateVisualPrefab("StonePrefab");
             prefab.GetComponent<SpriteRenderer>().sprite = CreateSprite(26, 16, 26f);
+            return prefab;
+        }
+
+        private GameObject CreateChaliceBoxPrefab()
+        {
+            var prefab = CreateVisualPrefab("ChaliceBoxPrefab");
+            var background = CreateGameObject("Bg");
+            var doors = CreateGameObject("Doors");
+            var chalice = CreateGameObject("Chalice");
+
+            background.transform.SetParent(prefab.transform, false);
+            doors.transform.SetParent(prefab.transform, false);
+            chalice.transform.SetParent(prefab.transform, false);
+
+            var backgroundRenderer = background.AddComponent<SpriteRenderer>();
+            var doorsRenderer = doors.AddComponent<SpriteRenderer>();
+            var chaliceRenderer = chalice.AddComponent<SpriteRenderer>();
+            backgroundRenderer.sprite = CreateSprite(40, 40, 20f);
+            doorsRenderer.sprite = CreateSprite(42, 42, 21f);
+            chaliceRenderer.sprite = CreateSprite(20, 26, 20f);
+
+            var chaliceView = prefab.AddComponent<ChaliceBoxObstacleView>();
+            SetField(chaliceView, "backgroundRenderer", backgroundRenderer);
+            SetField(chaliceView, "doorsRenderer", doorsRenderer);
+            SetField(chaliceView, "chaliceRenderer", chaliceRenderer);
             return prefab;
         }
 

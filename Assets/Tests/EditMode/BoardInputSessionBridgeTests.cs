@@ -344,6 +344,32 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void TryHandleScreenTapThatBreaksChaliceDoorRendersChalicePhasePreviewWithoutThrowing()
+        {
+            var board = new BoardModel(4, 3);
+            var tapCoordinate = new BoardCoordinate(1, 1);
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(2, 0), remainingDoorDurability: 1);
+
+            board.PlaceItem(tapCoordinate, new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(
+                boardView.transform.TransformPoint(new Vector3(1.5f, 1.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+
+            var chaliceVisual = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab");
+            Assert.That(chaliceVisual.transform.Find("Doors").GetComponent<SpriteRenderer>().enabled, Is.False);
+            Assert.That(CountEnabledChaliceSlots(chaliceVisual.transform), Is.EqualTo(10));
+        }
+
+        [Test]
         public void TryHandleScreenTapIgnoresFurtherTapsWhileSingleRocketEffectIsActive()
         {
             var board = new BoardModel(4, 4);
@@ -558,13 +584,18 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(boardView, "tntPrefab", CreateVisualPrefab("TntPrefab"));
             SetField(boardView, "vasePrefab", CreateVisualPrefab("VasePrefab"));
             SetField(boardView, "stonePrefab", CreateVisualPrefab("StonePrefab"));
-            SetField(boardView, "chaliceBoxPrefab", CreateVisualPrefab("ChaliceBoxPrefab"));
+            SetField(boardView, "chaliceBoxPrefab", CreateChaliceBoxPrefab());
             return boardView;
         }
 
         private Transform GetItemRoot(BoardView boardView)
         {
             return (Transform)GetField(boardView, "itemVisualRoot");
+        }
+
+        private Transform GetObstacleRoot(BoardView boardView)
+        {
+            return (Transform)GetField(boardView, "obstacleVisualRoot");
         }
 
         private BoardView GetBoardView(BoardInputSessionBridge bridge)
@@ -596,6 +627,31 @@ namespace DreamBlastClone.Tests.EditMode
         {
             var prefab = CreateGameObject(name);
             prefab.AddComponent<SpriteRenderer>();
+            return prefab;
+        }
+
+        private GameObject CreateChaliceBoxPrefab()
+        {
+            var prefab = CreateVisualPrefab("ChaliceBoxPrefab");
+            var background = CreateGameObject("Bg");
+            var doors = CreateGameObject("Doors");
+            var chalice = CreateGameObject("Chalice");
+
+            background.transform.SetParent(prefab.transform, false);
+            doors.transform.SetParent(prefab.transform, false);
+            chalice.transform.SetParent(prefab.transform, false);
+
+            var backgroundRenderer = background.AddComponent<SpriteRenderer>();
+            var doorsRenderer = doors.AddComponent<SpriteRenderer>();
+            var chaliceRenderer = chalice.AddComponent<SpriteRenderer>();
+            backgroundRenderer.sprite = CreateSprite(40, 40, 20f);
+            doorsRenderer.sprite = CreateSprite(42, 42, 21f);
+            chaliceRenderer.sprite = CreateSprite(20, 26, 20f);
+
+            var chaliceView = prefab.AddComponent<ChaliceBoxObstacleView>();
+            SetField(chaliceView, "backgroundRenderer", backgroundRenderer);
+            SetField(chaliceView, "doorsRenderer", doorsRenderer);
+            SetField(chaliceView, "chaliceRenderer", chaliceRenderer);
             return prefab;
         }
 
@@ -711,6 +767,42 @@ namespace DreamBlastClone.Tests.EditMode
             }
 
             return false;
+        }
+
+        private static int CountEnabledChaliceSlots(Transform chaliceVisual)
+        {
+            var slotRoot = chaliceVisual.Find("ChaliceSlots");
+            if (slotRoot is null)
+            {
+                return 0;
+            }
+
+            var count = 0;
+            for (var index = 0; index < slotRoot.childCount; index++)
+            {
+                var renderer = slotRoot.GetChild(index).GetComponent<SpriteRenderer>();
+                if (renderer is not null && renderer.enabled)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        private static GameObject FindChildByPrefix(Transform root, string prefix)
+        {
+            for (var index = 0; index < root.childCount; index++)
+            {
+                var child = root.GetChild(index);
+                if (child.name.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    return child.gameObject;
+                }
+            }
+
+            Assert.Fail($"Could not find child with prefix '{prefix}'.");
+            return null;
         }
 
         private static string ReadLevelJson(string fileName)

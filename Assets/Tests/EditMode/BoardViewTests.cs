@@ -103,6 +103,29 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void RenderUsesSeparateFootprintsForAdjacentChaliceBoxes()
+        {
+            var board = new BoardModel(8, 4);
+            var boardView = CreateConfiguredBoardView(origin: new Vector2(1f, 2f), cellSize: 2f);
+            var leftChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 1), remainingDoorDurability: 2);
+            var rightChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(3, 1), remainingDoorDurability: 2);
+
+            board.PlaceObstacle(leftChaliceBox.OccupiedCoordinates, leftChaliceBox);
+            board.PlaceObstacle(rightChaliceBox.OccupiedCoordinates, rightChaliceBox);
+
+            boardView.Render(board);
+
+            Assert.That(GetObstacleRoot(boardView).childCount, Is.EqualTo(2));
+
+            var leftVisual = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab_(1,1)-(2,2)");
+            var rightVisual = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab_(3,1)-(4,2)");
+            Assert.That(leftVisual.transform.localPosition, Is.EqualTo(new Vector3(5f, 6f, 0f)));
+            Assert.That(leftVisual.transform.localScale, Is.EqualTo(new Vector3(4f, 4f, 1f)));
+            Assert.That(rightVisual.transform.localPosition, Is.EqualTo(new Vector3(9f, 6f, 0f)));
+            Assert.That(rightVisual.transform.localScale, Is.EqualTo(new Vector3(4f, 4f, 1f)));
+        }
+
+        [Test]
         public void RenderUsesCorrectPrefabsAndCubeDefaultSpritesForSupportedTypes()
         {
             var board = new BoardModel(4, 2);
@@ -196,6 +219,144 @@ namespace DreamBlastClone.Tests.EditMode
             var vaseView = transientVisual.GetComponent<VaseObstacleView>();
             Assert.That(vaseView, Is.Not.Null);
             Assert.That(transientVisual.GetComponent<SpriteRenderer>().sprite, Is.SameAs(GetField(vaseView, "damagedSprite")));
+        }
+
+        [Test]
+        public void RenderUsesDoorPhaseChaliceBoxVisualState()
+        {
+            var board = new BoardModel(2, 2);
+            var boardView = CreateConfiguredBoardView();
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(0, 0), remainingDoorDurability: 2);
+
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+            boardView.Render(board);
+
+            var chaliceView = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab").GetComponent<ChaliceBoxObstacleView>();
+            Assert.That(GetRenderer(chaliceView, "backgroundRenderer").enabled, Is.True);
+            Assert.That(GetRenderer(chaliceView, "doorsRenderer").enabled, Is.True);
+            Assert.That(GetRenderer(chaliceView, "chaliceRenderer").enabled, Is.False);
+            Assert.That(GetVisibleChaliceSlotCount(chaliceView), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void RenderUsesChalicePhaseVisualStateAndRemainingSlotCount()
+        {
+            var board = new BoardModel(2, 2);
+            var boardView = CreateConfiguredBoardView();
+            var chaliceBox = new ChaliceBoxObstacleModel(
+                new BoardCoordinate(0, 0),
+                remainingDoorDurability: 1,
+                requiredChaliceCount: 10,
+                collectedChaliceCount: 0);
+            chaliceBox.RemainingDoorDurability = 0;
+
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+            boardView.Render(board);
+
+            var chaliceView = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab").GetComponent<ChaliceBoxObstacleView>();
+            var doorsRenderer = GetRenderer(chaliceView, "doorsRenderer");
+
+            Assert.That(doorsRenderer.enabled, Is.False);
+            Assert.That(GetRenderer(chaliceView, "chaliceRenderer").enabled, Is.False);
+            Assert.That(GetVisibleChaliceSlotCount(chaliceView), Is.EqualTo(10));
+
+            chaliceBox.CollectedChaliceCount = 5;
+            boardView.Render(board);
+
+            chaliceView = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab").GetComponent<ChaliceBoxObstacleView>();
+            Assert.That(GetVisibleChaliceSlotCount(chaliceView), Is.EqualTo(5));
+        }
+
+        [Test]
+        public void RerenderUpdatesChaliceBoxWhenDoorBreaks()
+        {
+            var board = new BoardModel(2, 2);
+            var boardView = CreateConfiguredBoardView();
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(0, 0), remainingDoorDurability: 1);
+
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+            boardView.Render(board);
+
+            var chaliceView = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab").GetComponent<ChaliceBoxObstacleView>();
+            Assert.That(GetRenderer(chaliceView, "doorsRenderer").enabled, Is.True);
+            Assert.That(GetRenderer(chaliceView, "chaliceRenderer").enabled, Is.False);
+            Assert.That(GetVisibleChaliceSlotCount(chaliceView), Is.EqualTo(0));
+
+            chaliceBox.RemainingDoorDurability = 0;
+            boardView.Render(board);
+
+            chaliceView = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab").GetComponent<ChaliceBoxObstacleView>();
+            Assert.That(GetRenderer(chaliceView, "doorsRenderer").enabled, Is.False);
+            Assert.That(GetVisibleChaliceSlotCount(chaliceView), Is.EqualTo(10));
+        }
+
+        [Test]
+        public void CreateTransientObstacleVisualUsesChalicePhaseAppearance()
+        {
+            var board = new BoardModel(2, 2);
+            var boardView = CreateConfiguredBoardView();
+            var chaliceBox = new ChaliceBoxObstacleModel(
+                new BoardCoordinate(0, 0),
+                remainingDoorDurability: 1,
+                requiredChaliceCount: 10,
+                collectedChaliceCount: 4);
+            chaliceBox.RemainingDoorDurability = 0;
+
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+
+            var transientVisual = boardView.CreateTransientObstacleVisual(
+                board,
+                chaliceBox.OccupiedCoordinates,
+                boardView.transform,
+                z: 0f);
+
+            var chaliceView = transientVisual.GetComponent<ChaliceBoxObstacleView>();
+            Assert.That(chaliceView, Is.Not.Null);
+            Assert.That(GetRenderer(chaliceView, "doorsRenderer").enabled, Is.False);
+            Assert.That(GetVisibleChaliceSlotCount(chaliceView), Is.EqualTo(6));
+        }
+
+        [Test]
+        public void RerenderKeepsPreviouslyRemovedChaliceSlotsHidden()
+        {
+            var board = new BoardModel(2, 2);
+            var boardView = CreateConfiguredBoardView();
+            var chaliceBox = new ChaliceBoxObstacleModel(
+                new BoardCoordinate(0, 0),
+                remainingDoorDurability: 0,
+                requiredChaliceCount: 10,
+                collectedChaliceCount: 2);
+
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+            boardView.Render(board);
+
+            var chaliceView = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab").GetComponent<ChaliceBoxObstacleView>();
+            var firstVisibleSlots = GetVisibleChaliceSlotNames(chaliceView);
+            Assert.That(firstVisibleSlots, Has.Count.EqualTo(8));
+
+            chaliceBox.CollectedChaliceCount = 4;
+            boardView.Render(board);
+
+            chaliceView = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab").GetComponent<ChaliceBoxObstacleView>();
+            var secondVisibleSlots = GetVisibleChaliceSlotNames(chaliceView);
+            Assert.That(secondVisibleSlots, Has.Count.EqualTo(6));
+            Assert.That(secondVisibleSlots, Is.SubsetOf(firstVisibleSlots));
+        }
+
+        [Test]
+        public void RenderChaliceBoxWithoutChaliceBoxObstacleViewThrows()
+        {
+            var board = new BoardModel(2, 2);
+            var boardView = CreateConfiguredBoardView();
+            var chalicePrefab = (GameObject)GetField(boardView, "chaliceBoxPrefab");
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(0, 0), remainingDoorDurability: 2);
+
+            UnityEngine.Object.DestroyImmediate(chalicePrefab.GetComponent<ChaliceBoxObstacleView>());
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+
+            Assert.That(
+                () => boardView.Render(board),
+                Throws.InvalidOperationException.With.Message.Contains("ChaliceBoxObstacleView"));
         }
 
         [Test]
@@ -583,7 +744,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(boardView, "tntPrefab", CreateVisualPrefab("TntPrefab"));
             SetField(boardView, "vasePrefab", CreateVasePrefab());
             SetField(boardView, "stonePrefab", CreateStonePrefab());
-            SetField(boardView, "chaliceBoxPrefab", CreateVisualPrefab("ChaliceBoxPrefab"));
+            SetField(boardView, "chaliceBoxPrefab", CreateChaliceBoxPrefab());
 
             return boardView;
         }
@@ -621,6 +782,32 @@ namespace DreamBlastClone.Tests.EditMode
         {
             var prefab = CreateVisualPrefab("StonePrefab");
             prefab.GetComponent<SpriteRenderer>().sprite = CreateSprite(width: 28, height: 16, pixelsPerUnit: 28f);
+            return prefab;
+        }
+
+        private GameObject CreateChaliceBoxPrefab()
+        {
+            var prefab = CreateVisualPrefab("ChaliceBoxPrefab");
+            var background = CreateGameObject("Bg");
+            var doors = CreateGameObject("Doors");
+            var chalice = CreateGameObject("Chalice");
+
+            background.transform.SetParent(prefab.transform, false);
+            doors.transform.SetParent(prefab.transform, false);
+            chalice.transform.SetParent(prefab.transform, false);
+
+            var backgroundRenderer = background.AddComponent<SpriteRenderer>();
+            var doorsRenderer = doors.AddComponent<SpriteRenderer>();
+            var chaliceRenderer = chalice.AddComponent<SpriteRenderer>();
+            backgroundRenderer.sprite = CreateSprite(width: 40, height: 40, pixelsPerUnit: 20f);
+            doorsRenderer.sprite = CreateSprite(width: 42, height: 42, pixelsPerUnit: 21f);
+            chaliceRenderer.sprite = CreateSprite(width: 20, height: 26, pixelsPerUnit: 20f);
+
+            var chaliceView = prefab.AddComponent<ChaliceBoxObstacleView>();
+            SetField(chaliceView, "backgroundRenderer", backgroundRenderer);
+            SetField(chaliceView, "doorsRenderer", doorsRenderer);
+            SetField(chaliceView, "chaliceRenderer", chaliceRenderer);
+
             return prefab;
         }
 
@@ -711,6 +898,40 @@ namespace DreamBlastClone.Tests.EditMode
             var expectedSprite = (Sprite)GetField(vaseView, expectedSpriteFieldName);
             Assert.That(vaseRenderer.sprite, Is.SameAs(expectedSprite));
             Assert.That(vaseRenderer.color, Is.EqualTo(Color.white));
+        }
+
+        private static SpriteRenderer GetRenderer(ChaliceBoxObstacleView chaliceView, string fieldName)
+        {
+            return (SpriteRenderer)GetField(chaliceView, fieldName);
+        }
+
+        private static int GetVisibleChaliceSlotCount(ChaliceBoxObstacleView chaliceView)
+        {
+            return GetVisibleChaliceSlotNames(chaliceView).Count;
+        }
+
+        private static IReadOnlyList<string> GetVisibleChaliceSlotNames(ChaliceBoxObstacleView chaliceView)
+        {
+            var slotRoot = chaliceView.transform.Find("ChaliceSlots");
+            var names = new List<string>();
+
+            if (slotRoot is null)
+            {
+                return names;
+            }
+
+            for (var index = 0; index < slotRoot.childCount; index++)
+            {
+                var child = slotRoot.GetChild(index);
+                var renderer = child.GetComponent<SpriteRenderer>();
+
+                if (renderer is not null && renderer.enabled)
+                {
+                    names.Add(child.name);
+                }
+            }
+
+            return names;
         }
 
         private static void SetField(object target, string fieldName, object value)

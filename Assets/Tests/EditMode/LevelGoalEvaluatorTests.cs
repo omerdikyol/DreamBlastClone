@@ -26,7 +26,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(goals[1].GoalType, Is.EqualTo(LevelGoalType.Vase));
             Assert.That(goals[1].InitialCount, Is.EqualTo(4));
             Assert.That(goals[2].GoalType, Is.EqualTo(LevelGoalType.ChaliceBox));
-            Assert.That(goals[2].InitialCount, Is.EqualTo(1));
+            Assert.That(goals[2].InitialCount, Is.EqualTo(10));
         }
 
         [Test]
@@ -44,6 +44,24 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void MultiTileAuthoredChaliceRegionsCountAsOneGoalPerTwoByTwoBox()
+        {
+            var parser = new LevelJsonParser();
+            var builder = new LevelGoalDefinitionBuilder();
+
+            var levelThreeGoals = builder.Build(parser.Parse(ReadLevelJson("level_03.json")));
+            var levelNineGoals = builder.Build(parser.Parse(ReadLevelJson("level_09.json")));
+
+            Assert.That(levelThreeGoals, Has.Count.EqualTo(1));
+            Assert.That(levelThreeGoals[0].GoalType, Is.EqualTo(LevelGoalType.ChaliceBox));
+            Assert.That(levelThreeGoals[0].InitialCount, Is.EqualTo(40));
+
+            Assert.That(levelNineGoals, Has.Count.EqualTo(1));
+            Assert.That(levelNineGoals[0].GoalType, Is.EqualTo(LevelGoalType.ChaliceBox));
+            Assert.That(levelNineGoals[0].InitialCount, Is.EqualTo(40));
+        }
+
+        [Test]
         public void GoalProgressUsesRemainingObstacleInstancesAndKeepsCompletedTypesVisible()
         {
             var board = new BoardModel(4, 4);
@@ -52,7 +70,7 @@ namespace DreamBlastClone.Tests.EditMode
             {
                 new LevelGoalDefinition(LevelGoalType.Stone, 2),
                 new LevelGoalDefinition(LevelGoalType.Vase, 1),
-                new LevelGoalDefinition(LevelGoalType.ChaliceBox, 1)
+                new LevelGoalDefinition(LevelGoalType.ChaliceBox, 10)
             };
             var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(0, 2), remainingDoorDurability: 4);
 
@@ -69,7 +87,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(progress[1].RemainingCount, Is.EqualTo(0));
             Assert.That(progress[1].IsCompleted, Is.True);
             Assert.That(progress[2].GoalType, Is.EqualTo(LevelGoalType.ChaliceBox));
-            Assert.That(progress[2].RemainingCount, Is.EqualTo(1));
+            Assert.That(progress[2].RemainingCount, Is.EqualTo(10));
             Assert.That(progress[2].IsCompleted, Is.False);
         }
 
@@ -81,7 +99,7 @@ namespace DreamBlastClone.Tests.EditMode
             var goals = new[]
             {
                 new LevelGoalDefinition(LevelGoalType.Vase, 1),
-                new LevelGoalDefinition(LevelGoalType.ChaliceBox, 1)
+                new LevelGoalDefinition(LevelGoalType.ChaliceBox, 10)
             };
             var vase = new VaseObstacleModel(remainingDurability: 1);
             var chaliceBox = new ChaliceBoxObstacleModel(
@@ -97,6 +115,32 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(progress[0].RemainingCount, Is.EqualTo(1));
             Assert.That(progress[1].RemainingCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ChaliceGoalProgressSumsRemainingChalicesAcrossActiveBoxes()
+        {
+            var board = new BoardModel(4, 2);
+            var evaluator = new LevelGoalProgressEvaluator();
+            var leftChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(0, 0), remainingDoorDurability: 4);
+            var rightChaliceBox = new ChaliceBoxObstacleModel(
+                new BoardCoordinate(2, 0),
+                remainingDoorDurability: 0,
+                requiredChaliceCount: 10,
+                collectedChaliceCount: 3);
+
+            board.PlaceObstacle(leftChaliceBox.OccupiedCoordinates, leftChaliceBox);
+            board.PlaceObstacle(rightChaliceBox.OccupiedCoordinates, rightChaliceBox);
+
+            var progress = evaluator.Evaluate(
+                board,
+                new[]
+                {
+                    new LevelGoalDefinition(LevelGoalType.ChaliceBox, 20)
+                });
+
+            Assert.That(progress, Has.Count.EqualTo(1));
+            Assert.That(progress[0].RemainingCount, Is.EqualTo(17));
         }
 
         private static string ReadLevelJson(string fileName)
