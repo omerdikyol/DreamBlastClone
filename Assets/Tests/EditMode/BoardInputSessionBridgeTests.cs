@@ -156,11 +156,13 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(session.RemainingMoves, Is.EqualTo(3));
             Assert.That(GetItemRoot(boardView).childCount, Is.EqualTo(0));
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
 
-            AdvancePendingPreview(bridge, 0.12f);
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
 
             Assert.That(GetItemRoot(boardView).childCount, Is.GreaterThan(0));
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.EqualTo(0f));
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.False);
         }
 
         [Test]
@@ -184,6 +186,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(capturedResult.DidSpendMove, Is.True);
             Assert.That(capturedResult.Tap.RouteType, Is.EqualTo(TapRouteType.NormalCube));
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
         }
 
         [Test]
@@ -205,11 +208,19 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(session.RemainingMoves, Is.EqualTo(4));
             Assert.That(session.Board.GetCell(new BoardCoordinate(2, 1)).HasItem, Is.False);
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.True);
+
+            AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
+
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
 
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
 
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.EqualTo(0f));
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
         }
 
@@ -229,7 +240,8 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
             Assert.That(session.RemainingMoves, Is.EqualTo(4));
-            Assert.That(GetRemainingPreviewSeconds(bridge), Is.EqualTo(0f));
+            Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
         }
 
@@ -250,7 +262,8 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
             Assert.That(session.RemainingMoves, Is.EqualTo(4));
-            Assert.That(GetRemainingPreviewSeconds(bridge), Is.EqualTo(0f));
+            Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
         }
 
@@ -274,6 +287,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(bridge.TryHandleScreenTap(rocketTap), Is.True);
             Assert.That(session.RemainingMoves, Is.EqualTo(4));
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(bridge.TryHandleScreenTap(cubeTap), Is.False);
             Assert.That(session.RemainingMoves, Is.EqualTo(4));
         }
@@ -414,6 +428,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(bridge, "boardView", boardView);
             SetField(bridge, "sessionHost", host);
             SetField(bridge, "inputCamera", camera);
+            SetField(bridge, "destructionFeedbackPlayer", CreateDestructionFeedbackPlayer());
             SetField(bridge, "singleRocketEffectPlayer", CreateRocketEffectPlayer());
             return bridge;
         }
@@ -464,6 +479,11 @@ namespace DreamBlastClone.Tests.EditMode
             return (SingleRocketActivationEffectPlayer)GetField(bridge, "singleRocketEffectPlayer");
         }
 
+        private BoardDestructionFeedbackPlayer GetDestructionFeedbackPlayer(BoardInputSessionBridge bridge)
+        {
+            return (BoardDestructionFeedbackPlayer)GetField(bridge, "destructionFeedbackPlayer");
+        }
+
         private GameObject CreateVisualPrefab(string name)
         {
             var prefab = CreateGameObject(name);
@@ -480,6 +500,14 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(effectPlayer, "verticalRocketPartTopSprite", CreateSprite(18, 19, 18f));
             SetField(effectPlayer, "verticalRocketPartBottomSprite", CreateSprite(19, 19, 19f));
             SetField(effectPlayer, "duration", 0.2f);
+            return effectPlayer;
+        }
+
+        private BoardDestructionFeedbackPlayer CreateDestructionFeedbackPlayer()
+        {
+            var host = CreateGameObject("DestructionFeedbackPlayer");
+            var effectPlayer = host.AddComponent<BoardDestructionFeedbackPlayer>();
+            SetField(effectPlayer, "duration", 0.14f);
             return effectPlayer;
         }
 

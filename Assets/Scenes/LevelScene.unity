@@ -891,6 +891,7 @@ GameObject:
   - component: {fileID: 1374160543}
   - component: {fileID: 1374160544}
   - component: {fileID: 1374160545}
+  - component: {fileID: 1374160546}
   m_Layer: 0
   m_Name: LevelSceneRuntime
   m_TagString: Untagged
@@ -955,6 +956,7 @@ MonoBehaviour:
   sessionHost: {fileID: 1374160539}
   inputCamera: {fileID: 519420031}
   normalCubePreviewDuration: 0.12
+  destructionFeedbackPlayer: {fileID: 1374160546}
   singleRocketEffectPlayer: {fileID: 1374160545}
 --- !u!114 &1374160543
 MonoBehaviour:
@@ -1011,6 +1013,23 @@ MonoBehaviour:
   horizontalRocketPartRightSprite: {fileID: 21300000, guid: e62fe0440cb54c8499890f74ea03191b, type: 3}
   verticalRocketPartTopSprite: {fileID: 21300000, guid: 39aab89e51f715d449405573be1e732f, type: 3}
   verticalRocketPartBottomSprite: {fileID: 21300000, guid: 312f67bd64397dc459ff6a71fb5cfa8e, type: 3}
+--- !u!114 &1374160546
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1374160538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e3f8c0d8f3049fc8ed93298766d6872, type: 3}
+  m_Name: ''
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.BoardDestructionFeedbackPlayer
+  effectRoot: {fileID: 0}
+  duration: 0.14
+  effectZ: -0.15
+  startScaleMultiplier: 1.08
+  endScaleMultiplier: 0.15
 --- !u!1 &1517054704
 GameObject:
   m_ObjectHideFlags: 0

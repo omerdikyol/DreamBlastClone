@@ -18,12 +18,14 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private LevelSessionHost sessionHost;
         [SerializeField] private Camera inputCamera;
         [SerializeField] private float normalCubePreviewDuration = 0.12f;
+        [SerializeField] private BoardDestructionFeedbackPlayer destructionFeedbackPlayer;
         [SerializeField] private SingleRocketActivationEffectPlayer singleRocketEffectPlayer;
 
         private readonly CubeGroupDetector cubeGroupDetector = new CubeGroupDetector();
         private readonly BoardModelCloner boardModelCloner = new BoardModelCloner();
         private readonly NormalCubeTapPreviewBoardBuilder previewBoardBuilder = new NormalCubeTapPreviewBoardBuilder();
         private readonly SpecialItemTapPreviewBoardBuilder specialItemPreviewBoardBuilder = new SpecialItemTapPreviewBoardBuilder();
+        private readonly BoardDestructionFeedbackDescriptorBuilder destructionFeedbackDescriptorBuilder = new BoardDestructionFeedbackDescriptorBuilder();
         private readonly SingleRocketActivationEffectDescriptorBuilder singleRocketEffectDescriptorBuilder = new SingleRocketActivationEffectDescriptorBuilder();
         private static readonly bool EnableTapDebugLogging = false;
         private const float CubeTapSnapRadiusFactor = 1.1f;
@@ -115,69 +117,48 @@ namespace DreamBlastClone.Controllers.Unity
         {
             ClearPendingPreview();
 
-            if (TryRenderSingleRocketPreview(preTapBoard, finalBoard, resolvedCoordinate, tapResult))
-            {
-                return;
-            }
-
-            if (tapResult.Tap.RouteType != TapRouteType.NormalCube || !tapResult.Tap.NormalCube.IsValidTap)
+            var previewBoard = BuildPreviewBoard(preTapBoard, tapResult.Tap);
+            if (previewBoard is null)
             {
                 boardView.Render(finalBoard);
                 return;
             }
 
-            if (normalCubePreviewDuration <= 0f)
-            {
-                boardView.Render(finalBoard);
-                return;
-            }
-
-            var previewBoard = previewBoardBuilder.Build(preTapBoard, tapResult.Tap.NormalCube);
             boardView.Render(previewBoard);
+
+            var presentationDuration = 0f;
+            if (TryStartDestructionFeedback(preTapBoard, tapResult.Tap, out var destructionDuration))
+            {
+                presentationDuration = Math.Max(presentationDuration, destructionDuration);
+            }
+
+            if (TryStartSingleRocketEffect(resolvedCoordinate, tapResult.Tap, out var rocketDuration))
+            {
+                presentationDuration = Math.Max(presentationDuration, rocketDuration);
+            }
+
+            if (presentationDuration <= 0f)
+            {
+                if (normalCubePreviewDuration <= 0f)
+                {
+                    boardView.Render(finalBoard);
+                    return;
+                }
+
+                presentationDuration = normalCubePreviewDuration;
+            }
+
             pendingFinalBoard = finalBoard;
-            remainingPreviewSeconds = normalCubePreviewDuration;
-        }
-
-        private bool TryRenderSingleRocketPreview(
-            BoardModel preTapBoard,
-            BoardModel finalBoard,
-            BoardCoordinate resolvedCoordinate,
-            LevelSessionTapResult tapResult)
-        {
-            if (boardView is null
-                || singleRocketEffectPlayer is null
-                || tapResult.Tap.RouteType != TapRouteType.SpecialItem)
-            {
-                return false;
-            }
-
-            var specialTap = tapResult.Tap.SpecialItem;
-            if (!specialTap.IsValidTap
-                || specialTap.Combo.IsComboActivated
-                || !specialTap.Activation.IsValidActivation
-                || specialTap.Activation.ActivationType != SpecialActivationType.Rocket)
-            {
-                return false;
-            }
-
-            var previewBoard = specialItemPreviewBoardBuilder.Build(preTapBoard, specialTap);
-            var effectDescriptor = singleRocketEffectDescriptorBuilder.Build(
-                resolvedCoordinate,
-                specialTap.Activation);
-
-            if (!singleRocketEffectPlayer.TryPlay(boardView, effectDescriptor))
-            {
-                return false;
-            }
-
-            boardView.Render(previewBoard);
-            pendingFinalBoard = finalBoard;
-            remainingPreviewSeconds = singleRocketEffectPlayer.Duration;
-            return true;
+            remainingPreviewSeconds = presentationDuration;
         }
 
         private void AdvancePendingPreview(float deltaTime)
         {
+            if (destructionFeedbackPlayer is not null)
+            {
+                destructionFeedbackPlayer.Advance(deltaTime);
+            }
+
             if (singleRocketEffectPlayer is not null)
             {
                 singleRocketEffectPlayer.Advance(deltaTime);
@@ -205,9 +186,77 @@ namespace DreamBlastClone.Controllers.Unity
 
         private void ClearPendingPreview()
         {
+            destructionFeedbackPlayer?.Stop();
             singleRocketEffectPlayer?.Stop();
             pendingFinalBoard = null;
             remainingPreviewSeconds = 0f;
+        }
+
+        private BoardModel BuildPreviewBoard(BoardModel preTapBoard, BoardTapDispatchResult tap)
+        {
+            if (!tap.IsValidTap)
+            {
+                return null;
+            }
+
+            return tap.RouteType switch
+            {
+                TapRouteType.NormalCube when tap.NormalCube.IsValidTap => previewBoardBuilder.Build(preTapBoard, tap.NormalCube),
+                TapRouteType.SpecialItem when tap.SpecialItem.IsValidTap => specialItemPreviewBoardBuilder.Build(preTapBoard, tap.SpecialItem),
+                _ => null
+            };
+        }
+
+        private bool TryStartDestructionFeedback(BoardModel preTapBoard, BoardTapDispatchResult tap, out float duration)
+        {
+            duration = 0f;
+
+            if (boardView is null || destructionFeedbackPlayer is null)
+            {
+                return false;
+            }
+
+            var descriptor = destructionFeedbackDescriptorBuilder.Build(preTapBoard, tap);
+            if (!destructionFeedbackPlayer.TryPlay(boardView, preTapBoard, descriptor))
+            {
+                return false;
+            }
+
+            duration = destructionFeedbackPlayer.Duration;
+            return true;
+        }
+
+        private bool TryStartSingleRocketEffect(BoardCoordinate resolvedCoordinate, BoardTapDispatchResult tap, out float duration)
+        {
+            duration = 0f;
+
+            if (boardView is null
+                || singleRocketEffectPlayer is null
+                || tap.RouteType != TapRouteType.SpecialItem)
+            {
+                return false;
+            }
+
+            var specialTap = tap.SpecialItem;
+            if (!specialTap.IsValidTap
+                || specialTap.Combo.IsComboActivated
+                || !specialTap.Activation.IsValidActivation
+                || specialTap.Activation.ActivationType != SpecialActivationType.Rocket)
+            {
+                return false;
+            }
+
+            var effectDescriptor = singleRocketEffectDescriptorBuilder.Build(
+                resolvedCoordinate,
+                specialTap.Activation);
+
+            if (!singleRocketEffectPlayer.TryPlay(boardView, effectDescriptor))
+            {
+                return false;
+            }
+
+            duration = singleRocketEffectPlayer.Duration;
+            return true;
         }
 
         private Vector3 ScreenToBoardWorldPoint(Vector2 screenPosition)

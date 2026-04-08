@@ -60,6 +60,29 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(previewBoard.GetCell(new BoardCoordinate(1, 2)).Item, Is.Null);
         }
 
+        [Test]
+        public void BuildRemovesComboItemsWithoutApplyingGravityOrRefill()
+        {
+            var board = new BoardModel(4, 4);
+            var tap = new BoardCoordinate(1, 1);
+            var refillResolver = new FixedRefillCubeColorResolver();
+
+            board.PlaceItem(tap, new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(1, 2), new RocketItemModel(RocketOrientation.Vertical));
+            board.PlaceItem(new BoardCoordinate(0, 1), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(3, 3), new CubeItemModel(CubeColor.Green));
+
+            var preTapBoard = boardModelCloner.Clone(board);
+            var tapResult = specialItemTapCoordinator.Resolve(board, tap, refillResolver);
+            var previewBoard = previewBoardBuilder.Build(preTapBoard, tapResult);
+
+            Assert.That(tapResult.Combo.IsComboActivated, Is.True);
+            Assert.That(previewBoard.GetCell(tap).Item, Is.Null);
+            Assert.That(previewBoard.GetCell(new BoardCoordinate(1, 2)).Item, Is.Null);
+            Assert.That(previewBoard.GetCell(new BoardCoordinate(0, 1)).Item, Is.Null);
+            Assert.That(previewBoard.GetCell(new BoardCoordinate(3, 3)).Item, Is.TypeOf<CubeItemModel>());
+        }
+
         private sealed class FixedRefillCubeColorResolver : IRefillCubeColorResolver
         {
             public CubeColor ResolveColor(BoardCoordinate coordinate)

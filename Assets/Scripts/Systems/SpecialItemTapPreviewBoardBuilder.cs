@@ -21,12 +21,16 @@ namespace DreamBlastClone.Systems
             }
 
             var previewBoard = boardModelCloner.Clone(preTapBoard);
-            if (!tap.IsValidTap || !tap.Activation.IsValidActivation)
+            if (!tap.IsValidTap)
             {
                 return previewBoard;
             }
 
-            foreach (var removedCoordinate in tap.Activation.RemovedItemCoordinates)
+            var removedItemCoordinates = tap.Combo.IsComboActivated
+                ? tap.Combo.RemovedItemCoordinates
+                : tap.Activation.RemovedItemCoordinates;
+
+            foreach (var removedCoordinate in removedItemCoordinates)
             {
                 previewBoard.ClearItem(removedCoordinate);
             }

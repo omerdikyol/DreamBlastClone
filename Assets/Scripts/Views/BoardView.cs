@@ -107,6 +107,61 @@ namespace DreamBlastClone.Views
             return transform.TransformPoint(GetCellCenter(coordinate, 0f));
         }
 
+        public GameObject CreateTransientItemVisual(BoardModel sourceBoard, BoardCoordinate coordinate, Transform parent, float z)
+        {
+            if (sourceBoard is null)
+            {
+                throw new ArgumentNullException(nameof(sourceBoard));
+            }
+
+            if (!sourceBoard.TryGetCell(coordinate, out var cell) || !cell.HasItem)
+            {
+                throw new InvalidOperationException($"Cannot create a transient item visual for empty coordinate {coordinate}.");
+            }
+
+            var instance = Instantiate(ResolveItemPrefab(cell.Item), parent, worldPositionStays: false);
+            instance.name = $"Transient_{cell.Item.GetType().Name}_{coordinate}";
+            instance.transform.position = transform.TransformPoint(GetCellCenter(coordinate, z));
+            instance.transform.rotation = transform.rotation;
+            ApplyItemAppearance(instance, cell.Item, coordinate, BuildCubeVisualStates(sourceBoard));
+            instance.transform.localScale = GetVisualScale(instance.transform, new Vector2(cellSize, cellSize));
+            return instance;
+        }
+
+        public GameObject CreateTransientObstacleVisual(
+            BoardModel sourceBoard,
+            IReadOnlyList<BoardCoordinate> occupiedCoordinates,
+            Transform parent,
+            float z)
+        {
+            if (sourceBoard is null)
+            {
+                throw new ArgumentNullException(nameof(sourceBoard));
+            }
+
+            if (occupiedCoordinates is null)
+            {
+                throw new ArgumentNullException(nameof(occupiedCoordinates));
+            }
+
+            if (occupiedCoordinates.Count == 0)
+            {
+                throw new ArgumentException("Transient obstacle visuals require at least one occupied coordinate.", nameof(occupiedCoordinates));
+            }
+
+            if (!sourceBoard.TryGetCell(occupiedCoordinates[0], out var cell) || !cell.HasObstacle)
+            {
+                throw new InvalidOperationException($"Cannot create a transient obstacle visual for empty coordinate {occupiedCoordinates[0]}.");
+            }
+
+            var instance = Instantiate(ResolveObstaclePrefab(cell.Obstacle), parent, worldPositionStays: false);
+            instance.name = $"Transient_{cell.Obstacle.GetType().Name}_{DescribeObstacleFootprint(occupiedCoordinates)}";
+            instance.transform.position = transform.TransformPoint(GetFootprintCenter(occupiedCoordinates, z));
+            instance.transform.rotation = transform.rotation;
+            instance.transform.localScale = GetVisualScale(instance.transform, GetFootprintSize(occupiedCoordinates));
+            return instance;
+        }
+
         private void RenderItems(BoardModel board)
         {
             var cubeVisualStates = BuildCubeVisualStates(board);
