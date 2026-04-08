@@ -172,6 +172,26 @@ namespace DreamBlastClone.Tests.EditMode
             InvokeMethod(controller, "OnDisable");
 
             Assert.That(store.GetCurrentLevel(), Is.EqualTo(2));
+            Assert.That(controller.LoadedSceneName, Is.Null);
+        }
+
+        [Test]
+        public void LevelSceneFlowControllerRetryCurrentLevelLoadsLevelScene()
+        {
+            var controller = CreateGameObject("FlowController").AddComponent<TestLevelSceneFlowController>();
+
+            controller.RetryCurrentLevel();
+
+            Assert.That(controller.LoadedSceneName, Is.EqualTo("LevelScene"));
+        }
+
+        [Test]
+        public void LevelSceneFlowControllerReturnToMainSceneLoadsMainScene()
+        {
+            var controller = CreateGameObject("FlowController").AddComponent<TestLevelSceneFlowController>();
+
+            controller.ReturnToMainScene();
+
             Assert.That(controller.LoadedSceneName, Is.EqualTo("MainScene"));
         }
 

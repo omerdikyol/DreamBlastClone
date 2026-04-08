@@ -37,8 +37,11 @@ namespace DreamBlastClone.Controllers.Unity
         private BoardModel pendingSettleStartBoard;
         private BoardSettleMotionDescriptor pendingSettleMotionDescriptor;
         private float remainingPreviewSeconds;
+        private bool isInputSuppressed;
 
         public event Action<LevelSessionTapResult> TapProcessed;
+
+        public bool IsInputSuppressed => isInputSuppressed;
 
         private void Start()
         {
@@ -54,10 +57,20 @@ namespace DreamBlastClone.Controllers.Unity
                 return;
             }
 
+            if (isInputSuppressed)
+            {
+                return;
+            }
+
             if (TryReadScreenTap(out var screenPosition))
             {
                 TryHandleScreenTap(screenPosition);
             }
+        }
+
+        public void SetInputSuppressed(bool isSuppressed)
+        {
+            isInputSuppressed = isSuppressed;
         }
 
         public bool TryHandleScreenTap(Vector2 screenPosition)
@@ -67,7 +80,7 @@ namespace DreamBlastClone.Controllers.Unity
                 return false;
             }
 
-            if (IsPreviewActive())
+            if (IsPreviewActive() || isInputSuppressed)
             {
                 return false;
             }

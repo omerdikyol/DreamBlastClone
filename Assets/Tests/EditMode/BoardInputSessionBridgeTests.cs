@@ -395,6 +395,56 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void TryHandleScreenTapReturnsFalseWhenInputIsExternallySuppressed()
+        {
+            var board = new BoardModel(3, 1);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+
+            var session = new LevelSession(board, 3, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+            bridge.SetInputSuppressed(true);
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(0.5f, 0.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.False);
+            Assert.That(session.RemainingMoves, Is.EqualTo(3));
+            Assert.That(bridge.IsInputSuppressed, Is.True);
+        }
+
+        [Test]
+        public void AdvancePendingPreviewContinuesWhileInputIsExternallySuppressed()
+        {
+            var board = new BoardModel(3, 1);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+
+            var session = new LevelSession(board, 3, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var tap = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(0.5f, 0.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(tap), Is.True);
+            bridge.SetInputSuppressed(true);
+
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
+
+            Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.True);
+
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
+
+            Assert.That(GetRemainingPreviewSeconds(bridge), Is.EqualTo(0f));
+            Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetItemRoot(boardView).childCount, Is.GreaterThan(0));
+        }
+
+        [Test]
         public void TryHandleScreenTapWithinBoardStillRerendersSafelyForNoOpGameplayTap()
         {
             var board = new BoardModel(3, 3);

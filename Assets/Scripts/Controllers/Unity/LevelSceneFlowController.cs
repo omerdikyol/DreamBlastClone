@@ -10,6 +10,7 @@ namespace DreamBlastClone.Controllers.Unity
     {
         [SerializeField] private BoardInputSessionBridge inputBridge;
         [SerializeField] private LevelCatalogAsset levelCatalog;
+        [SerializeField] private string levelSceneName = "LevelScene";
         [SerializeField] private string mainSceneName = "MainScene";
 
         private readonly CurrentLevelStore currentLevelStore = new CurrentLevelStore();
@@ -42,12 +43,31 @@ namespace DreamBlastClone.Controllers.Unity
                 return;
             }
 
-            if (result.LevelState == LevelState.Win && levelCatalog is not null && levelCatalog.LevelCount > 0)
+            if (result.LevelState == LevelState.Win)
             {
-                currentLevelStore.AdvanceOnWin(levelCatalog.LevelCount);
+                if (levelCatalog is not null && levelCatalog.LevelCount > 0)
+                {
+                    currentLevelStore.AdvanceOnWin(levelCatalog.LevelCount);
+                }
+
+                ReturnToMainScene();
+                return;
             }
 
+            if (result.LevelState == LevelState.Lose)
+            {
+                return;
+            }
+        }
+
+        public void ReturnToMainScene()
+        {
             LoadScene(mainSceneName);
+        }
+
+        public void RetryCurrentLevel()
+        {
+            LoadScene(levelSceneName);
         }
 
         protected virtual void LoadScene(string sceneName)
