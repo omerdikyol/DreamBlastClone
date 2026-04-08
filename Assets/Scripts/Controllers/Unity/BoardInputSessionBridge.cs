@@ -18,10 +18,13 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private LevelSessionHost sessionHost;
         [SerializeField] private Camera inputCamera;
         [SerializeField] private float normalCubePreviewDuration = 0.12f;
+        [SerializeField] private SingleRocketActivationEffectPlayer singleRocketEffectPlayer;
 
         private readonly CubeGroupDetector cubeGroupDetector = new CubeGroupDetector();
         private readonly BoardModelCloner boardModelCloner = new BoardModelCloner();
         private readonly NormalCubeTapPreviewBoardBuilder previewBoardBuilder = new NormalCubeTapPreviewBoardBuilder();
+        private readonly SpecialItemTapPreviewBoardBuilder specialItemPreviewBoardBuilder = new SpecialItemTapPreviewBoardBuilder();
+        private readonly SingleRocketActivationEffectDescriptorBuilder singleRocketEffectDescriptorBuilder = new SingleRocketActivationEffectDescriptorBuilder();
         private static readonly bool EnableTapDebugLogging = false;
         private const float CubeTapSnapRadiusFactor = 1.1f;
         private const float CubeTapStickinessFactor = 0.35f;
@@ -76,7 +79,7 @@ namespace DreamBlastClone.Controllers.Unity
             var tapResult = session.ProcessTap(resolvedCoordinate);
             LogTapResolution(coordinate, resolvedCoordinate, tapResult);
             TapProcessed?.Invoke(tapResult);
-            RenderTapOutcome(preTapBoard, session.Board, tapResult);
+            RenderTapOutcome(preTapBoard, session.Board, resolvedCoordinate, tapResult);
             return true;
         }
 
@@ -104,9 +107,18 @@ namespace DreamBlastClone.Controllers.Unity
             boardView.Render(sessionHost.Session.Board);
         }
 
-        private void RenderTapOutcome(BoardModel preTapBoard, BoardModel finalBoard, LevelSessionTapResult tapResult)
+        private void RenderTapOutcome(
+            BoardModel preTapBoard,
+            BoardModel finalBoard,
+            BoardCoordinate resolvedCoordinate,
+            LevelSessionTapResult tapResult)
         {
             ClearPendingPreview();
+
+            if (TryRenderSingleRocketPreview(preTapBoard, finalBoard, resolvedCoordinate, tapResult))
+            {
+                return;
+            }
 
             if (tapResult.Tap.RouteType != TapRouteType.NormalCube || !tapResult.Tap.NormalCube.IsValidTap)
             {
@@ -126,8 +138,51 @@ namespace DreamBlastClone.Controllers.Unity
             remainingPreviewSeconds = normalCubePreviewDuration;
         }
 
+        private bool TryRenderSingleRocketPreview(
+            BoardModel preTapBoard,
+            BoardModel finalBoard,
+            BoardCoordinate resolvedCoordinate,
+            LevelSessionTapResult tapResult)
+        {
+            if (boardView is null
+                || singleRocketEffectPlayer is null
+                || tapResult.Tap.RouteType != TapRouteType.SpecialItem)
+            {
+                return false;
+            }
+
+            var specialTap = tapResult.Tap.SpecialItem;
+            if (!specialTap.IsValidTap
+                || specialTap.Combo.IsComboActivated
+                || !specialTap.Activation.IsValidActivation
+                || specialTap.Activation.ActivationType != SpecialActivationType.Rocket)
+            {
+                return false;
+            }
+
+            var previewBoard = specialItemPreviewBoardBuilder.Build(preTapBoard, specialTap);
+            var effectDescriptor = singleRocketEffectDescriptorBuilder.Build(
+                resolvedCoordinate,
+                specialTap.Activation);
+
+            if (!singleRocketEffectPlayer.TryPlay(boardView, effectDescriptor))
+            {
+                return false;
+            }
+
+            boardView.Render(previewBoard);
+            pendingFinalBoard = finalBoard;
+            remainingPreviewSeconds = singleRocketEffectPlayer.Duration;
+            return true;
+        }
+
         private void AdvancePendingPreview(float deltaTime)
         {
+            if (singleRocketEffectPlayer is not null)
+            {
+                singleRocketEffectPlayer.Advance(deltaTime);
+            }
+
             if (!IsPreviewActive())
             {
                 return;
@@ -150,6 +205,7 @@ namespace DreamBlastClone.Controllers.Unity
 
         private void ClearPendingPreview()
         {
+            singleRocketEffectPlayer?.Stop();
             pendingFinalBoard = null;
             remainingPreviewSeconds = 0f;
         }

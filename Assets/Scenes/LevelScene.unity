@@ -166,7 +166,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
+  m_Name: ''
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -890,6 +890,7 @@ GameObject:
   - component: {fileID: 1374160542}
   - component: {fileID: 1374160543}
   - component: {fileID: 1374160544}
+  - component: {fileID: 1374160545}
   m_Layer: 0
   m_Name: LevelSceneRuntime
   m_TagString: Untagged
@@ -953,6 +954,8 @@ MonoBehaviour:
   boardView: {fileID: 1517054705}
   sessionHost: {fileID: 1374160539}
   inputCamera: {fileID: 519420031}
+  normalCubePreviewDuration: 0.12
+  singleRocketEffectPlayer: {fileID: 1374160545}
 --- !u!114 &1374160543
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -989,6 +992,25 @@ MonoBehaviour:
   stoneGoalIcon: {fileID: 21300000, guid: 62cec442f5b015344bc9860a87acd897, type: 3}
   vaseGoalIcon: {fileID: 21300000, guid: 6261ba4588be4d649876b2e7aab336ba, type: 3}
   chaliceBoxGoalIcon: {fileID: 21300000, guid: 6c41c4b30b3e8e440859e225f3334a99, type: 3}
+--- !u!114 &1374160545
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1374160538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1df29d6db54749f5bd46f454ece4f4c4, type: 3}
+  m_Name: ''
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.SingleRocketActivationEffectPlayer
+  effectRoot: {fileID: 0}
+  duration: 0.2
+  effectZ: -0.2
+  horizontalRocketPartLeftSprite: {fileID: 21300000, guid: 4f53e731fc4e3c544ac010d58d182f4c, type: 3}
+  horizontalRocketPartRightSprite: {fileID: 21300000, guid: e62fe0440cb54c8499890f74ea03191b, type: 3}
+  verticalRocketPartTopSprite: {fileID: 21300000, guid: 39aab89e51f715d449405573be1e732f, type: 3}
+  verticalRocketPartBottomSprite: {fileID: 21300000, guid: 312f67bd64397dc459ff6a71fb5cfa8e, type: 3}
 --- !u!1 &1517054704
 GameObject:
   m_ObjectHideFlags: 0

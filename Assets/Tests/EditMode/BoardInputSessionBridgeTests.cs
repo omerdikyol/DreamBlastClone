@@ -204,7 +204,78 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
             Assert.That(session.RemainingMoves, Is.EqualTo(4));
             Assert.That(session.Board.GetCell(new BoardCoordinate(2, 1)).HasItem, Is.False);
+            Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
+            Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.True);
+
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
+
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.EqualTo(0f));
+            Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
+        }
+
+        [Test]
+        public void TryHandleScreenTapForwardsTntTapWithoutRocketPreview()
+        {
+            var board = new BoardModel(4, 4);
+            board.PlaceItem(new BoardCoordinate(1, 1), new TntItemModel());
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(1.5f, 1.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(session.RemainingMoves, Is.EqualTo(4));
+            Assert.That(GetRemainingPreviewSeconds(bridge), Is.EqualTo(0f));
+            Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
+        }
+
+        [Test]
+        public void TryHandleScreenTapForwardsComboTapWithoutSingleRocketPreview()
+        {
+            var board = new BoardModel(3, 3);
+            board.PlaceItem(new BoardCoordinate(1, 1), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(1, 2), new RocketItemModel(RocketOrientation.Vertical));
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(1.5f, 1.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(session.RemainingMoves, Is.EqualTo(4));
+            Assert.That(GetRemainingPreviewSeconds(bridge), Is.EqualTo(0f));
+            Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
+        }
+
+        [Test]
+        public void TryHandleScreenTapIgnoresFurtherTapsWhileSingleRocketEffectIsActive()
+        {
+            var board = new BoardModel(4, 4);
+            board.PlaceItem(new BoardCoordinate(2, 1), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(0, 1), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var rocketTap = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(2.5f, 1.5f, 0f)));
+            var cubeTap = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(0.5f, 0.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(rocketTap), Is.True);
+            Assert.That(session.RemainingMoves, Is.EqualTo(4));
+            Assert.That(bridge.TryHandleScreenTap(cubeTap), Is.False);
+            Assert.That(session.RemainingMoves, Is.EqualTo(4));
         }
 
         [Test]
@@ -343,6 +414,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(bridge, "boardView", boardView);
             SetField(bridge, "sessionHost", host);
             SetField(bridge, "inputCamera", camera);
+            SetField(bridge, "singleRocketEffectPlayer", CreateRocketEffectPlayer());
             return bridge;
         }
 
@@ -387,11 +459,28 @@ namespace DreamBlastClone.Tests.EditMode
             return (Camera)GetField(bridge, "inputCamera");
         }
 
+        private SingleRocketActivationEffectPlayer GetSingleRocketEffectPlayer(BoardInputSessionBridge bridge)
+        {
+            return (SingleRocketActivationEffectPlayer)GetField(bridge, "singleRocketEffectPlayer");
+        }
+
         private GameObject CreateVisualPrefab(string name)
         {
             var prefab = CreateGameObject(name);
             prefab.AddComponent<SpriteRenderer>();
             return prefab;
+        }
+
+        private SingleRocketActivationEffectPlayer CreateRocketEffectPlayer()
+        {
+            var host = CreateGameObject("SingleRocketEffectPlayer");
+            var effectPlayer = host.AddComponent<SingleRocketActivationEffectPlayer>();
+            SetField(effectPlayer, "horizontalRocketPartLeftSprite", CreateSprite(18, 18, 18f));
+            SetField(effectPlayer, "horizontalRocketPartRightSprite", CreateSprite(19, 18, 19f));
+            SetField(effectPlayer, "verticalRocketPartTopSprite", CreateSprite(18, 19, 18f));
+            SetField(effectPlayer, "verticalRocketPartBottomSprite", CreateSprite(19, 19, 19f));
+            SetField(effectPlayer, "duration", 0.2f);
+            return effectPlayer;
         }
 
         private GameObject CreateCubePrefab()
