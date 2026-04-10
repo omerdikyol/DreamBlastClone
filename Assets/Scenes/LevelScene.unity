@@ -899,6 +899,7 @@ GameObject:
   - component: {fileID: 1374160549}
   - component: {fileID: 1374160550}
   - component: {fileID: 1374160551}
+  - component: {fileID: 1374160552}
   m_Layer: 0
   m_Name: LevelSceneRuntime
   m_TagString: Untagged
@@ -964,6 +965,7 @@ MonoBehaviour:
   inputCamera: {fileID: 519420031}
   normalCubePreviewDuration: 0.12
   destructionFeedbackPlayer: {fileID: 1374160546}
+  cubeBlastParticlePlayer: {fileID: 1374160552}
   settleMotionPlayer: {fileID: 1374160547}
   singleRocketEffectPlayer: {fileID: 1374160545}
   comboPresentationPlayer: {fileID: 1374160551}
@@ -1129,6 +1131,31 @@ MonoBehaviour:
   verticalRocketPartTopSprite: {fileID: 21300000, guid: 39aab89e51f715d449405573be1e732f, type: 3}
   verticalRocketPartBottomSprite: {fileID: 21300000, guid: 312f67bd64397dc459ff6a71fb5cfa8e, type: 3}
   tntSprite: {fileID: 21300000, guid: e5e1a721ed3eb8641b64b95a015fea5c, type: 3}
+--- !u!114 &1374160552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1374160538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75b5761fa7384a59b3854ce0244cd181, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.CubeBlastParticlePlayer
+  effectRoot: {fileID: 0}
+  duration: 0.18
+  effectZ: -0.16
+  particlesPerBurst: 4
+  spawnRadius: 0.12
+  travelDistance: 0.35
+  startSizeMultiplier: 0.28
+  endSizeMultiplier: 0.12
+  upwardBias: 0.08
+  redParticleSprite: {fileID: 8635282560227039426, guid: 6bb7d495009efd74cbd00de51332433b, type: 3}
+  greenParticleSprite: {fileID: 3823634399010047068, guid: b3eb51abb610c1045b97ca11a9711116, type: 3}
+  blueParticleSprite: {fileID: -600494540707355758, guid: 2d6dd47c89266c0419b656f68b73d4d3, type: 3}
+  yellowParticleSprite: {fileID: 6910005400417552955, guid: 7b762171f8320c54a9e2d6c42757e9da, type: 3}
 --- !u!1 &1517054704
 GameObject:
   m_ObjectHideFlags: 0
