@@ -454,6 +454,7 @@ namespace DreamBlastClone.Tests.EditMode
             var feedbackRoot = GetDestructionFeedbackPlayer(bridge).transform;
             Assert.That(feedbackRoot.childCount, Is.EqualTo(2));
             Assert.That(ContainsChildNameWithFragment(feedbackRoot, "StoneObstacleModel"), Is.False);
+            Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.False);
         }
 
         [Test]
@@ -475,11 +476,13 @@ namespace DreamBlastClone.Tests.EditMode
 
             var feedbackRoot = GetDestructionFeedbackPlayer(bridge).transform;
             Assert.That(ContainsChildNameWithFragment(feedbackRoot, "StoneObstacleModel"), Is.True);
+            Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.True);
 
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
 
             Assert.That(session.Board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.Null);
+            Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.False);
         }
 
         [Test]
@@ -748,6 +751,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(bridge, "destructionFeedbackPlayer", CreateDestructionFeedbackPlayer());
             SetField(bridge, "cubeBlastParticlePlayer", CreateCubeBlastParticlePlayer());
             SetField(bridge, "vaseParticlePlayer", CreateVaseParticlePlayer());
+            SetField(bridge, "stoneParticlePlayer", CreateStoneParticlePlayer());
             SetField(bridge, "settleMotionPlayer", CreateSettleMotionPlayer());
             SetField(bridge, "singleRocketEffectPlayer", CreateRocketEffectPlayer());
             SetField(bridge, "singleTntEffectPlayer", CreateTntEffectPlayer());
@@ -824,6 +828,11 @@ namespace DreamBlastClone.Tests.EditMode
         private VaseParticlePlayer GetVaseParticlePlayer(BoardInputSessionBridge bridge)
         {
             return (VaseParticlePlayer)GetField(bridge, "vaseParticlePlayer");
+        }
+
+        private StoneParticlePlayer GetStoneParticlePlayer(BoardInputSessionBridge bridge)
+        {
+            return (StoneParticlePlayer)GetField(bridge, "stoneParticlePlayer");
         }
 
         private BoardSettleMotionPlayer GetSettleMotionPlayer(BoardInputSessionBridge bridge)
@@ -930,6 +939,17 @@ namespace DreamBlastClone.Tests.EditMode
             var effectPlayer = host.AddComponent<VaseParticlePlayer>();
             SetField(effectPlayer, "duration", 0.2f);
             SetField(effectPlayer, "mainShardSprite", CreateSprite(24, 24, 20f));
+            SetField(effectPlayer, "fragmentSprite", CreateSprite(18, 18, 20f));
+            SetField(effectPlayer, "dustSprite", CreateSprite(20, 16, 20f));
+            return effectPlayer;
+        }
+
+        private StoneParticlePlayer CreateStoneParticlePlayer()
+        {
+            var host = CreateGameObject("StoneParticlePlayer");
+            var effectPlayer = host.AddComponent<StoneParticlePlayer>();
+            SetField(effectPlayer, "duration", 0.24f);
+            SetField(effectPlayer, "mainChunkSprite", CreateSprite(24, 24, 20f));
             SetField(effectPlayer, "fragmentSprite", CreateSprite(18, 18, 20f));
             SetField(effectPlayer, "dustSprite", CreateSprite(20, 16, 20f));
             return effectPlayer;

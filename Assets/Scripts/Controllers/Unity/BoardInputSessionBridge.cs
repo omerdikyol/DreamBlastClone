@@ -21,6 +21,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private BoardDestructionFeedbackPlayer destructionFeedbackPlayer;
         [SerializeField] private CubeBlastParticlePlayer cubeBlastParticlePlayer;
         [SerializeField] private VaseParticlePlayer vaseParticlePlayer;
+        [SerializeField] private StoneParticlePlayer stoneParticlePlayer;
         [SerializeField] private BoardSettleMotionPlayer settleMotionPlayer;
         [SerializeField] private SingleRocketActivationEffectPlayer singleRocketEffectPlayer;
         [SerializeField] private SingleTntActivationEffectPlayer singleTntEffectPlayer;
@@ -33,6 +34,7 @@ namespace DreamBlastClone.Controllers.Unity
         private readonly BoardDestructionFeedbackDescriptorBuilder destructionFeedbackDescriptorBuilder = new BoardDestructionFeedbackDescriptorBuilder();
         private readonly CubeBlastParticleDescriptorBuilder cubeBlastParticleDescriptorBuilder = new CubeBlastParticleDescriptorBuilder();
         private readonly VaseParticleDescriptorBuilder vaseParticleDescriptorBuilder = new VaseParticleDescriptorBuilder();
+        private readonly StoneParticleDescriptorBuilder stoneParticleDescriptorBuilder = new StoneParticleDescriptorBuilder();
         private readonly BoardSettleMotionDescriptorBuilder settleMotionDescriptorBuilder = new BoardSettleMotionDescriptorBuilder();
         private readonly BoardSettleStartBoardBuilder settleStartBoardBuilder = new BoardSettleStartBoardBuilder();
         private readonly SingleRocketActivationEffectDescriptorBuilder singleRocketEffectDescriptorBuilder = new SingleRocketActivationEffectDescriptorBuilder();
@@ -175,6 +177,11 @@ namespace DreamBlastClone.Controllers.Unity
                 presentationDuration = Math.Max(presentationDuration, vaseParticleDuration);
             }
 
+            if (TryStartStoneParticles(preTapBoard, tapResult.Tap, out var stoneParticleDuration))
+            {
+                presentationDuration = Math.Max(presentationDuration, stoneParticleDuration);
+            }
+
             if (TryStartSingleRocketEffect(resolvedCoordinate, tapResult.Tap, out var rocketDuration))
             {
                 presentationDuration = Math.Max(presentationDuration, rocketDuration);
@@ -238,6 +245,11 @@ namespace DreamBlastClone.Controllers.Unity
                 vaseParticlePlayer.Advance(deltaTime);
             }
 
+            if (stoneParticlePlayer is not null)
+            {
+                stoneParticlePlayer.Advance(deltaTime);
+            }
+
             if (singleRocketEffectPlayer is not null)
             {
                 singleRocketEffectPlayer.Advance(deltaTime);
@@ -293,6 +305,7 @@ namespace DreamBlastClone.Controllers.Unity
             destructionFeedbackPlayer?.Stop();
             cubeBlastParticlePlayer?.Stop();
             vaseParticlePlayer?.Stop();
+            stoneParticlePlayer?.Stop();
             settleMotionPlayer?.Stop();
             singleRocketEffectPlayer?.Stop();
             singleTntEffectPlayer?.Stop();
@@ -479,6 +492,25 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             duration = vaseParticlePlayer.Duration;
+            return true;
+        }
+
+        private bool TryStartStoneParticles(BoardModel preTapBoard, BoardTapDispatchResult tap, out float duration)
+        {
+            duration = 0f;
+
+            if (boardView is null || stoneParticlePlayer is null)
+            {
+                return false;
+            }
+
+            var descriptor = stoneParticleDescriptorBuilder.Build(preTapBoard, tap);
+            if (!stoneParticlePlayer.TryPlay(boardView, descriptor))
+            {
+                return false;
+            }
+
+            duration = stoneParticlePlayer.Duration;
             return true;
         }
 
