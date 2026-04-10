@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DreamBlastClone.Core;
 using DreamBlastClone.Grid;
 
@@ -25,40 +26,122 @@ namespace DreamBlastClone.Systems
                 throw new ArgumentNullException(nameof(refillColorResolver));
             }
 
-            var combo = specialItemComboResolver.Resolve(board, tapCoordinate);
-            if (combo.IsComboActivated)
+            var triggeredActivations = new List<TriggeredSpecialActivationResult>();
+            var obstacleDamageResults = new List<ObstacleDamageResolutionResult>();
+            var pendingTriggeredSeeds = new Queue<TriggeredSpecialSeed>();
+            var queuedTriggeredCoordinates = new HashSet<BoardCoordinate>();
+
+            var comboStep = specialItemComboResolver.ResolveStep(board, tapCoordinate);
+            if (comboStep.Combo.IsComboActivated)
             {
-                var comboObstacleDamage = specialComboObstacleDamageResolver.Resolve(board, combo);
+                obstacleDamageResults.Add(specialComboObstacleDamageResolver.Resolve(board, comboStep.Combo));
+                EnqueueTriggeredSpecials(comboStep.TriggeredSpecials, pendingTriggeredSeeds, queuedTriggeredCoordinates);
+                ResolveTriggeredSpecialActivations(board, pendingTriggeredSeeds, queuedTriggeredCoordinates, triggeredActivations, obstacleDamageResults);
+
                 var comboGravity = itemGravityResolver.Resolve(board);
                 var comboRefill = itemRefillResolver.Resolve(board, refillColorResolver);
 
                 return new SpecialItemTapPipelineResult(
                     isValidTap: true,
-                    combo: combo,
+                    combo: comboStep.Combo,
                     activation: SpecialItemActivationResult.Invalid(),
-                    obstacleDamage: comboObstacleDamage,
+                    obstacleDamage: CombineObstacleDamageResults(obstacleDamageResults),
                     gravity: comboGravity,
-                    refill: comboRefill);
+                    refill: comboRefill,
+                    triggeredActivations: triggeredActivations);
             }
 
-            var activation = specialItemTapResolver.Resolve(board, tapCoordinate);
-            if (!activation.IsValidActivation)
+            var activationStep = specialItemTapResolver.ResolveStep(board, tapCoordinate);
+            if (!activationStep.Activation.IsValidActivation)
             {
                 return SpecialItemTapPipelineResult.Invalid();
             }
 
-            // This coordinator runs one special activation pass, then settles the board without recursing into combos or chains.
-            var obstacleDamage = specialActivationObstacleDamageResolver.Resolve(board, activation);
+            obstacleDamageResults.Add(specialActivationObstacleDamageResolver.Resolve(board, activationStep.Activation));
+            EnqueueTriggeredSpecials(activationStep.TriggeredSpecials, pendingTriggeredSeeds, queuedTriggeredCoordinates);
+            ResolveTriggeredSpecialActivations(board, pendingTriggeredSeeds, queuedTriggeredCoordinates, triggeredActivations, obstacleDamageResults);
             var gravity = itemGravityResolver.Resolve(board);
             var refill = itemRefillResolver.Resolve(board, refillColorResolver);
 
             return new SpecialItemTapPipelineResult(
                 isValidTap: true,
                 combo: SpecialItemComboActivationResult.Invalid(),
-                activation: activation,
-                obstacleDamage: obstacleDamage,
+                activation: activationStep.Activation,
+                obstacleDamage: CombineObstacleDamageResults(obstacleDamageResults),
                 gravity: gravity,
-                refill: refill);
+                refill: refill,
+                triggeredActivations: triggeredActivations);
+        }
+
+        private void ResolveTriggeredSpecialActivations(
+            BoardModel board,
+            Queue<TriggeredSpecialSeed> pendingTriggeredSeeds,
+            HashSet<BoardCoordinate> queuedTriggeredCoordinates,
+            List<TriggeredSpecialActivationResult> triggeredActivations,
+            List<ObstacleDamageResolutionResult> obstacleDamageResults)
+        {
+            while (pendingTriggeredSeeds.Count > 0)
+            {
+                var triggeredSeed = pendingTriggeredSeeds.Dequeue();
+                var activationStep = specialItemTapResolver.ResolveStep(board, triggeredSeed.Coordinate, triggeredSeed.Item);
+                if (!activationStep.Activation.IsValidActivation)
+                {
+                    continue;
+                }
+
+                triggeredActivations.Add(new TriggeredSpecialActivationResult(triggeredSeed.Coordinate, activationStep.Activation));
+                obstacleDamageResults.Add(specialActivationObstacleDamageResolver.Resolve(board, activationStep.Activation));
+                EnqueueTriggeredSpecials(activationStep.TriggeredSpecials, pendingTriggeredSeeds, queuedTriggeredCoordinates);
+            }
+        }
+
+        private static void EnqueueTriggeredSpecials(
+            IReadOnlyList<TriggeredSpecialSeed> triggeredSpecials,
+            Queue<TriggeredSpecialSeed> pendingTriggeredSeeds,
+            HashSet<BoardCoordinate> queuedTriggeredCoordinates)
+        {
+            foreach (var triggeredSpecial in triggeredSpecials)
+            {
+                if (!queuedTriggeredCoordinates.Add(triggeredSpecial.Coordinate))
+                {
+                    continue;
+                }
+
+                pendingTriggeredSeeds.Enqueue(triggeredSpecial);
+            }
+        }
+
+        private static ObstacleDamageResolutionResult CombineObstacleDamageResults(
+            IReadOnlyList<ObstacleDamageResolutionResult> obstacleDamageResults)
+        {
+            if (obstacleDamageResults.Count == 0)
+            {
+                return ObstacleDamageResolutionResult.Empty();
+            }
+
+            var damages = new List<ObstacleDamage>();
+            var removedCoordinates = new List<BoardCoordinate>();
+            var seenRemovedCoordinates = new HashSet<BoardCoordinate>();
+
+            foreach (var obstacleDamageResult in obstacleDamageResults)
+            {
+                foreach (var damage in obstacleDamageResult.Damages)
+                {
+                    damages.Add(damage);
+                }
+
+                foreach (var removedCoordinate in obstacleDamageResult.RemovedCoordinates)
+                {
+                    if (seenRemovedCoordinates.Add(removedCoordinate))
+                    {
+                        removedCoordinates.Add(removedCoordinate);
+                    }
+                }
+            }
+
+            return damages.Count == 0
+                ? ObstacleDamageResolutionResult.Empty()
+                : new ObstacleDamageResolutionResult(damages, removedCoordinates);
         }
     }
 }

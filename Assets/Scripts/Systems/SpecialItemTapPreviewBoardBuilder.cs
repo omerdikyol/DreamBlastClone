@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using DreamBlastClone.Core;
 using DreamBlastClone.Grid;
 using DreamBlastClone.Obstacles;
 
@@ -26,9 +28,7 @@ namespace DreamBlastClone.Systems
                 return previewBoard;
             }
 
-            var removedItemCoordinates = tap.Combo.IsComboActivated
-                ? tap.Combo.RemovedItemCoordinates
-                : tap.Activation.RemovedItemCoordinates;
+            var removedItemCoordinates = CollectRemovedItemCoordinates(tap);
 
             foreach (var removedCoordinate in removedItemCoordinates)
             {
@@ -81,6 +81,36 @@ namespace DreamBlastClone.Systems
 
                 previewBoard.ClearObstacle(cell.Obstacle);
             }
+        }
+
+        private static IReadOnlyList<BoardCoordinate> CollectRemovedItemCoordinates(SpecialItemTapPipelineResult tap)
+        {
+            var removedCoordinates = new List<BoardCoordinate>();
+            var seenCoordinates = new HashSet<BoardCoordinate>();
+            var initialRemovedCoordinates = tap.Combo.IsComboActivated
+                ? tap.Combo.RemovedItemCoordinates
+                : tap.Activation.RemovedItemCoordinates;
+
+            foreach (var coordinate in initialRemovedCoordinates)
+            {
+                if (seenCoordinates.Add(coordinate))
+                {
+                    removedCoordinates.Add(coordinate);
+                }
+            }
+
+            foreach (var triggeredActivation in tap.TriggeredActivations)
+            {
+                foreach (var coordinate in triggeredActivation.Activation.RemovedItemCoordinates)
+                {
+                    if (seenCoordinates.Add(coordinate))
+                    {
+                        removedCoordinates.Add(coordinate);
+                    }
+                }
+            }
+
+            return removedCoordinates;
         }
     }
 }

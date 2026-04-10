@@ -181,7 +181,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Controllers.Unity::DreamBlastClone.Controllers.Unity.CurrentLevelDebugTool
   levelCatalog: {fileID: 11400000, guid: 1a64d9d4f43845778a59cbefc459f7b8, type: 2}
-  selectedLevel: 4
+  selectedLevel: 1
 --- !u!1 &234748939
 GameObject:
   m_ObjectHideFlags: 0
@@ -709,7 +709,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Level 4
+  m_text: Level 1
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: c0ff7bc9195904049acaef0df93102a8, type: 2}
   m_sharedMaterial: {fileID: -1154676297339140024, guid: c0ff7bc9195904049acaef0df93102a8, type: 2}

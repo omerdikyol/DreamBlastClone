@@ -66,6 +66,17 @@ namespace DreamBlastClone.Views
                         }
                     }
 
+                    foreach (var triggeredActivation in tap.SpecialItem.TriggeredActivations)
+                    {
+                        foreach (var coordinate in triggeredActivation.Activation.RemovedItemCoordinates)
+                        {
+                            if (seenCoordinates.Add(coordinate))
+                            {
+                                removedCoordinates.Add(coordinate);
+                            }
+                        }
+                    }
+
                     break;
             }
 

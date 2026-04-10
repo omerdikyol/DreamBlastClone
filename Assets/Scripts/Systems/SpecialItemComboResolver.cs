@@ -9,14 +9,19 @@ namespace DreamBlastClone.Systems
     {
         public SpecialItemComboActivationResult Resolve(BoardModel board, BoardCoordinate tapCoordinate)
         {
+            return ResolveStep(board, tapCoordinate).Combo;
+        }
+
+        internal ResolvedSpecialComboStep ResolveStep(BoardModel board, BoardCoordinate tapCoordinate)
+        {
             if (board is null)
             {
-                return SpecialItemComboActivationResult.Invalid();
+                return ResolvedSpecialComboStep.Invalid();
             }
 
             if (!board.TryGetCell(tapCoordinate, out var tappedCell) || !IsComboSpecial(tappedCell.Item))
             {
-                return SpecialItemComboActivationResult.Invalid();
+                return ResolvedSpecialComboStep.Invalid();
             }
 
             foreach (var neighborCoordinate in tapCoordinate.GetOrthogonalNeighbors())
@@ -28,21 +33,26 @@ namespace DreamBlastClone.Systems
 
                 var comboType = ResolveComboType(tappedCell.Item, neighborCell.Item);
                 var affectedCoordinates = BuildAffectedCoordinates(board, tapCoordinate, comboType);
-                var removedItemCoordinates = RemoveAffectedItems(board, affectedCoordinates);
+                var removedItems = SpecialItemEffectItemRemovalResolver.Resolve(
+                    board,
+                    affectedCoordinates,
+                    new[] { tapCoordinate, neighborCoordinate });
 
-                return new SpecialItemComboActivationResult(
-                    isComboActivated: true,
-                    comboType: comboType,
-                    participatingSpecialCoordinates: new[]
-                    {
-                        tapCoordinate,
-                        neighborCoordinate
-                    },
-                    affectedCoordinates: affectedCoordinates,
-                    removedItemCoordinates: removedItemCoordinates);
+                return new ResolvedSpecialComboStep(
+                    new SpecialItemComboActivationResult(
+                        isComboActivated: true,
+                        comboType: comboType,
+                        participatingSpecialCoordinates: new[]
+                        {
+                            tapCoordinate,
+                            neighborCoordinate
+                        },
+                        affectedCoordinates: affectedCoordinates,
+                        removedItemCoordinates: removedItems.RemovedItemCoordinates),
+                    removedItems.TriggeredSpecials);
             }
 
-            return SpecialItemComboActivationResult.Invalid();
+            return ResolvedSpecialComboStep.Invalid();
         }
 
         private static bool IsComboSpecial(ItemModel item)
@@ -129,23 +139,29 @@ namespace DreamBlastClone.Systems
             return affectedCoordinates;
         }
 
-        private static IReadOnlyList<BoardCoordinate> RemoveAffectedItems(BoardModel board, IReadOnlyList<BoardCoordinate> affectedCoordinates)
+    }
+
+    internal sealed class ResolvedSpecialComboStep
+    {
+        private static readonly IReadOnlyList<TriggeredSpecialSeed> EmptyTriggeredSpecials = System.Array.Empty<TriggeredSpecialSeed>();
+
+        public ResolvedSpecialComboStep(
+            SpecialItemComboActivationResult combo,
+            IReadOnlyList<TriggeredSpecialSeed> triggeredSpecials)
         {
-            var removedItemCoordinates = new List<BoardCoordinate>();
+            Combo = combo ?? throw new System.ArgumentNullException(nameof(combo));
+            TriggeredSpecials = triggeredSpecials ?? throw new System.ArgumentNullException(nameof(triggeredSpecials));
+        }
 
-            foreach (var coordinate in affectedCoordinates)
-            {
-                var cell = board.GetCell(coordinate);
-                if (!cell.HasItem)
-                {
-                    continue;
-                }
+        public SpecialItemComboActivationResult Combo { get; }
 
-                board.ClearItem(coordinate);
-                removedItemCoordinates.Add(coordinate);
-            }
+        public IReadOnlyList<TriggeredSpecialSeed> TriggeredSpecials { get; }
 
-            return removedItemCoordinates;
+        public static ResolvedSpecialComboStep Invalid()
+        {
+            return new ResolvedSpecialComboStep(
+                SpecialItemComboActivationResult.Invalid(),
+                EmptyTriggeredSpecials);
         }
     }
 }

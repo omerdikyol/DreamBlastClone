@@ -212,6 +212,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(result.IsValidTap, Is.True);
             Assert.That(result.Combo.IsComboActivated, Is.True);
+            Assert.That(result.TriggeredActivations, Is.Empty);
             Assert.That(result.Combo.ComboType, Is.EqualTo(SpecialItemComboType.RocketRocket));
             Assert.That(result.Combo.ParticipatingSpecialCoordinates, Is.EqualTo(new[]
             {
@@ -250,11 +251,95 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(board.GetCell(vaseCoordinate).Obstacle, Is.SameAs(vase));
         }
 
+        [Test]
+        public void TntDamagingRocketQueuesTriggeredSingleRocketActivation()
+        {
+            var board = new BoardModel(7, 5);
+            var tap = new BoardCoordinate(2, 2);
+
+            board.PlaceItem(tap, new TntItemModel());
+            board.PlaceItem(new BoardCoordinate(4, 2), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(6, 2), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(6, 4), new CubeItemModel(CubeColor.Green));
+
+            var result = coordinator.Resolve(board, tap, new FakeRefillCubeColorResolver());
+
+            Assert.That(result.IsValidTap, Is.True);
+            Assert.That(result.Combo.IsComboActivated, Is.False);
+            Assert.That(result.Activation.IsValidActivation, Is.True);
+            Assert.That(result.Activation.ActivationType, Is.EqualTo(SpecialActivationType.Tnt));
+            Assert.That(result.TriggeredActivations, Has.Count.EqualTo(1));
+            Assert.That(result.TriggeredActivations[0].OriginCoordinate, Is.EqualTo(new BoardCoordinate(4, 2)));
+            Assert.That(result.TriggeredActivations[0].Activation.ActivationType, Is.EqualTo(SpecialActivationType.Rocket));
+            Assert.That(result.TriggeredActivations[0].Activation.AffectedCoordinates, Is.EqualTo(new[]
+            {
+                new BoardCoordinate(0, 2),
+                new BoardCoordinate(1, 2),
+                new BoardCoordinate(2, 2),
+                new BoardCoordinate(3, 2),
+                new BoardCoordinate(4, 2),
+                new BoardCoordinate(5, 2),
+                new BoardCoordinate(6, 2)
+            }));
+            Assert.That(result.TriggeredActivations[0].Activation.RemovedItemCoordinates, Does.Contain(new BoardCoordinate(6, 2)));
+            Assert.That(board.GetCell(new BoardCoordinate(6, 4)).Item, Is.TypeOf<CubeItemModel>());
+        }
+
+        [Test]
+        public void TntDamagingAdjacentRocketsTriggersTwoSingleRocketActivationsInsteadOfCombo()
+        {
+            var board = new BoardModel(7, 7);
+            var tap = new BoardCoordinate(2, 2);
+
+            board.PlaceItem(tap, new TntItemModel());
+            board.PlaceItem(new BoardCoordinate(4, 2), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(4, 3), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(6, 3), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(4, 6), new CubeItemModel(CubeColor.Green));
+
+            var result = coordinator.Resolve(board, tap, new FakeRefillCubeColorResolver());
+
+            Assert.That(result.IsValidTap, Is.True);
+            Assert.That(result.Combo.IsComboActivated, Is.False);
+            Assert.That(result.Activation.IsValidActivation, Is.True);
+            Assert.That(result.Activation.ActivationType, Is.EqualTo(SpecialActivationType.Tnt));
+            Assert.That(result.TriggeredActivations, Has.Count.EqualTo(2));
+            Assert.That(result.TriggeredActivations[0].OriginCoordinate, Is.EqualTo(new BoardCoordinate(4, 2)));
+            Assert.That(result.TriggeredActivations[1].OriginCoordinate, Is.EqualTo(new BoardCoordinate(4, 3)));
+            Assert.That(result.TriggeredActivations[0].Activation.ActivationType, Is.EqualTo(SpecialActivationType.Rocket));
+            Assert.That(result.TriggeredActivations[1].Activation.ActivationType, Is.EqualTo(SpecialActivationType.Rocket));
+            Assert.That(result.TriggeredActivations[0].Activation.AffectedCoordinates, Is.EqualTo(new[]
+            {
+                new BoardCoordinate(0, 2),
+                new BoardCoordinate(1, 2),
+                new BoardCoordinate(2, 2),
+                new BoardCoordinate(3, 2),
+                new BoardCoordinate(4, 2),
+                new BoardCoordinate(5, 2),
+                new BoardCoordinate(6, 2)
+            }));
+            Assert.That(result.TriggeredActivations[1].Activation.AffectedCoordinates, Is.EqualTo(new[]
+            {
+                new BoardCoordinate(0, 3),
+                new BoardCoordinate(1, 3),
+                new BoardCoordinate(2, 3),
+                new BoardCoordinate(3, 3),
+                new BoardCoordinate(4, 3),
+                new BoardCoordinate(5, 3),
+                new BoardCoordinate(6, 3)
+            }));
+            Assert.That(result.TriggeredActivations[1].Activation.RemovedItemCoordinates, Does.Contain(new BoardCoordinate(6, 3)));
+            Assert.That(result.TriggeredActivations[0].Activation.AffectedCoordinates, Has.None.EqualTo(new BoardCoordinate(4, 6)));
+            Assert.That(result.TriggeredActivations[1].Activation.AffectedCoordinates, Has.None.EqualTo(new BoardCoordinate(4, 6)));
+            Assert.That(board.GetCell(new BoardCoordinate(4, 6)).Item, Is.TypeOf<CubeItemModel>());
+        }
+
         private static void AssertInvalidResult(SpecialItemTapPipelineResult result)
         {
             Assert.That(result.IsValidTap, Is.False);
             Assert.That(result.Combo.IsComboActivated, Is.False);
             Assert.That(result.Activation.IsValidActivation, Is.False);
+            Assert.That(result.TriggeredActivations, Is.Empty);
             Assert.That(result.ObstacleDamage.HasAnyDamage, Is.False);
             Assert.That(result.Gravity.HasAnyMovement, Is.False);
             Assert.That(result.Refill.HasAnySpawn, Is.False);

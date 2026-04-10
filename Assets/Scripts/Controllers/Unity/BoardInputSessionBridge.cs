@@ -21,6 +21,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private BoardDestructionFeedbackPlayer destructionFeedbackPlayer;
         [SerializeField] private BoardSettleMotionPlayer settleMotionPlayer;
         [SerializeField] private SingleRocketActivationEffectPlayer singleRocketEffectPlayer;
+        [SerializeField] private SpecialItemComboPresentationPlayer comboPresentationPlayer;
 
         private readonly CubeGroupDetector cubeGroupDetector = new CubeGroupDetector();
         private readonly BoardModelCloner boardModelCloner = new BoardModelCloner();
@@ -30,12 +31,14 @@ namespace DreamBlastClone.Controllers.Unity
         private readonly BoardSettleMotionDescriptorBuilder settleMotionDescriptorBuilder = new BoardSettleMotionDescriptorBuilder();
         private readonly BoardSettleStartBoardBuilder settleStartBoardBuilder = new BoardSettleStartBoardBuilder();
         private readonly SingleRocketActivationEffectDescriptorBuilder singleRocketEffectDescriptorBuilder = new SingleRocketActivationEffectDescriptorBuilder();
+        private readonly SpecialItemComboPresentationDescriptorBuilder comboPresentationDescriptorBuilder = new SpecialItemComboPresentationDescriptorBuilder();
         private static readonly bool EnableTapDebugLogging = false;
         private const float CubeTapSnapRadiusFactor = 1.1f;
         private const float CubeTapStickinessFactor = 0.35f;
         private BoardModel pendingFinalBoard;
         private BoardModel pendingSettleStartBoard;
         private BoardSettleMotionDescriptor pendingSettleMotionDescriptor;
+        private SpecialItemComboPresentationDescriptor pendingComboPresentationDescriptor;
         private float remainingPreviewSeconds;
         private bool isInputSuppressed;
 
@@ -163,9 +166,15 @@ namespace DreamBlastClone.Controllers.Unity
             pendingFinalBoard = finalBoard;
             pendingSettleStartBoard = settleStartBoard;
             pendingSettleMotionDescriptor = settleMotionDescriptor;
+            pendingComboPresentationDescriptor = BuildComboPresentationDescriptor(tapResult.Tap);
 
             if (presentationDuration <= 0f)
             {
+                if (TryStartPendingComboPresentation())
+                {
+                    return;
+                }
+
                 if (TryStartPendingSettleMotion())
                 {
                     return;
@@ -201,6 +210,11 @@ namespace DreamBlastClone.Controllers.Unity
                 singleRocketEffectPlayer.Advance(deltaTime);
             }
 
+            if (comboPresentationPlayer is not null)
+            {
+                comboPresentationPlayer.Advance(deltaTime);
+            }
+
             if (!IsPreviewActive())
             {
                 return;
@@ -208,6 +222,11 @@ namespace DreamBlastClone.Controllers.Unity
 
             remainingPreviewSeconds = Math.Max(0f, remainingPreviewSeconds - deltaTime);
             if (remainingPreviewSeconds > 0f || pendingFinalBoard is null || boardView is null)
+            {
+                return;
+            }
+
+            if (TryStartPendingComboPresentation())
             {
                 return;
             }
@@ -231,9 +250,11 @@ namespace DreamBlastClone.Controllers.Unity
             destructionFeedbackPlayer?.Stop();
             settleMotionPlayer?.Stop();
             singleRocketEffectPlayer?.Stop();
+            comboPresentationPlayer?.Stop();
             pendingFinalBoard = null;
             pendingSettleStartBoard = null;
             pendingSettleMotionDescriptor = null;
+            pendingComboPresentationDescriptor = null;
             remainingPreviewSeconds = 0f;
         }
 
@@ -261,6 +282,27 @@ namespace DreamBlastClone.Controllers.Unity
             pendingSettleStartBoard = null;
             pendingSettleMotionDescriptor = null;
             remainingPreviewSeconds = settleMotionPlayer.Duration;
+            return true;
+        }
+
+        private bool TryStartPendingComboPresentation()
+        {
+            if (pendingComboPresentationDescriptor is null
+                || comboPresentationPlayer is null
+                || boardView is null)
+            {
+                return false;
+            }
+
+            var descriptor = pendingComboPresentationDescriptor;
+            pendingComboPresentationDescriptor = null;
+
+            if (!comboPresentationPlayer.TryPlay(boardView, descriptor))
+            {
+                return false;
+            }
+
+            remainingPreviewSeconds = comboPresentationPlayer.Duration;
             return true;
         }
 
@@ -331,6 +373,18 @@ namespace DreamBlastClone.Controllers.Unity
             return true;
         }
 
+        private SpecialItemComboPresentationDescriptor BuildComboPresentationDescriptor(BoardTapDispatchResult tap)
+        {
+            if (tap.RouteType != TapRouteType.SpecialItem
+                || !tap.SpecialItem.IsValidTap
+                || !tap.SpecialItem.Combo.IsComboActivated)
+            {
+                return null;
+            }
+
+            return comboPresentationDescriptorBuilder.Build(tap.SpecialItem.Combo);
+        }
+
         private Vector3 ScreenToBoardWorldPoint(Vector2 screenPosition)
         {
             var boardPlaneDistance = boardView.transform.position.z - inputCamera.transform.position.z;
@@ -353,6 +407,11 @@ namespace DreamBlastClone.Controllers.Unity
             if (initialGroupCount >= 2)
             {
                 return initialCoordinate;
+            }
+
+            if (TryResolveNearbySpecialCoordinate(board, worldPoint, initialCoordinate, out var nearbySpecialCoordinate))
+            {
+                return nearbySpecialCoordinate;
             }
 
             var initialDistanceSquared = GetCellCenterDistanceSquared(initialCoordinate, worldPoint);
@@ -399,6 +458,41 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             return bestCoordinate;
+        }
+
+        private bool TryResolveNearbySpecialCoordinate(
+            BoardModel board,
+            Vector3 worldPoint,
+            BoardCoordinate initialCoordinate,
+            out BoardCoordinate specialCoordinate)
+        {
+            specialCoordinate = default;
+            var bestDistanceSquared = float.MaxValue;
+            var snapRadiusSquared = boardView.CellSize * CubeTapSnapRadiusFactor;
+            snapRadiusSquared *= snapRadiusSquared;
+
+            foreach (var candidate in GetTapCandidateCoordinates(initialCoordinate))
+            {
+                if (!board.TryGetCell(candidate, out var candidateCell)
+                    || candidateCell.Item is not (RocketItemModel or TntItemModel))
+                {
+                    continue;
+                }
+
+                var centerDistanceSquared = GetCellCenterDistanceSquared(candidate, worldPoint);
+                if (centerDistanceSquared > snapRadiusSquared)
+                {
+                    continue;
+                }
+
+                if (centerDistanceSquared < bestDistanceSquared)
+                {
+                    specialCoordinate = candidate;
+                    bestDistanceSquared = centerDistanceSquared;
+                }
+            }
+
+            return bestDistanceSquared < float.MaxValue;
         }
 
         private float GetCellCenterDistanceSquared(BoardCoordinate coordinate, Vector3 worldPoint)
@@ -581,5 +675,6 @@ namespace DreamBlastClone.Controllers.Unity
                 _ => cell.Item.GetType().Name
             };
         }
+
     }
 }

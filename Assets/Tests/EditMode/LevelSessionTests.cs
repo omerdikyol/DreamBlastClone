@@ -192,9 +192,41 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(result.Tap.SpecialItem.IsValidTap, Is.True);
             Assert.That(result.Tap.SpecialItem.Combo.IsComboActivated, Is.True);
             Assert.That(result.Tap.SpecialItem.Activation.IsValidActivation, Is.False);
+            Assert.That(result.Tap.SpecialItem.TriggeredActivations, Is.Empty);
             Assert.That(result.DidSpendMove, Is.True);
             Assert.That(result.RemainingMoves, Is.EqualTo(3));
             Assert.That(result.LevelState, Is.EqualTo(LevelState.Continue));
+        }
+
+        [Test]
+        public void TntDamagingAdjacentRocketsUsesTriggeredSingleActivationsWithoutComboRouting()
+        {
+            var board = new BoardModel(7, 7);
+            var tap = new BoardCoordinate(2, 2);
+
+            board.PlaceItem(tap, new TntItemModel());
+            board.PlaceItem(new BoardCoordinate(4, 2), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(4, 3), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(6, 3), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(4, 6), new CubeItemModel(CubeColor.Green));
+
+            var session = new LevelSession(board, remainingMoves: 4, new FakeRefillCubeColorResolver());
+
+            var result = session.ProcessTap(tap);
+
+            Assert.That(result.Tap.RouteType, Is.EqualTo(TapRouteType.SpecialItem));
+            Assert.That(result.Tap.SpecialItem.IsValidTap, Is.True);
+            Assert.That(result.Tap.SpecialItem.Combo.IsComboActivated, Is.False);
+            Assert.That(result.Tap.SpecialItem.Activation.IsValidActivation, Is.True);
+            Assert.That(result.Tap.SpecialItem.TriggeredActivations, Has.Count.EqualTo(2));
+            Assert.That(result.Tap.SpecialItem.TriggeredActivations[0].OriginCoordinate, Is.EqualTo(new BoardCoordinate(4, 2)));
+            Assert.That(result.Tap.SpecialItem.TriggeredActivations[1].OriginCoordinate, Is.EqualTo(new BoardCoordinate(4, 3)));
+            Assert.That(result.Tap.SpecialItem.TriggeredActivations[1].Activation.RemovedItemCoordinates, Does.Contain(new BoardCoordinate(6, 3)));
+            Assert.That(result.Tap.SpecialItem.TriggeredActivations[0].Activation.AffectedCoordinates, Has.None.EqualTo(new BoardCoordinate(4, 6)));
+            Assert.That(result.Tap.SpecialItem.TriggeredActivations[1].Activation.AffectedCoordinates, Has.None.EqualTo(new BoardCoordinate(4, 6)));
+            Assert.That(result.RemainingMoves, Is.EqualTo(3));
+            Assert.That(result.DidSpendMove, Is.True);
+            Assert.That(board.GetCell(new BoardCoordinate(4, 6)).Item, Is.TypeOf<CubeItemModel>());
         }
 
         [Test]

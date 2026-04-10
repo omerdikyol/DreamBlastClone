@@ -85,6 +85,28 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void BuildCollectsTriggeredActivationRemovedItemCoordinates()
+        {
+            var board = new BoardModel(7, 5);
+            var tap = new BoardCoordinate(2, 2);
+            board.PlaceItem(tap, new TntItemModel());
+            board.PlaceItem(new BoardCoordinate(4, 2), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(6, 2), new CubeItemModel(CubeColor.Blue));
+
+            var preTapBoard = boardModelCloner.Clone(board);
+            var tapResult = dispatcher.Resolve(board, tap, refillColorResolver);
+            var descriptor = builder.Build(preTapBoard, tapResult);
+
+            Assert.That(tapResult.SpecialItem.TriggeredActivations, Has.Count.EqualTo(1));
+            Assert.That(descriptor.RemovedItemCoordinates, Is.EquivalentTo(new[]
+            {
+                tap,
+                new BoardCoordinate(4, 2),
+                new BoardCoordinate(6, 2)
+            }));
+        }
+
+        [Test]
         public void BuildDedupesRemovedObstacleInstancesIncludingChaliceBox()
         {
             var board = new BoardModel(4, 4);
