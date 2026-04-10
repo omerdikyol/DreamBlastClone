@@ -45,7 +45,11 @@ namespace DreamBlastClone.Tests.EditMode
             InvokeHandleTapProcessed(setup.PopupController, LevelState.Lose);
 
             Assert.That(setup.PopupRoot.activeSelf, Is.True);
+            Assert.That(setup.PopupCanvasGroup.alpha, Is.EqualTo(0f).Within(0.001f));
             Assert.That(setup.InputBridge.IsInputSuppressed, Is.True);
+            Assert.That(setup.TryAgainButton.interactable, Is.False);
+            Assert.That(setup.MainMenuButton.interactable, Is.False);
+            Assert.That(setup.CloseButton.interactable, Is.False);
 
             InvokeMethod(setup.PopupController, "OnDisable");
         }
@@ -69,33 +73,97 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
-        public void CloseButtonReturnsToMainScene()
+        public void EnteringStateKeepsGameplaySuppressedUntilPopupIsVisible()
         {
             var setup = CreatePopupController();
 
             InvokeMethod(setup.PopupController, "Awake");
             InvokeMethod(setup.PopupController, "OnEnable");
             InvokeHandleTapProcessed(setup.PopupController, LevelState.Lose);
+            AdvanceLosePresentation(setup.PopupController, 0.1f);
 
+            Assert.That(setup.InputBridge.IsInputSuppressed, Is.True);
+            Assert.That(setup.TryAgainButton.interactable, Is.False);
+            Assert.That(setup.MainMenuButton.interactable, Is.False);
+            Assert.That(setup.FlowController.LoadedSceneName, Is.Null);
+        }
+
+        [Test]
+        public void CloseButtonReturnsToMainSceneAfterExitAnimation()
+        {
+            var setup = CreatePopupController();
+
+            InvokeMethod(setup.PopupController, "Awake");
+            InvokeMethod(setup.PopupController, "OnEnable");
+            InvokeHandleTapProcessed(setup.PopupController, LevelState.Lose);
+            AdvanceLosePresentation(setup.PopupController, 0.2f);
+
+            Assert.That(setup.CloseButton.interactable, Is.True);
             setup.CloseButton.onClick.Invoke();
+
+            Assert.That(setup.FlowController.LoadedSceneName, Is.Null);
+            Assert.That(setup.InputBridge.IsInputSuppressed, Is.True);
+
+            AdvanceLosePresentation(setup.PopupController, 0.16f);
 
             Assert.That(setup.FlowController.LoadedSceneName, Is.EqualTo("MainScene"));
             Assert.That(setup.InputBridge.IsInputSuppressed, Is.False);
         }
 
         [Test]
-        public void TryAgainButtonReloadsLevelScene()
+        public void MainMenuButtonReturnsToMainSceneAfterExitAnimation()
         {
             var setup = CreatePopupController();
 
             InvokeMethod(setup.PopupController, "Awake");
             InvokeMethod(setup.PopupController, "OnEnable");
             InvokeHandleTapProcessed(setup.PopupController, LevelState.Lose);
+            AdvanceLosePresentation(setup.PopupController, 0.2f);
+
+            setup.MainMenuButton.onClick.Invoke();
+
+            Assert.That(setup.FlowController.LoadedSceneName, Is.Null);
+            AdvanceLosePresentation(setup.PopupController, 0.16f);
+
+            Assert.That(setup.FlowController.LoadedSceneName, Is.EqualTo("MainScene"));
+            Assert.That(setup.InputBridge.IsInputSuppressed, Is.False);
+        }
+
+        [Test]
+        public void TryAgainButtonReloadsLevelSceneAfterExitAnimation()
+        {
+            var setup = CreatePopupController();
+
+            InvokeMethod(setup.PopupController, "Awake");
+            InvokeMethod(setup.PopupController, "OnEnable");
+            InvokeHandleTapProcessed(setup.PopupController, LevelState.Lose);
+            AdvanceLosePresentation(setup.PopupController, 0.2f);
 
             setup.TryAgainButton.onClick.Invoke();
 
+            Assert.That(setup.FlowController.LoadedSceneName, Is.Null);
+            Assert.That(setup.InputBridge.IsInputSuppressed, Is.True);
+
+            AdvanceLosePresentation(setup.PopupController, 0.16f);
+
             Assert.That(setup.FlowController.LoadedSceneName, Is.EqualTo("LevelScene"));
             Assert.That(setup.InputBridge.IsInputSuppressed, Is.False);
+        }
+
+        [Test]
+        public void RepeatedLoseNotificationsDoNotReopenOrDuplicateActions()
+        {
+            var setup = CreatePopupController();
+
+            InvokeMethod(setup.PopupController, "Awake");
+            InvokeMethod(setup.PopupController, "OnEnable");
+            InvokeHandleTapProcessed(setup.PopupController, LevelState.Lose);
+            InvokeHandleTapProcessed(setup.PopupController, LevelState.Lose);
+            AdvanceLosePresentation(setup.PopupController, 0.2f);
+            setup.TryAgainButton.onClick.Invoke();
+            AdvanceLosePresentation(setup.PopupController, 0.16f);
+
+            Assert.That(setup.FlowController.LoadedSceneName, Is.EqualTo("LevelScene"));
         }
 
         [Test]
@@ -111,6 +179,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(didShow, Is.True);
             Assert.That(setup.PopupRoot.activeSelf, Is.True);
             Assert.That(setup.InputBridge.IsInputSuppressed, Is.True);
+            Assert.That(setup.PopupCanvasGroup.alpha, Is.EqualTo(0f).Within(0.001f));
         }
 
         private PopupControllerSetup CreatePopupController()
@@ -120,27 +189,55 @@ namespace DreamBlastClone.Tests.EditMode
             var flowController = runtime.AddComponent<TestLevelSceneFlowController>();
             var popupController = runtime.AddComponent<LevelLosePopupController>();
             var popupRoot = CreateGameObject("LosePopupRoot");
-            popupRoot.AddComponent<Canvas>();
+            var popupCanvas = popupRoot.AddComponent<Canvas>();
             popupRoot.AddComponent<GraphicRaycaster>();
-            var closeButton = CreateButton("CloseButton");
-            var tryAgainButton = CreateButton("TryAgainButton");
+            var popupOverlay = popupRoot.AddComponent<Image>();
+            popupOverlay.color = new Color(0f, 0f, 0f, 0.8f);
+            var popupCanvasGroup = popupRoot.AddComponent<CanvasGroup>();
 
-            closeButton.transform.SetParent(popupRoot.transform, false);
-            tryAgainButton.transform.SetParent(popupRoot.transform, false);
+            var contentRoot = CreateGameObject("LosePopupPanel").AddComponent<RectTransform>();
+            contentRoot.SetParent(popupRoot.transform, false);
+            contentRoot.gameObject.AddComponent<Image>();
+            var contentCanvasGroup = contentRoot.gameObject.AddComponent<CanvasGroup>();
+
+            var titleRoot = CreateGameObject("LoseLabel").AddComponent<RectTransform>();
+            titleRoot.SetParent(contentRoot, false);
+
+            var closeButton = CreateButton("CloseButton");
+            closeButton.transform.SetParent(contentRoot, false);
+            var tryAgainButton = CreateButton("TryAgainButton");
+            tryAgainButton.transform.SetParent(contentRoot, false);
+            var mainMenuButton = CreateButton("MainMenuButton");
+            mainMenuButton.transform.SetParent(contentRoot, false);
 
             SetField(popupController, "inputBridge", inputBridge);
             SetField(popupController, "flowController", flowController);
             SetField(popupController, "popupRoot", popupRoot);
             SetField(popupController, "closeButton", closeButton);
             SetField(popupController, "tryAgainButton", tryAgainButton);
+            SetField(popupController, "mainMenuButton", mainMenuButton);
+            SetField(popupController, "popupCanvasGroup", popupCanvasGroup);
+            SetField(popupController, "contentCanvasGroup", contentCanvasGroup);
+            SetField(popupController, "contentRoot", contentRoot);
+            SetField(popupController, "titleTransform", titleRoot);
+            SetField(popupController, "enterDurationSeconds", 0.2f);
+            SetField(popupController, "exitDurationSeconds", 0.16f);
+            SetField(popupController, "contentEnterOffsetY", 28f);
+            SetField(popupController, "contentEnterScale", 0.94f);
+            SetField(popupController, "overlayEnterAlphaMultiplier", 0.78f);
+            SetField(popupController, "titleEnterOffsetY", 10f);
+
+            popupCanvas.overrideSorting = true;
 
             return new PopupControllerSetup(
                 popupController,
                 inputBridge,
                 flowController,
                 popupRoot,
+                popupCanvasGroup,
                 closeButton,
-                tryAgainButton);
+                tryAgainButton,
+                mainMenuButton);
         }
 
         private GameObject CreateGameObject(string name)
@@ -164,6 +261,12 @@ namespace DreamBlastClone.Tests.EditMode
             method.Invoke(controller, new object[] { tapResult });
         }
 
+        private static void AdvanceLosePresentation(LevelLosePopupController controller, float deltaTime)
+        {
+            var method = controller.GetType().GetMethod("AdvanceLosePresentation", BindingFlags.Instance | BindingFlags.NonPublic);
+            method.Invoke(controller, new object[] { deltaTime });
+        }
+
         private static void InvokeMethod(object target, string methodName)
         {
             var method = target.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
@@ -183,15 +286,19 @@ namespace DreamBlastClone.Tests.EditMode
                 BoardInputSessionBridge inputBridge,
                 TestLevelSceneFlowController flowController,
                 GameObject popupRoot,
+                CanvasGroup popupCanvasGroup,
                 Button closeButton,
-                Button tryAgainButton)
+                Button tryAgainButton,
+                Button mainMenuButton)
             {
                 PopupController = popupController;
                 InputBridge = inputBridge;
                 FlowController = flowController;
                 PopupRoot = popupRoot;
+                PopupCanvasGroup = popupCanvasGroup;
                 CloseButton = closeButton;
                 TryAgainButton = tryAgainButton;
+                MainMenuButton = mainMenuButton;
             }
 
             public LevelLosePopupController PopupController { get; }
@@ -202,9 +309,13 @@ namespace DreamBlastClone.Tests.EditMode
 
             public GameObject PopupRoot { get; }
 
+            public CanvasGroup PopupCanvasGroup { get; }
+
             public Button CloseButton { get; }
 
             public Button TryAgainButton { get; }
+
+            public Button MainMenuButton { get; }
         }
 
         private sealed class TestLevelSceneFlowController : LevelSceneFlowController
