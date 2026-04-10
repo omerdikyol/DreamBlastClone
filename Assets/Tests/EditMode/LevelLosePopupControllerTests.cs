@@ -98,6 +98,21 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(setup.InputBridge.IsInputSuppressed, Is.False);
         }
 
+        [Test]
+        public void DebugShowDisplaysLosePopup()
+        {
+            var setup = CreatePopupController();
+
+            InvokeMethod(setup.PopupController, "Awake");
+            InvokeMethod(setup.PopupController, "OnEnable");
+
+            var didShow = setup.PopupController.TryShowForDebug();
+
+            Assert.That(didShow, Is.True);
+            Assert.That(setup.PopupRoot.activeSelf, Is.True);
+            Assert.That(setup.InputBridge.IsInputSuppressed, Is.True);
+        }
+
         private PopupControllerSetup CreatePopupController()
         {
             var runtime = CreateGameObject("LevelSceneRuntime");

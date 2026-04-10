@@ -65,10 +65,18 @@ namespace DreamBlastClone.Controllers.Unity
                 return;
             }
 
-            hasShownLosePopup = true;
-            popupRoot.transform.SetAsLastSibling();
-            popupRoot.SetActive(true);
-            inputBridge.SetInputSuppressed(true);
+            ShowLosePopup();
+        }
+
+        public bool TryShowForDebug()
+        {
+            if (!TryResolveDependencies())
+            {
+                return false;
+            }
+
+            ConfigurePopupRoot();
+            return ShowLosePopup();
         }
 
         private void HandleCloseClicked()
@@ -91,6 +99,20 @@ namespace DreamBlastClone.Controllers.Unity
             {
                 popupRoot.SetActive(false);
             }
+        }
+
+        private bool ShowLosePopup()
+        {
+            if (hasShownLosePopup || popupRoot == null || inputBridge == null)
+            {
+                return false;
+            }
+
+            hasShownLosePopup = true;
+            popupRoot.transform.SetAsLastSibling();
+            popupRoot.SetActive(true);
+            inputBridge.SetInputSuppressed(true);
+            return true;
         }
 
         private bool TryResolveDependencies()

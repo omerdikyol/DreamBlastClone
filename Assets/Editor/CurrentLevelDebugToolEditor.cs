@@ -37,6 +37,20 @@ namespace DreamBlastClone.Editor
 
                 EditorGUILayout.BeginHorizontal();
 
+                if (GUILayout.Button("Lose"))
+                {
+                    Apply(tool, static currentTool => currentTool.ApplySelectedLevelAsLose());
+                }
+
+                if (GUILayout.Button("Win"))
+                {
+                    Apply(tool, static currentTool => currentTool.ApplySelectedLevelAsWin());
+                }
+
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+
                 if (GUILayout.Button("First"))
                 {
                     Apply(tool, static currentTool => currentTool.SetFirstLevel());
@@ -60,6 +74,31 @@ namespace DreamBlastClone.Editor
                 tool.LoadStoredLevelIntoSelection();
                 EditorUtility.SetDirty(tool);
             }
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Play Mode Simulation", EditorStyles.boldLabel);
+
+            using (new EditorGUI.DisabledScope(!Application.isPlaying))
+            {
+                EditorGUILayout.BeginHorizontal();
+
+                if (GUILayout.Button("Simulate Lose"))
+                {
+                    tool.TrySimulateLosePresentation();
+                }
+
+                if (GUILayout.Button("Simulate Win"))
+                {
+                    tool.TrySimulateWinPresentation();
+                }
+
+                EditorGUILayout.EndHorizontal();
+            }
+
+            if (!Application.isPlaying)
+            {
+                EditorGUILayout.HelpBox("Enter Play Mode in LevelScene to simulate the real win/lose presentation with one click.", MessageType.None);
+            }
         }
 
         private static string GetPlayableLevelText(CurrentLevelDebugTool tool)
@@ -78,7 +117,7 @@ namespace DreamBlastClone.Editor
             tool.RefreshKnownUi();
             EditorUtility.SetDirty(tool);
 
-            if (tool.gameObject.scene.IsValid())
+            if (!Application.isPlaying && tool.gameObject.scene.IsValid())
             {
                 EditorSceneManager.MarkSceneDirty(tool.gameObject.scene);
             }

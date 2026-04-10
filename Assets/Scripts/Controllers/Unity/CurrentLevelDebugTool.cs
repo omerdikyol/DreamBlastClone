@@ -68,6 +68,47 @@ namespace DreamBlastClone.Controllers.Unity
             selectedLevel = MaxLevelCount;
         }
 
+        public void ApplySelectedLevelAsLose()
+        {
+            ApplySelectedLevel();
+        }
+
+        public void ApplySelectedLevelAsWin()
+        {
+            selectedLevel = Math.Max(1, selectedLevel);
+
+            if (MaxLevelCount > 0)
+            {
+                var storedLevel = Math.Clamp(selectedLevel, 1, MaxLevelCount);
+                currentLevelStore.SetCurrentLevel(Math.Min(storedLevel + 1, MaxLevelCount + 1));
+                selectedLevel = currentLevelStore.GetPlayableLevel(MaxLevelCount);
+                return;
+            }
+
+            currentLevelStore.SetCurrentLevel(selectedLevel + 1);
+            selectedLevel = currentLevelStore.GetCurrentLevel();
+        }
+
+        public bool TrySimulateLosePresentation()
+        {
+            if (!Application.isPlaying || !TryGetComponent<LevelLosePopupController>(out var losePopupController))
+            {
+                return false;
+            }
+
+            return losePopupController.TryShowForDebug();
+        }
+
+        public bool TrySimulateWinPresentation()
+        {
+            if (!Application.isPlaying || !TryGetComponent<LevelWinPresentationController>(out var winPresentationController))
+            {
+                return false;
+            }
+
+            return winPresentationController.TryShowForDebug();
+        }
+
         public void RefreshKnownUi()
         {
             if (TryGetComponent<MainSceneLauncher>(out var mainSceneLauncher))

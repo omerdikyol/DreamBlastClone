@@ -228,6 +228,56 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(levelLabel.text, Is.EqualTo("Finished"));
         }
 
+        [Test]
+        public void CurrentLevelDebugToolLoseStoresSelectedLevel()
+        {
+            var catalog = CreateCatalog(new TextAsset("1"), new TextAsset("2"), new TextAsset("3"));
+            var tool = CreateGameObject("DebugTool").AddComponent<CurrentLevelDebugTool>();
+            var store = new CurrentLevelStore(PlayerPrefsKey);
+
+            SetField(tool, "levelCatalog", catalog);
+            SetField(tool, "selectedLevel", 2);
+
+            tool.ApplySelectedLevelAsLose();
+
+            Assert.That(store.GetCurrentLevel(), Is.EqualTo(2));
+            Assert.That(tool.SelectedLevel, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void CurrentLevelDebugToolWinAdvancesToNextPlayableLevel()
+        {
+            var catalog = CreateCatalog(new TextAsset("1"), new TextAsset("2"), new TextAsset("3"));
+            var tool = CreateGameObject("DebugTool").AddComponent<CurrentLevelDebugTool>();
+            var store = new CurrentLevelStore(PlayerPrefsKey);
+
+            SetField(tool, "levelCatalog", catalog);
+            SetField(tool, "selectedLevel", 2);
+
+            tool.ApplySelectedLevelAsWin();
+
+            Assert.That(store.GetCurrentLevel(), Is.EqualTo(3));
+            Assert.That(tool.SelectedLevel, Is.EqualTo(3));
+            Assert.That(tool.IsFinished, Is.False);
+        }
+
+        [Test]
+        public void CurrentLevelDebugToolWinFromLastLevelSetsFinishedState()
+        {
+            var catalog = CreateCatalog(new TextAsset("1"), new TextAsset("2"), new TextAsset("3"));
+            var tool = CreateGameObject("DebugTool").AddComponent<CurrentLevelDebugTool>();
+            var store = new CurrentLevelStore(PlayerPrefsKey);
+
+            SetField(tool, "levelCatalog", catalog);
+            SetField(tool, "selectedLevel", 3);
+
+            tool.ApplySelectedLevelAsWin();
+
+            Assert.That(store.GetCurrentLevel(), Is.EqualTo(4));
+            Assert.That(tool.SelectedLevel, Is.EqualTo(3));
+            Assert.That(tool.IsFinished, Is.True);
+        }
+
         private LevelCatalogAsset CreateCatalog(params TextAsset[] files)
         {
             var catalog = ScriptableObject.CreateInstance<LevelCatalogAsset>();
