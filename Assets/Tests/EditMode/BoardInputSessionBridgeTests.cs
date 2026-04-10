@@ -158,6 +158,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
 
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
@@ -271,6 +272,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
 
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
 
@@ -348,7 +350,59 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(capturedTapResult.Tap.SpecialItem.Combo.RemovedItemCoordinates, Does.Contain(new BoardCoordinate(1, 0)));
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
+        }
+
+        [Test]
+        public void TryHandleScreenTapStartsVaseParticlesForVaseDamage()
+        {
+            var board = new BoardModel(3, 2);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(new BoardCoordinate(2, 0), new VaseObstacleModel(remainingDurability: 2));
+
+            var session = new LevelSession(board, 4, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(0.5f, 0.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
+
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
+
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
+        }
+
+        [Test]
+        public void TryHandleScreenTapStartsVaseParticlesForVaseRemoval()
+        {
+            var board = new BoardModel(3, 2);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(new BoardCoordinate(2, 0), new VaseObstacleModel(remainingDurability: 1));
+
+            var session = new LevelSession(board, 4, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(0.5f, 0.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.True);
+
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
+
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
         }
 
         [Test]
@@ -693,6 +747,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(bridge, "inputCamera", camera);
             SetField(bridge, "destructionFeedbackPlayer", CreateDestructionFeedbackPlayer());
             SetField(bridge, "cubeBlastParticlePlayer", CreateCubeBlastParticlePlayer());
+            SetField(bridge, "vaseParticlePlayer", CreateVaseParticlePlayer());
             SetField(bridge, "settleMotionPlayer", CreateSettleMotionPlayer());
             SetField(bridge, "singleRocketEffectPlayer", CreateRocketEffectPlayer());
             SetField(bridge, "singleTntEffectPlayer", CreateTntEffectPlayer());
@@ -720,7 +775,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(boardView, "horizontalRocketPrefab", CreateVisualPrefab("HorizontalRocketPrefab"));
             SetField(boardView, "verticalRocketPrefab", CreateVisualPrefab("VerticalRocketPrefab"));
             SetField(boardView, "tntPrefab", CreateVisualPrefab("TntPrefab"));
-            SetField(boardView, "vasePrefab", CreateVisualPrefab("VasePrefab"));
+            SetField(boardView, "vasePrefab", CreateVasePrefab());
             SetField(boardView, "stonePrefab", CreateVisualPrefab("StonePrefab"));
             SetField(boardView, "chaliceBoxPrefab", CreateChaliceBoxPrefab());
             return boardView;
@@ -766,6 +821,11 @@ namespace DreamBlastClone.Tests.EditMode
             return (CubeBlastParticlePlayer)GetField(bridge, "cubeBlastParticlePlayer");
         }
 
+        private VaseParticlePlayer GetVaseParticlePlayer(BoardInputSessionBridge bridge)
+        {
+            return (VaseParticlePlayer)GetField(bridge, "vaseParticlePlayer");
+        }
+
         private BoardSettleMotionPlayer GetSettleMotionPlayer(BoardInputSessionBridge bridge)
         {
             return (BoardSettleMotionPlayer)GetField(bridge, "settleMotionPlayer");
@@ -780,6 +840,17 @@ namespace DreamBlastClone.Tests.EditMode
         {
             var prefab = CreateGameObject(name);
             prefab.AddComponent<SpriteRenderer>();
+            return prefab;
+        }
+
+        private GameObject CreateVasePrefab()
+        {
+            var prefab = CreateVisualPrefab("VasePrefab");
+            var vaseView = prefab.AddComponent<VaseObstacleView>();
+            var spriteRenderer = prefab.GetComponent<SpriteRenderer>();
+            SetField(vaseView, "spriteRenderer", spriteRenderer);
+            SetField(vaseView, "undamagedSprite", CreateSprite(26, 16, 26f));
+            SetField(vaseView, "damagedSprite", CreateSprite(27, 16, 27f));
             return prefab;
         }
 
@@ -850,6 +921,17 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(effectPlayer, "greenParticleSprite", CreateSprite(27, 18, 20f));
             SetField(effectPlayer, "blueParticleSprite", CreateSprite(28, 18, 20f));
             SetField(effectPlayer, "yellowParticleSprite", CreateSprite(29, 18, 20f));
+            return effectPlayer;
+        }
+
+        private VaseParticlePlayer CreateVaseParticlePlayer()
+        {
+            var host = CreateGameObject("VaseParticlePlayer");
+            var effectPlayer = host.AddComponent<VaseParticlePlayer>();
+            SetField(effectPlayer, "duration", 0.2f);
+            SetField(effectPlayer, "mainShardSprite", CreateSprite(24, 24, 20f));
+            SetField(effectPlayer, "fragmentSprite", CreateSprite(18, 18, 20f));
+            SetField(effectPlayer, "dustSprite", CreateSprite(20, 16, 20f));
             return effectPlayer;
         }
 

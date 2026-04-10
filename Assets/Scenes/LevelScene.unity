@@ -901,6 +901,7 @@ GameObject:
   - component: {fileID: 1374160551}
   - component: {fileID: 1374160552}
   - component: {fileID: 1374160553}
+  - component: {fileID: 1374160554}
   m_Layer: 0
   m_Name: LevelSceneRuntime
   m_TagString: Untagged
@@ -967,6 +968,7 @@ MonoBehaviour:
   normalCubePreviewDuration: 0.12
   destructionFeedbackPlayer: {fileID: 1374160546}
   cubeBlastParticlePlayer: {fileID: 1374160552}
+  vaseParticlePlayer: {fileID: 1374160554}
   settleMotionPlayer: {fileID: 1374160547}
   singleRocketEffectPlayer: {fileID: 1374160545}
   singleTntEffectPlayer: {fileID: 1374160553}
@@ -1180,6 +1182,33 @@ MonoBehaviour:
   fieldParticleTravelDistance: 0.14
   tntBurstSprite: {fileID: -5284336289360315941, guid: ba782e001686ba047bf81ea30d3d5c92, type: 3}
   tntDebrisSprite: {fileID: 7673536227761511531, guid: e34f8f1583491a5468d0ed9d0d83547e, type: 3}
+--- !u!114 &1374160554
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1374160538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c5dd9cbaf8c48a3bf3a849532ecb124, type: 3}
+  m_Name: ''
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.VaseParticlePlayer
+  effectRoot: {fileID: 0}
+  duration: 0.26
+  effectZ: -0.2
+  damageBurstCount: 6
+  removalBurstCount: 10
+  damageSpawnRadius: 0.12
+  removalSpawnRadius: 0.16
+  damageTravelDistance: 0.22
+  removalTravelDistance: 0.32
+  damageStartSizeMultiplier: 0.34
+  removalStartSizeMultiplier: 0.42
+  endSizeMultiplier: 0.18
+  mainShardSprite: {fileID: 4095080387558074076, guid: bc733c4cfdad7c543b6e372d5d072ac6, type: 3}
+  fragmentSprite: {fileID: 6406247513108631659, guid: 9b1ae15b121d13a41bff78930a26f70c, type: 3}
+  dustSprite: {fileID: -2350886445216773880, guid: 7fefef6b57a28f64eb247a5f0e346012, type: 3}
 --- !u!1 &1517054704
 GameObject:
   m_ObjectHideFlags: 0
