@@ -270,10 +270,17 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.False);
+
+            AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
+
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
 
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
 
-            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.True);
         }
 
@@ -298,6 +305,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetComboPresentationPlayer(bridge).IsPlaying, Is.False);
 
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
@@ -687,6 +695,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(bridge, "cubeBlastParticlePlayer", CreateCubeBlastParticlePlayer());
             SetField(bridge, "settleMotionPlayer", CreateSettleMotionPlayer());
             SetField(bridge, "singleRocketEffectPlayer", CreateRocketEffectPlayer());
+            SetField(bridge, "singleTntEffectPlayer", CreateTntEffectPlayer());
             SetField(bridge, "comboPresentationPlayer", CreateComboPresentationPlayer());
             return bridge;
         }
@@ -740,6 +749,11 @@ namespace DreamBlastClone.Tests.EditMode
         private SingleRocketActivationEffectPlayer GetSingleRocketEffectPlayer(BoardInputSessionBridge bridge)
         {
             return (SingleRocketActivationEffectPlayer)GetField(bridge, "singleRocketEffectPlayer");
+        }
+
+        private SingleTntActivationEffectPlayer GetSingleTntEffectPlayer(BoardInputSessionBridge bridge)
+        {
+            return (SingleTntActivationEffectPlayer)GetField(bridge, "singleTntEffectPlayer");
         }
 
         private BoardDestructionFeedbackPlayer GetDestructionFeedbackPlayer(BoardInputSessionBridge bridge)
@@ -805,6 +819,16 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(effectPlayer, "rocketParticleStarSprite", CreateSprite(14, 14, 20f));
             SetField(effectPlayer, "rocketParticleSmokeSprite", CreateSprite(20, 20, 20f));
             SetField(effectPlayer, "duration", 0.2f);
+            return effectPlayer;
+        }
+
+        private SingleTntActivationEffectPlayer CreateTntEffectPlayer()
+        {
+            var host = CreateGameObject("SingleTntEffectPlayer");
+            var effectPlayer = host.AddComponent<SingleTntActivationEffectPlayer>();
+            SetField(effectPlayer, "tntBurstSprite", CreateSprite(24, 24, 20f));
+            SetField(effectPlayer, "tntDebrisSprite", CreateSprite(22, 22, 20f));
+            SetField(effectPlayer, "duration", 0.22f);
             return effectPlayer;
         }
 

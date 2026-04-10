@@ -22,6 +22,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private CubeBlastParticlePlayer cubeBlastParticlePlayer;
         [SerializeField] private BoardSettleMotionPlayer settleMotionPlayer;
         [SerializeField] private SingleRocketActivationEffectPlayer singleRocketEffectPlayer;
+        [SerializeField] private SingleTntActivationEffectPlayer singleTntEffectPlayer;
         [SerializeField] private SpecialItemComboPresentationPlayer comboPresentationPlayer;
 
         private readonly CubeGroupDetector cubeGroupDetector = new CubeGroupDetector();
@@ -33,6 +34,7 @@ namespace DreamBlastClone.Controllers.Unity
         private readonly BoardSettleMotionDescriptorBuilder settleMotionDescriptorBuilder = new BoardSettleMotionDescriptorBuilder();
         private readonly BoardSettleStartBoardBuilder settleStartBoardBuilder = new BoardSettleStartBoardBuilder();
         private readonly SingleRocketActivationEffectDescriptorBuilder singleRocketEffectDescriptorBuilder = new SingleRocketActivationEffectDescriptorBuilder();
+        private readonly SingleTntActivationEffectDescriptorBuilder singleTntEffectDescriptorBuilder = new SingleTntActivationEffectDescriptorBuilder();
         private readonly SpecialItemComboPresentationDescriptorBuilder comboPresentationDescriptorBuilder = new SpecialItemComboPresentationDescriptorBuilder();
         private static readonly bool EnableTapDebugLogging = false;
         private const float CubeTapSnapRadiusFactor = 1.1f;
@@ -40,6 +42,7 @@ namespace DreamBlastClone.Controllers.Unity
         private BoardModel pendingFinalBoard;
         private BoardModel pendingSettleStartBoard;
         private BoardSettleMotionDescriptor pendingSettleMotionDescriptor;
+        private SingleTntActivationEffectDescriptor pendingTntPresentationDescriptor;
         private SpecialItemComboPresentationDescriptor pendingComboPresentationDescriptor;
         private float remainingPreviewSeconds;
         private bool isInputSuppressed;
@@ -173,11 +176,17 @@ namespace DreamBlastClone.Controllers.Unity
             pendingFinalBoard = finalBoard;
             pendingSettleStartBoard = settleStartBoard;
             pendingSettleMotionDescriptor = settleMotionDescriptor;
+            pendingTntPresentationDescriptor = BuildTntPresentationDescriptor(resolvedCoordinate, tapResult.Tap);
             pendingComboPresentationDescriptor = BuildComboPresentationDescriptor(tapResult.Tap);
 
             if (presentationDuration <= 0f)
             {
                 if (TryStartPendingComboPresentation())
+                {
+                    return;
+                }
+
+                if (TryStartPendingTntPresentation())
                 {
                     return;
                 }
@@ -222,6 +231,11 @@ namespace DreamBlastClone.Controllers.Unity
                 singleRocketEffectPlayer.Advance(deltaTime);
             }
 
+            if (singleTntEffectPlayer is not null)
+            {
+                singleTntEffectPlayer.Advance(deltaTime);
+            }
+
             if (comboPresentationPlayer is not null)
             {
                 comboPresentationPlayer.Advance(deltaTime);
@@ -239,6 +253,11 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             if (TryStartPendingComboPresentation())
+            {
+                return;
+            }
+
+            if (TryStartPendingTntPresentation())
             {
                 return;
             }
@@ -263,10 +282,12 @@ namespace DreamBlastClone.Controllers.Unity
             cubeBlastParticlePlayer?.Stop();
             settleMotionPlayer?.Stop();
             singleRocketEffectPlayer?.Stop();
+            singleTntEffectPlayer?.Stop();
             comboPresentationPlayer?.Stop();
             pendingFinalBoard = null;
             pendingSettleStartBoard = null;
             pendingSettleMotionDescriptor = null;
+            pendingTntPresentationDescriptor = null;
             pendingComboPresentationDescriptor = null;
             remainingPreviewSeconds = 0f;
         }
@@ -316,6 +337,27 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             remainingPreviewSeconds = comboPresentationPlayer.Duration;
+            return true;
+        }
+
+        private bool TryStartPendingTntPresentation()
+        {
+            if (pendingTntPresentationDescriptor is null
+                || singleTntEffectPlayer is null
+                || boardView is null)
+            {
+                return false;
+            }
+
+            var descriptor = pendingTntPresentationDescriptor;
+            pendingTntPresentationDescriptor = null;
+
+            if (!singleTntEffectPlayer.TryPlay(boardView, descriptor))
+            {
+                return false;
+            }
+
+            remainingPreviewSeconds = singleTntEffectPlayer.Duration;
             return true;
         }
 
@@ -418,6 +460,20 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             return comboPresentationDescriptorBuilder.Build(tap.SpecialItem.Combo);
+        }
+
+        private SingleTntActivationEffectDescriptor BuildTntPresentationDescriptor(BoardCoordinate resolvedCoordinate, BoardTapDispatchResult tap)
+        {
+            if (tap.RouteType != TapRouteType.SpecialItem
+                || !tap.SpecialItem.IsValidTap
+                || tap.SpecialItem.Combo.IsComboActivated
+                || !tap.SpecialItem.Activation.IsValidActivation
+                || tap.SpecialItem.Activation.ActivationType != SpecialActivationType.Tnt)
+            {
+                return null;
+            }
+
+            return singleTntEffectDescriptorBuilder.Build(resolvedCoordinate, tap.SpecialItem.Activation);
         }
 
         private Vector3 ScreenToBoardWorldPoint(Vector2 screenPosition)
