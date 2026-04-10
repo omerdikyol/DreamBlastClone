@@ -1344,7 +1344,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.BoardView
   itemVisualRoot: {fileID: 1517054706}
   obstacleVisualRoot: {fileID: 1517054706}
-  origin: {x: -2.5, y: -3.9}
+  boardCenter: {x: 0, y: -2.15}
   cellSize: 0.5
   itemZ: -0.1
   obstacleZ: 0

@@ -16,10 +16,13 @@ namespace DreamBlastClone.Views
         [SerializeField] private Transform obstacleVisualRoot;
 
         [Header("Layout")]
-        [SerializeField] private Vector2 origin;
+        // Fixed world-space point that all board sizes are centered on.
+        // origin (bottom-left corner) is derived from this each Render() call.
+        [SerializeField] private Vector2 boardCenter;
         [SerializeField] private float cellSize = 1f;
         [SerializeField] private float itemZ = -0.1f;
         [SerializeField] private float obstacleZ = 0f;
+        private Vector2 origin; // derived; not serialized
 
         [Header("Background")]
         [SerializeField] private SpriteRenderer gridBackgroundRenderer;
@@ -52,6 +55,12 @@ namespace DreamBlastClone.Views
             {
                 throw new ArgumentNullException(nameof(board));
             }
+
+            // Recompute bottom-left origin so the board stays centered on boardCenter
+            // regardless of grid dimensions. All placement helpers read this field.
+            origin = new Vector2(
+                boardCenter.x - board.Width * cellSize * 0.5f,
+                boardCenter.y - board.Height * cellSize * 0.5f);
 
             Clear();
             UpdateGridBackground(board);
