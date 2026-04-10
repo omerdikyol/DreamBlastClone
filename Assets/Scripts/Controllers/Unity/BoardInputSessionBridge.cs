@@ -22,6 +22,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private CubeBlastParticlePlayer cubeBlastParticlePlayer;
         [SerializeField] private VaseParticlePlayer vaseParticlePlayer;
         [SerializeField] private StoneParticlePlayer stoneParticlePlayer;
+        [SerializeField] private ChaliceBoxParticlePlayer chaliceBoxParticlePlayer;
         [SerializeField] private BoardSettleMotionPlayer settleMotionPlayer;
         [SerializeField] private SingleRocketActivationEffectPlayer singleRocketEffectPlayer;
         [SerializeField] private SingleTntActivationEffectPlayer singleTntEffectPlayer;
@@ -35,6 +36,7 @@ namespace DreamBlastClone.Controllers.Unity
         private readonly CubeBlastParticleDescriptorBuilder cubeBlastParticleDescriptorBuilder = new CubeBlastParticleDescriptorBuilder();
         private readonly VaseParticleDescriptorBuilder vaseParticleDescriptorBuilder = new VaseParticleDescriptorBuilder();
         private readonly StoneParticleDescriptorBuilder stoneParticleDescriptorBuilder = new StoneParticleDescriptorBuilder();
+        private readonly ChaliceBoxParticleDescriptorBuilder chaliceBoxParticleDescriptorBuilder = new ChaliceBoxParticleDescriptorBuilder();
         private readonly BoardSettleMotionDescriptorBuilder settleMotionDescriptorBuilder = new BoardSettleMotionDescriptorBuilder();
         private readonly BoardSettleStartBoardBuilder settleStartBoardBuilder = new BoardSettleStartBoardBuilder();
         private readonly SingleRocketActivationEffectDescriptorBuilder singleRocketEffectDescriptorBuilder = new SingleRocketActivationEffectDescriptorBuilder();
@@ -167,20 +169,10 @@ namespace DreamBlastClone.Controllers.Unity
                 presentationDuration = Math.Max(presentationDuration, destructionDuration);
             }
 
-            if (TryStartCubeBlastParticles(tapResult.Tap, out var cubeParticleDuration))
-            {
-                presentationDuration = Math.Max(presentationDuration, cubeParticleDuration);
-            }
-
-            if (TryStartVaseParticles(preTapBoard, tapResult.Tap, out var vaseParticleDuration))
-            {
-                presentationDuration = Math.Max(presentationDuration, vaseParticleDuration);
-            }
-
-            if (TryStartStoneParticles(preTapBoard, tapResult.Tap, out var stoneParticleDuration))
-            {
-                presentationDuration = Math.Max(presentationDuration, stoneParticleDuration);
-            }
+            TryStartCubeBlastParticles(tapResult.Tap);
+            TryStartVaseParticles(preTapBoard, tapResult.Tap);
+            TryStartStoneParticles(preTapBoard, tapResult.Tap);
+            TryStartChaliceBoxParticles(preTapBoard, tapResult.Tap);
 
             if (TryStartSingleRocketEffect(resolvedCoordinate, tapResult.Tap, out var rocketDuration))
             {
@@ -250,6 +242,11 @@ namespace DreamBlastClone.Controllers.Unity
                 stoneParticlePlayer.Advance(deltaTime);
             }
 
+            if (chaliceBoxParticlePlayer is not null)
+            {
+                chaliceBoxParticlePlayer.Advance(deltaTime);
+            }
+
             if (singleRocketEffectPlayer is not null)
             {
                 singleRocketEffectPlayer.Advance(deltaTime);
@@ -306,6 +303,7 @@ namespace DreamBlastClone.Controllers.Unity
             cubeBlastParticlePlayer?.Stop();
             vaseParticlePlayer?.Stop();
             stoneParticlePlayer?.Stop();
+            chaliceBoxParticlePlayer?.Stop();
             settleMotionPlayer?.Stop();
             singleRocketEffectPlayer?.Stop();
             singleTntEffectPlayer?.Stop();
@@ -454,10 +452,8 @@ namespace DreamBlastClone.Controllers.Unity
             return true;
         }
 
-        private bool TryStartCubeBlastParticles(BoardTapDispatchResult tap, out float duration)
+        private bool TryStartCubeBlastParticles(BoardTapDispatchResult tap)
         {
-            duration = 0f;
-
             if (boardView is null
                 || cubeBlastParticlePlayer is null
                 || tap.RouteType != TapRouteType.NormalCube
@@ -472,14 +468,11 @@ namespace DreamBlastClone.Controllers.Unity
                 return false;
             }
 
-            duration = cubeBlastParticlePlayer.Duration;
             return true;
         }
 
-        private bool TryStartVaseParticles(BoardModel preTapBoard, BoardTapDispatchResult tap, out float duration)
+        private bool TryStartVaseParticles(BoardModel preTapBoard, BoardTapDispatchResult tap)
         {
-            duration = 0f;
-
             if (boardView is null || vaseParticlePlayer is null)
             {
                 return false;
@@ -491,14 +484,11 @@ namespace DreamBlastClone.Controllers.Unity
                 return false;
             }
 
-            duration = vaseParticlePlayer.Duration;
             return true;
         }
 
-        private bool TryStartStoneParticles(BoardModel preTapBoard, BoardTapDispatchResult tap, out float duration)
+        private bool TryStartStoneParticles(BoardModel preTapBoard, BoardTapDispatchResult tap)
         {
-            duration = 0f;
-
             if (boardView is null || stoneParticlePlayer is null)
             {
                 return false;
@@ -510,7 +500,22 @@ namespace DreamBlastClone.Controllers.Unity
                 return false;
             }
 
-            duration = stoneParticlePlayer.Duration;
+            return true;
+        }
+
+        private bool TryStartChaliceBoxParticles(BoardModel preTapBoard, BoardTapDispatchResult tap)
+        {
+            if (boardView is null || chaliceBoxParticlePlayer is null)
+            {
+                return false;
+            }
+
+            var descriptor = chaliceBoxParticleDescriptorBuilder.Build(preTapBoard, tap);
+            if (!chaliceBoxParticlePlayer.TryPlay(boardView, descriptor))
+            {
+                return false;
+            }
+
             return true;
         }
 

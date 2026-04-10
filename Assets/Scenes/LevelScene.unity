@@ -903,6 +903,7 @@ GameObject:
   - component: {fileID: 1374160553}
   - component: {fileID: 1374160554}
   - component: {fileID: 1374160555}
+  - component: {fileID: 1374160556}
   m_Layer: 0
   m_Name: LevelSceneRuntime
   m_TagString: Untagged
@@ -971,6 +972,7 @@ MonoBehaviour:
   cubeBlastParticlePlayer: {fileID: 1374160552}
   vaseParticlePlayer: {fileID: 1374160554}
   stoneParticlePlayer: {fileID: 1374160555}
+  chaliceBoxParticlePlayer: {fileID: 1374160556}
   settleMotionPlayer: {fileID: 1374160547}
   singleRocketEffectPlayer: {fileID: 1374160545}
   singleTntEffectPlayer: {fileID: 1374160553}
@@ -1079,7 +1081,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Controllers.Unity::DreamBlastClone.Controllers.Unity.CurrentLevelDebugTool
   levelCatalog: {fileID: 11400000, guid: 1a64d9d4f43845778a59cbefc459f7b8, type: 2}
-  selectedLevel: 1
+  selectedLevel: 3
 --- !u!114 &1374160549
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1149,7 +1151,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 75b5761fa7384a59b3854ce0244cd181, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.CubeBlastParticlePlayer
   effectRoot: {fileID: 0}
   duration: 0.18
@@ -1174,7 +1176,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c4694263dada4b139df6f7e9f06018e8, type: 3}
-  m_Name: ''
+  m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.SingleTntActivationEffectPlayer
   effectRoot: {fileID: 0}
   duration: 0.22
@@ -1194,7 +1196,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5c5dd9cbaf8c48a3bf3a849532ecb124, type: 3}
-  m_Name: ''
+  m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.VaseParticlePlayer
   effectRoot: {fileID: 0}
   duration: 0.26
@@ -1221,7 +1223,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e56782045a4c4d478d947da4da4de4eb, type: 3}
-  m_Name: ''
+  m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.StoneParticlePlayer
   effectRoot: {fileID: 0}
   duration: 0.24
@@ -1234,6 +1236,49 @@ MonoBehaviour:
   mainChunkSprite: {fileID: 4097111511846903190, guid: 4100ba4de06b4cd409284e3aa218fba7, type: 3}
   fragmentSprite: {fileID: -2203629019558354351, guid: ae819a6fcd5220348ba966f3a6db21fc, type: 3}
   dustSprite: {fileID: 7798741131455143084, guid: 3cf433a2abaf8f540bf8de246982a06c, type: 3}
+--- !u!114 &1374160556
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1374160538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b34623e74d024159b21b0a82d0693b07, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.ChaliceBoxParticlePlayer
+  effectRoot: {fileID: 0}
+  duration: 0.8
+  effectZ: -0.1
+  doorDamageBurstCount: 4
+  doorBreakDoorBurstCount: 14
+  doorBreakChaliceBurstCount: 7
+  chaliceDamageBaseBurstCount: 3
+  chaliceDamageBurstPerAmount: 2
+  chaliceCompleteBurstCount: 18
+  spawnRadius: 0.24
+  travelDistance: 0.4
+  startSizeMultiplier: 0.8
+  endSizeMultiplier: 0.6
+  upwardBias: 0.11
+  doorPhaseSprites:
+  - {fileID: 1452857463581040857, guid: 6c3ee12196bc81f4abc98f7e4b98b57a, type: 3}
+  - {fileID: -3734815318763610706, guid: 528062ff410606446afaee4f28bfb956, type: 3}
+  - {fileID: 1587601489177917366, guid: 2bb6f6b2199f7f24688a7555c86faaf9, type: 3}
+  - {fileID: 2291987453466907406, guid: 107779a16d08995449af1143c52eba8c, type: 3}
+  - {fileID: -6253719457004036166, guid: 98ea0f7107969214dafad30e54a881a4, type: 3}
+  - {fileID: -1563582140481139095, guid: e638e0b24e654584784cef7134ddc5c3, type: 3}
+  - {fileID: 3658262366090827233, guid: fabdede423642bc40a4d9a873ddbe380, type: 3}
+  - {fileID: -4331240356581166131, guid: 618c68ab7d30c544299214215bdb7f94, type: 3}
+  - {fileID: 9210670616763497589, guid: d4d83b69e253def4698aa45d833e0fb7, type: 3}
+  - {fileID: -1156461269830941494, guid: 83aaf39079d8b444faa65b893f856856, type: 3}
+  chalicePhaseSprites:
+  - {fileID: 6770140360960781578, guid: 19155e9f41d9349458885e3af952c631, type: 3}
+  - {fileID: 2613862393637530711, guid: bf40d321ca193364bbd69509d7a9af24, type: 3}
+  - {fileID: 8656253850458309695, guid: b599efed73b60e244813205941d7466d, type: 3}
+  - {fileID: -6503174540981057365, guid: 69db8de5f68caa748a155c18cc2127e4, type: 3}
+  - {fileID: -4290281367078989091, guid: 7d0b057466d81b849b140884fdba7aec, type: 3}
 --- !u!1 &1517054704
 GameObject:
   m_ObjectHideFlags: 0

@@ -159,6 +159,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
 
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
@@ -406,6 +407,32 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void TryHandleScreenTapStartsChaliceBoxParticlesForDoorDamage()
+        {
+            var board = new BoardModel(4, 2);
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(2, 0), remainingDoorDurability: 2);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+
+            var session = new LevelSession(board, 4, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(0.5f, 0.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
+
+            var chaliceVisual = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab");
+            Assert.That(chaliceVisual.transform.Find("Doors").GetComponent<SpriteRenderer>().enabled, Is.True);
+            Assert.That(CountEnabledChaliceSlots(chaliceVisual.transform), Is.EqualTo(0));
+        }
+
+        [Test]
         public void TryHandleScreenTapIgnoresFurtherTapsWhileComboPresentationIsActive()
         {
             var board = new BoardModel(3, 3);
@@ -505,10 +532,107 @@ namespace DreamBlastClone.Tests.EditMode
                 boardView.transform.TransformPoint(new Vector3(1.5f, 1.5f, 0f)));
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
 
             var chaliceVisual = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab");
             Assert.That(chaliceVisual.transform.Find("Doors").GetComponent<SpriteRenderer>().enabled, Is.False);
             Assert.That(CountEnabledChaliceSlots(chaliceVisual.transform), Is.EqualTo(10));
+
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
+
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.False);
+        }
+
+        [Test]
+        public void TryHandleScreenTapStartsChaliceBoxParticlesForChalicePhaseDamage()
+        {
+            var board = new BoardModel(5, 5);
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(2, 1), remainingDoorDurability: 0, requiredChaliceCount: 10, collectedChaliceCount: 0);
+            board.PlaceItem(new BoardCoordinate(2, 2), new TntItemModel());
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(2.5f, 2.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
+
+            var chaliceVisual = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab");
+            Assert.That(chaliceVisual.transform.Find("Doors").GetComponent<SpriteRenderer>().enabled, Is.False);
+            Assert.That(CountEnabledChaliceSlots(chaliceVisual.transform), Is.EqualTo(6));
+        }
+
+        [Test]
+        public void TryHandleScreenTapStartsChaliceBoxParticlesForChaliceCompletion()
+        {
+            var board = new BoardModel(5, 5);
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(2, 1), remainingDoorDurability: 0, requiredChaliceCount: 3, collectedChaliceCount: 1);
+            board.PlaceItem(new BoardCoordinate(2, 2), new TntItemModel());
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(2.5f, 2.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
+
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
+
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(session.Board.GetCell(chaliceBox.Anchor).Obstacle, Is.Null);
+        }
+
+        [Test]
+        public void LongChaliceParticlesDoNotDelaySettleMotion()
+        {
+            var board = new BoardModel(4, 4);
+            var chaliceBox = new ChaliceBoxObstacleModel(
+                new BoardCoordinate(2, 0),
+                remainingDoorDurability: 0,
+                requiredChaliceCount: 2,
+                collectedChaliceCount: 0);
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+            board.PlaceItem(new BoardCoordinate(1, 1), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(2, 2), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(3, 2), new CubeItemModel(CubeColor.Blue));
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+            SetField(GetChaliceBoxParticlePlayer(bridge), "duration", 1.5f);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(
+                boardView.transform.TransformPoint(new Vector3(1.5f, 1.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
+
+            AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
+
+            Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
+
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
+
+            Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.True);
         }
 
         [Test]
@@ -752,6 +876,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(bridge, "cubeBlastParticlePlayer", CreateCubeBlastParticlePlayer());
             SetField(bridge, "vaseParticlePlayer", CreateVaseParticlePlayer());
             SetField(bridge, "stoneParticlePlayer", CreateStoneParticlePlayer());
+            SetField(bridge, "chaliceBoxParticlePlayer", CreateChaliceBoxParticlePlayer());
             SetField(bridge, "settleMotionPlayer", CreateSettleMotionPlayer());
             SetField(bridge, "singleRocketEffectPlayer", CreateRocketEffectPlayer());
             SetField(bridge, "singleTntEffectPlayer", CreateTntEffectPlayer());
@@ -833,6 +958,11 @@ namespace DreamBlastClone.Tests.EditMode
         private StoneParticlePlayer GetStoneParticlePlayer(BoardInputSessionBridge bridge)
         {
             return (StoneParticlePlayer)GetField(bridge, "stoneParticlePlayer");
+        }
+
+        private ChaliceBoxParticlePlayer GetChaliceBoxParticlePlayer(BoardInputSessionBridge bridge)
+        {
+            return (ChaliceBoxParticlePlayer)GetField(bridge, "chaliceBoxParticlePlayer");
         }
 
         private BoardSettleMotionPlayer GetSettleMotionPlayer(BoardInputSessionBridge bridge)
@@ -952,6 +1082,35 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(effectPlayer, "mainChunkSprite", CreateSprite(24, 24, 20f));
             SetField(effectPlayer, "fragmentSprite", CreateSprite(18, 18, 20f));
             SetField(effectPlayer, "dustSprite", CreateSprite(20, 16, 20f));
+            return effectPlayer;
+        }
+
+        private ChaliceBoxParticlePlayer CreateChaliceBoxParticlePlayer()
+        {
+            var host = CreateGameObject("ChaliceBoxParticlePlayer");
+            var effectPlayer = host.AddComponent<ChaliceBoxParticlePlayer>();
+            SetField(effectPlayer, "duration", 0.28f);
+            SetField(effectPlayer, "doorPhaseSprites", new[]
+            {
+                CreateSprite(22, 22, 20f),
+                CreateSprite(20, 16, 20f),
+                CreateSprite(18, 24, 20f),
+                CreateSprite(24, 18, 20f),
+                CreateSprite(16, 20, 20f),
+                CreateSprite(26, 22, 20f),
+                CreateSprite(20, 26, 20f),
+                CreateSprite(18, 18, 20f),
+                CreateSprite(24, 24, 20f),
+                CreateSprite(22, 18, 20f)
+            });
+            SetField(effectPlayer, "chalicePhaseSprites", new[]
+            {
+                CreateSprite(28, 20, 20f),
+                CreateSprite(18, 26, 20f),
+                CreateSprite(22, 22, 20f),
+                CreateSprite(24, 16, 20f),
+                CreateSprite(16, 24, 20f)
+            });
             return effectPlayer;
         }
 
