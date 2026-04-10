@@ -802,6 +802,8 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(effectPlayer, "horizontalRocketPartRightSprite", CreateSprite(19, 18, 19f));
             SetField(effectPlayer, "verticalRocketPartTopSprite", CreateSprite(18, 19, 18f));
             SetField(effectPlayer, "verticalRocketPartBottomSprite", CreateSprite(19, 19, 19f));
+            SetField(effectPlayer, "rocketParticleStarSprite", CreateSprite(14, 14, 20f));
+            SetField(effectPlayer, "rocketParticleSmokeSprite", CreateSprite(20, 20, 20f));
             SetField(effectPlayer, "duration", 0.2f);
             return effectPlayer;
         }

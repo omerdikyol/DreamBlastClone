@@ -1024,6 +1024,8 @@ MonoBehaviour:
   horizontalRocketPartRightSprite: {fileID: 21300000, guid: e62fe0440cb54c8499890f74ea03191b, type: 3}
   verticalRocketPartTopSprite: {fileID: 21300000, guid: 39aab89e51f715d449405573be1e732f, type: 3}
   verticalRocketPartBottomSprite: {fileID: 21300000, guid: 312f67bd64397dc459ff6a71fb5cfa8e, type: 3}
+  rocketParticleStarSprite: {fileID: 2886466338421546167, guid: e9d3a021bdcb9ca43934b5d529954a39, type: 3}
+  rocketParticleSmokeSprite: {fileID: -4644287431084688493, guid: dcef564b9c744974380e7cf19b36df3a, type: 3}
 --- !u!114 &1374160546
 MonoBehaviour:
   m_ObjectHideFlags: 0
