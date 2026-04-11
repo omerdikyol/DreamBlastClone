@@ -347,7 +347,6 @@ namespace DreamBlastClone.Controllers.Unity
         {
             destructionFeedbackPlayer?.Stop();
             tapAnticipationPlayer?.Stop();
-            cubeBlastParticlePlayer?.Stop();
             stoneTweenFeedbackPlayer?.Stop();
             chaliceBoxTweenFeedbackPlayer?.Stop();
             settleMotionPlayer?.Stop();
@@ -357,6 +356,7 @@ namespace DreamBlastClone.Controllers.Unity
 
             if (stopPersistentObstacleParticles)
             {
+                cubeBlastParticlePlayer?.Stop();
                 vaseParticlePlayer?.Stop();
                 stoneParticlePlayer?.Stop();
                 chaliceBoxParticlePlayer?.Stop();
@@ -542,7 +542,7 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             var descriptor = cubeBlastParticleDescriptorBuilder.Build(tap.NormalCube);
-            if (descriptor is null || !cubeBlastParticlePlayer.TryPlay(boardView, descriptor))
+            if (descriptor is null || !cubeBlastParticlePlayer.TryPlay(boardView, descriptor, GetParticleDestroyWorldY()))
             {
                 return false;
             }

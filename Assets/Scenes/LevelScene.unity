@@ -1240,6 +1240,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.CubeBlastParticlePlayer
   effectRoot: {fileID: 0}
   duration: 0.18
+  maxParticleLifetime: 4
   effectZ: -0.16
   particlesPerBurst: 4
   spawnRadius: 0.12
@@ -1247,6 +1248,9 @@ MonoBehaviour:
   startSizeMultiplier: 0.28
   endSizeMultiplier: 0.12
   upwardBias: 0.08
+  gravityAcceleration: 7.5
+  horizontalDamping: 2.4
+  destroyBelowPadding: 0.4
   redParticleSprite: {fileID: 8635282560227039426, guid: 6bb7d495009efd74cbd00de51332433b, type: 3}
   greenParticleSprite: {fileID: 3823634399010047068, guid: b3eb51abb610c1045b97ca11a9711116, type: 3}
   blueParticleSprite: {fileID: -600494540707355758, guid: 2d6dd47c89266c0419b656f68b73d4d3, type: 3}

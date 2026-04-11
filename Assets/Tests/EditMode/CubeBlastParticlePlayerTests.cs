@@ -59,7 +59,7 @@ namespace DreamBlastClone.Tests.EditMode
                     new BoardCoordinate(1, 0)
                 });
 
-            Assert.That(player.TryPlay(boardView, descriptor), Is.True);
+            Assert.That(player.TryPlay(boardView, descriptor, destroyBelowWorldY: -2f), Is.True);
             Assert.That(player.IsPlaying, Is.True);
             Assert.That(player.Duration, Is.EqualTo(0.18f).Within(0.0001f));
             Assert.That(effectRoot.childCount, Is.EqualTo(6));
@@ -94,7 +94,12 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(firstBurstCount, Is.EqualTo(3));
             Assert.That(secondBurstCount, Is.EqualTo(3));
 
-            player.Advance(player.Duration);
+            player.Advance(0.1f);
+
+            Assert.That(player.IsPlaying, Is.True);
+            Assert.That(effectRoot.childCount, Is.EqualTo(6));
+
+            player.Advance(5f);
 
             Assert.That(player.IsPlaying, Is.False);
             Assert.That(effectRoot.childCount, Is.EqualTo(0));

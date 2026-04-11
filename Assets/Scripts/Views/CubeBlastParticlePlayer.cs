@@ -9,6 +9,7 @@ namespace DreamBlastClone.Views
     {
         [SerializeField] private Transform effectRoot;
         [SerializeField] private float duration = 0.18f;
+        [SerializeField] private float maxParticleLifetime = 4f;
         [SerializeField] private float effectZ = -0.16f;
         [SerializeField] private int particlesPerBurst = 4;
         [SerializeField] private float spawnRadius = 0.12f;
@@ -16,19 +17,22 @@ namespace DreamBlastClone.Views
         [SerializeField] private float startSizeMultiplier = 0.28f;
         [SerializeField] private float endSizeMultiplier = 0.12f;
         [SerializeField] private float upwardBias = 0.08f;
+        [SerializeField] private float gravityAcceleration = 7.5f;
+        [SerializeField] private float horizontalDamping = 2.4f;
+        [SerializeField] private float destroyBelowPadding = 0.4f;
         [SerializeField] private Sprite redParticleSprite;
         [SerializeField] private Sprite greenParticleSprite;
         [SerializeField] private Sprite blueParticleSprite;
         [SerializeField] private Sprite yellowParticleSprite;
 
         private readonly List<ActiveParticle> activeParticles = new List<ActiveParticle>();
-        private float elapsed;
+        private float destroyBelowWorldY;
 
         public bool IsPlaying => activeParticles.Count > 0;
 
         public float Duration => duration;
 
-        public bool TryPlay(BoardView boardView, CubeBlastParticleDescriptor descriptor)
+        public bool TryPlay(BoardView boardView, CubeBlastParticleDescriptor descriptor, float destroyBelowWorldY)
         {
             if (boardView is null)
             {
@@ -52,7 +56,7 @@ namespace DreamBlastClone.Views
             }
 
             Stop();
-            elapsed = 0f;
+            this.destroyBelowWorldY = destroyBelowWorldY - destroyBelowPadding;
 
             var root = effectRoot is not null ? effectRoot : transform;
 
@@ -78,9 +82,10 @@ namespace DreamBlastClone.Views
                     var startScale = GetSpriteScale(sprite, boardView.CellSize * startSizeMultiplier * sizeMultiplier);
                     var endScale = GetSpriteScale(sprite, boardView.CellSize * endSizeMultiplier * sizeMultiplier);
                     var startRotation = Mathf.Lerp(-35f, 35f, Hash01(burstSeed + 4));
-                    var endRotation = startRotation + Mathf.Lerp(-110f, 110f, Hash01(burstSeed + 5));
+                    var angularVelocity = Mathf.Lerp(-320f, 320f, Hash01(burstSeed + 5));
 
                     var startPosition = center + startOffset;
+                    var initialVelocity = travelOffset * Mathf.Lerp(3.8f, 5.2f, Hash01(burstSeed + 6));
                     particleObject.transform.position = startPosition;
                     particleObject.transform.rotation = Quaternion.Euler(0f, 0f, startRotation);
                     particleObject.transform.localScale = startScale;
@@ -89,15 +94,15 @@ namespace DreamBlastClone.Views
                         particleObject,
                         renderer,
                         startPosition,
-                        center + travelOffset,
+                        initialVelocity,
                         startScale,
                         endScale,
                         startRotation,
-                        endRotation));
+                        angularVelocity,
+                        renderer.color));
                 }
             }
 
-            ApplyCurrentState();
             return activeParticles.Count > 0;
         }
 
@@ -108,12 +113,32 @@ namespace DreamBlastClone.Views
                 return;
             }
 
-            elapsed = Mathf.Min(duration, elapsed + Mathf.Max(0f, deltaTime));
-            ApplyCurrentState();
-
-            if (elapsed >= duration)
+            var safeDeltaTime = Mathf.Max(0f, deltaTime);
+            for (var index = activeParticles.Count - 1; index >= 0; index--)
             {
-                Stop();
+                var particle = activeParticles[index];
+                particle.Age += safeDeltaTime;
+                particle.Velocity += Vector3.down * gravityAcceleration * safeDeltaTime;
+                particle.Velocity = new Vector3(
+                    Mathf.Lerp(particle.Velocity.x, 0f, Mathf.Clamp01(horizontalDamping * safeDeltaTime)),
+                    particle.Velocity.y,
+                    0f);
+                particle.Position += particle.Velocity * safeDeltaTime;
+                particle.Rotation += particle.AngularVelocity * safeDeltaTime;
+
+                particle.Renderer.transform.position = particle.Position;
+                particle.Renderer.transform.localScale = Vector3.Lerp(
+                    particle.StartScale,
+                    particle.EndScale,
+                    0.12f);
+                particle.Renderer.transform.rotation = Quaternion.Euler(0f, 0f, particle.Rotation);
+                particle.Renderer.color = particle.BaseColor;
+
+                if (particle.Position.y <= destroyBelowWorldY || particle.Age >= maxParticleLifetime)
+                {
+                    DestroyObject(particle.Root);
+                    activeParticles.RemoveAt(index);
+                }
             }
         }
 
@@ -133,29 +158,7 @@ namespace DreamBlastClone.Views
             }
 
             activeParticles.Clear();
-            elapsed = 0f;
-        }
-
-        private void ApplyCurrentState()
-        {
-            var progress = duration > 0f ? Mathf.Clamp01(elapsed / duration) : 1f;
-            var easedProgress = EaseOutCubic(progress);
-
-            foreach (var particle in activeParticles)
-            {
-                if (particle.Root is null || particle.Renderer is null)
-                {
-                    continue;
-                }
-
-                particle.Root.transform.position = Vector3.Lerp(particle.StartPosition, particle.EndPosition, easedProgress);
-                particle.Root.transform.localScale = Vector3.Lerp(particle.StartScale, particle.EndScale, easedProgress);
-                particle.Root.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(particle.StartRotation, particle.EndRotation, easedProgress));
-
-                var color = particle.Renderer.color;
-                color.a = 1f - easedProgress;
-                particle.Renderer.color = color;
-            }
+            destroyBelowWorldY = 0f;
         }
 
         private Sprite ResolveParticleSprite(CubeColor cubeColor)
@@ -208,49 +211,67 @@ namespace DreamBlastClone.Views
             return new Vector3(targetSize / safeWidth, targetSize / safeHeight, 1f);
         }
 
-        private static float EaseOutCubic(float progress)
+        private static void DestroyObject(GameObject gameObject)
         {
-            var inverse = 1f - progress;
-            return 1f - inverse * inverse * inverse;
+            if (gameObject is null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(gameObject);
+            }
+            else
+            {
+                DestroyImmediate(gameObject);
+            }
         }
 
-        private readonly struct ActiveParticle
+        private sealed class ActiveParticle
         {
             public ActiveParticle(
                 GameObject root,
                 SpriteRenderer renderer,
                 Vector3 startPosition,
-                Vector3 endPosition,
+                Vector3 velocity,
                 Vector3 startScale,
                 Vector3 endScale,
-                float startRotation,
-                float endRotation)
+                float rotation,
+                float angularVelocity,
+                Color baseColor)
             {
                 Root = root;
                 Renderer = renderer;
-                StartPosition = startPosition;
-                EndPosition = endPosition;
+                Position = startPosition;
+                Velocity = velocity;
                 StartScale = startScale;
                 EndScale = endScale;
-                StartRotation = startRotation;
-                EndRotation = endRotation;
+                Rotation = rotation;
+                AngularVelocity = angularVelocity;
+                BaseColor = baseColor;
+                Age = 0f;
             }
 
             public GameObject Root { get; }
 
             public SpriteRenderer Renderer { get; }
 
-            public Vector3 StartPosition { get; }
+            public Vector3 Position { get; set; }
 
-            public Vector3 EndPosition { get; }
+            public Vector3 Velocity { get; set; }
 
             public Vector3 StartScale { get; }
 
             public Vector3 EndScale { get; }
 
-            public float StartRotation { get; }
+            public float Rotation { get; set; }
 
-            public float EndRotation { get; }
+            public float AngularVelocity { get; }
+
+            public Color BaseColor { get; }
+
+            public float Age { get; set; }
         }
     }
 }

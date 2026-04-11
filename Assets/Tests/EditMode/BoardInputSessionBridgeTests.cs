@@ -200,7 +200,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetItemRoot(boardView).childCount, Is.GreaterThan(0));
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.EqualTo(0f));
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.False);
-            Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
         }
 
