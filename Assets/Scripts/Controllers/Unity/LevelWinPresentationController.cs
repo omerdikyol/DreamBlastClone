@@ -19,6 +19,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private RectTransform contentRoot;
         [SerializeField] private RectTransform starTransform;
         [SerializeField] private RectTransform titleTransform;
+        [SerializeField] private RectTransform continueHintTransform;
         [SerializeField] private CanvasGroup titleCanvasGroup;
         [SerializeField] private Image overlayImage;
         [SerializeField] private float enterDurationSeconds = 0.28f;
@@ -27,25 +28,37 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private int presentationSortingOrder = 110;
         [SerializeField] private float contentEnterOffsetY = 36f;
         [SerializeField] private float contentExitOffsetY = 12f;
+        [SerializeField] private float contentEnterScale = 0.92f;
+        [SerializeField] private float contentExitScale = 0.96f;
         [SerializeField] private float starEnterStartScale = 0.84f;
         [SerializeField] private float starExitEndScale = 1.08f;
         [SerializeField] private float continueHintFadeDurationSeconds = 0.18f;
+        [SerializeField] private float continueHintEnterOffsetY = -10f;
+        [SerializeField] private float continueHintExitOffsetY = -6f;
         [SerializeField] private float titleEnterOffsetY = 12f;
+        [SerializeField] private float titleEnterScale = 0.94f;
         [SerializeField] private float starIdlePulseAmplitude = 0.035f;
         [SerializeField] private float starIdlePulseFrequency = 2.2f;
+        [SerializeField] private float titleIdlePulseAmplitude = 0.01f;
+        [SerializeField] private float titleIdlePulseFrequency = 1.35f;
         [SerializeField] private float overlayEnterAlphaMultiplier = 0.76f;
 
         private WinPresentationState state;
         private float stateElapsedSeconds;
         private float continueHintElapsedSeconds;
         private Vector2 contentBaseAnchoredPosition;
+        private Vector2 continueHintBaseAnchoredPosition;
         private Vector2 titleBaseAnchoredPosition;
+        private Vector3 contentBaseScale;
         private Vector3 starBaseScale;
+        private Vector3 titleBaseScale;
         private Color overlayBaseColor;
+        private bool hasCachedVisualDefaults;
 
         private void Awake()
         {
             state = WinPresentationState.Hidden;
+            hasCachedVisualDefaults = false;
             stateElapsedSeconds = 0f;
             continueHintElapsedSeconds = 0f;
 
@@ -205,6 +218,7 @@ namespace DreamBlastClone.Controllers.Unity
             contentRoot ??= FindRectTransform("WinPopupPanel");
             starTransform ??= FindRectTransform("WinStar");
             titleTransform ??= FindRectTransform("WinTitle");
+            continueHintTransform ??= continueHintRoot != null ? continueHintRoot.transform as RectTransform : null;
             overlayImage ??= presentationRoot.GetComponent<Image>();
 
             if (presentationCanvasGroup == null)
@@ -254,10 +268,13 @@ namespace DreamBlastClone.Controllers.Unity
             ApplyVisualState(
                 rootAlpha: 0f,
                 contentYOffset: contentEnterOffsetY,
+                contentScaleMultiplier: contentEnterScale,
                 starScaleMultiplier: starEnterStartScale,
                 hintAlpha: 0f,
+                hintYOffset: continueHintEnterOffsetY,
                 titleAlpha: 0f,
                 titleYOffset: titleEnterOffsetY,
+                titleScaleMultiplier: titleEnterScale,
                 overlayAlphaMultiplier: overlayEnterAlphaMultiplier);
 
             if (enterDurationSeconds <= 0f)
@@ -273,10 +290,13 @@ namespace DreamBlastClone.Controllers.Unity
             ApplyVisualState(
                 rootAlpha: 1f,
                 contentYOffset: 0f,
-                starScaleMultiplier: 1f,
+                contentScaleMultiplier: 1f,
+                starScaleMultiplier: EvaluateIdleStarPulse(),
                 hintAlpha: 0f,
+                hintYOffset: continueHintEnterOffsetY,
                 titleAlpha: 1f,
                 titleYOffset: 0f,
+                titleScaleMultiplier: EvaluateIdleTitlePulse(),
                 overlayAlphaMultiplier: 1f);
 
             if (minimumHoldSeconds <= 0f)
@@ -299,10 +319,13 @@ namespace DreamBlastClone.Controllers.Unity
             ApplyVisualState(
                 rootAlpha: 1f,
                 contentYOffset: 0f,
+                contentScaleMultiplier: 1f,
                 starScaleMultiplier: EvaluateIdleStarPulse(),
                 hintAlpha: 0f,
+                hintYOffset: continueHintEnterOffsetY,
                 titleAlpha: 1f,
                 titleYOffset: 0f,
+                titleScaleMultiplier: EvaluateIdleTitlePulse(),
                 overlayAlphaMultiplier: 1f);
         }
 
@@ -342,14 +365,21 @@ namespace DreamBlastClone.Controllers.Unity
 
         private void CacheVisualDefaults()
         {
+            if (hasCachedVisualDefaults)
+            {
+                return;
+            }
+
             if (contentRoot != null)
             {
                 contentBaseAnchoredPosition = contentRoot.anchoredPosition;
+                contentBaseScale = contentRoot.localScale;
             }
 
             if (titleTransform != null)
             {
                 titleBaseAnchoredPosition = titleTransform.anchoredPosition;
+                titleBaseScale = titleTransform.localScale;
             }
 
             if (starTransform != null)
@@ -357,10 +387,17 @@ namespace DreamBlastClone.Controllers.Unity
                 starBaseScale = starTransform.localScale;
             }
 
+            if (continueHintTransform != null)
+            {
+                continueHintBaseAnchoredPosition = continueHintTransform.anchoredPosition;
+            }
+
             if (overlayImage != null)
             {
                 overlayBaseColor = overlayImage.color;
             }
+
+            hasCachedVisualDefaults = true;
         }
 
         private void ApplyHiddenVisualState()
@@ -368,10 +405,13 @@ namespace DreamBlastClone.Controllers.Unity
             ApplyVisualState(
                 rootAlpha: 0f,
                 contentYOffset: contentEnterOffsetY,
+                contentScaleMultiplier: contentEnterScale,
                 starScaleMultiplier: starEnterStartScale,
                 hintAlpha: 0f,
+                hintYOffset: continueHintEnterOffsetY,
                 titleAlpha: 0f,
                 titleYOffset: titleEnterOffsetY,
+                titleScaleMultiplier: titleEnterScale,
                 overlayAlphaMultiplier: overlayEnterAlphaMultiplier);
             SetContinueHintVisible(false);
 
@@ -384,10 +424,13 @@ namespace DreamBlastClone.Controllers.Unity
         private void ApplyVisualState(
             float rootAlpha,
             float contentYOffset,
+            float contentScaleMultiplier,
             float starScaleMultiplier,
             float hintAlpha,
+            float hintYOffset,
             float titleAlpha,
             float titleYOffset,
+            float titleScaleMultiplier,
             float overlayAlphaMultiplier)
         {
             if (presentationCanvasGroup != null)
@@ -400,6 +443,7 @@ namespace DreamBlastClone.Controllers.Unity
             if (contentRoot != null)
             {
                 contentRoot.anchoredPosition = contentBaseAnchoredPosition + Vector2.up * contentYOffset;
+                contentRoot.localScale = contentBaseScale * contentScaleMultiplier;
             }
 
             if (starTransform != null)
@@ -410,6 +454,7 @@ namespace DreamBlastClone.Controllers.Unity
             if (titleTransform != null)
             {
                 titleTransform.anchoredPosition = titleBaseAnchoredPosition + Vector2.up * titleYOffset;
+                titleTransform.localScale = titleBaseScale * titleScaleMultiplier;
             }
 
             if (titleCanvasGroup != null)
@@ -426,6 +471,11 @@ namespace DreamBlastClone.Controllers.Unity
                 continueHintCanvasGroup.blocksRaycasts = false;
             }
 
+            if (continueHintTransform != null)
+            {
+                continueHintTransform.anchoredPosition = continueHintBaseAnchoredPosition + Vector2.up * hintYOffset;
+            }
+
             if (overlayImage != null)
             {
                 var color = overlayBaseColor;
@@ -439,16 +489,22 @@ namespace DreamBlastClone.Controllers.Unity
             var progress = enterDurationSeconds > 0f
                 ? Mathf.Clamp01(stateElapsedSeconds / enterDurationSeconds)
                 : 1f;
-            var easedProgress = EaseOutCubic(progress);
+            var overlayProgress = EaseOutCubic(progress);
+            var contentProgress = EaseOutBack(progress);
+            var starProgress = EaseOutBack(Mathf.Clamp01((progress - 0.05f) / 0.95f));
+            var titleProgress = Mathf.Clamp01(EaseOutBack(Mathf.Clamp01((progress - 0.16f) / 0.84f)));
 
             ApplyVisualState(
-                rootAlpha: easedProgress,
-                contentYOffset: Mathf.Lerp(contentEnterOffsetY, 0f, easedProgress),
-                starScaleMultiplier: Mathf.Lerp(starEnterStartScale, 1f, easedProgress),
+                rootAlpha: overlayProgress,
+                contentYOffset: Mathf.LerpUnclamped(contentEnterOffsetY, 0f, contentProgress),
+                contentScaleMultiplier: Mathf.LerpUnclamped(contentEnterScale, 1f, contentProgress),
+                starScaleMultiplier: Mathf.LerpUnclamped(starEnterStartScale, 1f, starProgress),
                 hintAlpha: 0f,
-                titleAlpha: easedProgress,
-                titleYOffset: Mathf.Lerp(titleEnterOffsetY, 0f, easedProgress),
-                overlayAlphaMultiplier: Mathf.Lerp(overlayEnterAlphaMultiplier, 1f, easedProgress));
+                hintYOffset: continueHintEnterOffsetY,
+                titleAlpha: titleProgress,
+                titleYOffset: Mathf.LerpUnclamped(titleEnterOffsetY, 0f, titleProgress),
+                titleScaleMultiplier: Mathf.LerpUnclamped(titleEnterScale, 1f, titleProgress),
+                overlayAlphaMultiplier: Mathf.Lerp(overlayEnterAlphaMultiplier, 1f, overlayProgress));
 
             if (progress >= 1f)
             {
@@ -461,10 +517,13 @@ namespace DreamBlastClone.Controllers.Unity
             ApplyVisualState(
                 rootAlpha: 1f,
                 contentYOffset: 0f,
+                contentScaleMultiplier: 1f,
                 starScaleMultiplier: EvaluateIdleStarPulse(),
                 hintAlpha: 0f,
+                hintYOffset: continueHintEnterOffsetY,
                 titleAlpha: 1f,
                 titleYOffset: 0f,
+                titleScaleMultiplier: EvaluateIdleTitlePulse(),
                 overlayAlphaMultiplier: 1f);
 
             if (stateElapsedSeconds >= minimumHoldSeconds)
@@ -482,10 +541,13 @@ namespace DreamBlastClone.Controllers.Unity
             ApplyVisualState(
                 rootAlpha: 1f,
                 contentYOffset: 0f,
+                contentScaleMultiplier: 1f,
                 starScaleMultiplier: EvaluateIdleStarPulse(),
                 hintAlpha: EaseOutCubic(hintProgress),
+                hintYOffset: Mathf.Lerp(continueHintEnterOffsetY, 0f, EaseOutCubic(hintProgress)),
                 titleAlpha: 1f,
                 titleYOffset: 0f,
+                titleScaleMultiplier: EvaluateIdleTitlePulse(),
                 overlayAlphaMultiplier: 1f);
         }
 
@@ -494,16 +556,20 @@ namespace DreamBlastClone.Controllers.Unity
             var progress = exitDurationSeconds > 0f
                 ? Mathf.Clamp01(stateElapsedSeconds / exitDurationSeconds)
                 : 1f;
-            var easedProgress = EaseInCubic(progress);
+            var overlayProgress = EaseInCubic(progress);
+            var contentProgress = EaseInBack(progress);
 
             ApplyVisualState(
-                rootAlpha: 1f - easedProgress,
-                contentYOffset: Mathf.Lerp(0f, contentExitOffsetY, easedProgress),
-                starScaleMultiplier: Mathf.Lerp(1f, starExitEndScale, easedProgress),
-                hintAlpha: 1f - easedProgress,
-                titleAlpha: 1f - easedProgress,
-                titleYOffset: Mathf.Lerp(0f, titleEnterOffsetY * 0.5f, easedProgress),
-                overlayAlphaMultiplier: Mathf.Lerp(1f, overlayEnterAlphaMultiplier, easedProgress));
+                rootAlpha: 1f - overlayProgress,
+                contentYOffset: Mathf.LerpUnclamped(0f, contentExitOffsetY, contentProgress),
+                contentScaleMultiplier: Mathf.LerpUnclamped(1f, contentExitScale, contentProgress),
+                starScaleMultiplier: Mathf.LerpUnclamped(EvaluateIdleStarPulse(), starExitEndScale, contentProgress),
+                hintAlpha: 1f - overlayProgress,
+                hintYOffset: Mathf.LerpUnclamped(0f, continueHintExitOffsetY, contentProgress),
+                titleAlpha: 1f - overlayProgress,
+                titleYOffset: Mathf.LerpUnclamped(0f, titleEnterOffsetY * 0.45f, contentProgress),
+                titleScaleMultiplier: Mathf.LerpUnclamped(EvaluateIdleTitlePulse(), titleEnterScale, contentProgress),
+                overlayAlphaMultiplier: Mathf.Lerp(1f, overlayEnterAlphaMultiplier, overlayProgress));
 
             if (progress >= 1f)
             {
@@ -540,15 +606,38 @@ namespace DreamBlastClone.Controllers.Unity
             return 1f + Mathf.Sin(stateElapsedSeconds * starIdlePulseFrequency * Mathf.PI * 2f) * starIdlePulseAmplitude;
         }
 
+        private float EvaluateIdleTitlePulse()
+        {
+            if (titleIdlePulseAmplitude <= 0f || titleIdlePulseFrequency <= 0f)
+            {
+                return 1f;
+            }
+
+            return 1f + Mathf.Sin(stateElapsedSeconds * titleIdlePulseFrequency * Mathf.PI * 2f) * titleIdlePulseAmplitude;
+        }
+
         private static float EaseOutCubic(float progress)
         {
             var inverse = 1f - progress;
             return 1f - inverse * inverse * inverse;
         }
 
+        private static float EaseOutBack(float progress)
+        {
+            const float overshoot = 1.70158f;
+            var adjusted = progress - 1f;
+            return 1f + (overshoot + 1f) * adjusted * adjusted * adjusted + overshoot * adjusted * adjusted;
+        }
+
         private static float EaseInCubic(float progress)
         {
             return progress * progress * progress;
+        }
+
+        private static float EaseInBack(float progress)
+        {
+            const float overshoot = 1.70158f;
+            return (overshoot + 1f) * progress * progress * progress - overshoot * progress * progress;
         }
 
         private static bool TryReadContinueInput()

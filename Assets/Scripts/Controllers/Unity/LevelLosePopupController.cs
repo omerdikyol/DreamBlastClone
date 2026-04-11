@@ -2,6 +2,7 @@ using DreamBlastClone.Controllers;
 using DreamBlastClone.Systems;
 using UnityEngine;
 using UnityEngine.UI;
+using DreamBlastClone.Views;
 
 namespace DreamBlastClone.Controllers.Unity
 {
@@ -17,16 +18,42 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private CanvasGroup contentCanvasGroup;
         [SerializeField] private RectTransform contentRoot;
         [SerializeField] private RectTransform titleTransform;
+        [SerializeField] private RectTransform subtitleTransform;
         [SerializeField] private RectTransform tryAgainTextTransform;
+        [SerializeField] private RectTransform closeButtonTransform;
+        [SerializeField] private RectTransform tryAgainButtonTransform;
+        [SerializeField] private RectTransform mainMenuButtonTransform;
+        [SerializeField] private UIButtonFeedbackView closeButtonFeedback;
+        [SerializeField] private UIButtonFeedbackView tryAgainButtonFeedback;
+        [SerializeField] private UIButtonFeedbackView mainMenuButtonFeedback;
         [SerializeField] private int popupSortingOrder = 100;
-        [SerializeField] private float enterDurationSeconds = 0.2f;
-        [SerializeField] private float exitDurationSeconds = 0.16f;
-        [SerializeField] private float contentEnterOffsetY = 28f;
-        [SerializeField] private float contentEnterScale = 0.94f;
-        [SerializeField] private float overlayEnterAlphaMultiplier = 1f;
-        [SerializeField] private float titleEnterOffsetY = 10f;
+        [SerializeField] private float enterDurationSeconds = 0.28f;
+        [SerializeField] private float exitDurationSeconds = 0.18f;
+        [SerializeField] private float contentEnterOffsetY = 62f;
+        [SerializeField] private float contentEnterScale = 0.86f;
+        [SerializeField] private float overlayEnterAlphaMultiplier = 0.55f;
+        [SerializeField] private float titleEnterOffsetY = 18f;
+        [SerializeField] private float titleEnterScale = 0.88f;
+        [SerializeField] private float subtitleEnterOffsetY = 14f;
+        [SerializeField] private float subtitleEnterScale = 0.92f;
+        [SerializeField] private float closeButtonEnterOffsetY = 28f;
+        [SerializeField] private float closeButtonExitOffsetY = 14f;
+        [SerializeField] private float actionButtonsEnterOffsetY = 34f;
+        [SerializeField] private float actionButtonsExitOffsetY = 18f;
         [SerializeField] private float tryAgainPulseAmplitude = 0.05f;
         [SerializeField] private float tryAgainPulseFrequency = 1.8f;
+        [SerializeField] private float titleIdlePulseAmplitude = 0.018f;
+        [SerializeField] private float titleIdlePulseFrequency = 1.35f;
+        [SerializeField] private float titleIdleBobAmplitude = 3f;
+        [SerializeField] private float titleIdleBobFrequency = 1.15f;
+        [SerializeField] private float titleIdleTiltAmplitude = 2.2f;
+        [SerializeField] private float titleIdleTiltFrequency = 0.9f;
+        [SerializeField] private float subtitleIdleScaleAmplitude = 0.01f;
+        [SerializeField] private float subtitleIdleScaleFrequency = 1.05f;
+        [SerializeField] private float subtitleIdleFloatAmplitude = 2.5f;
+        [SerializeField] private float subtitleIdleFloatFrequency = 0.95f;
+        [SerializeField] private float subtitleIdleDriftAmplitude = 6f;
+        [SerializeField] private float subtitleIdleDriftFrequency = 0.62f;
 
         private bool hasShownLosePopup;
         private LosePopupState state;
@@ -34,14 +61,24 @@ namespace DreamBlastClone.Controllers.Unity
         private float stateElapsedSeconds;
         private Vector2 contentBaseAnchoredPosition;
         private Vector2 titleBaseAnchoredPosition;
+        private Vector2 subtitleBaseAnchoredPosition;
+        private Vector2 closeButtonBaseAnchoredPosition;
+        private Vector2 tryAgainButtonBaseAnchoredPosition;
+        private Vector2 mainMenuButtonBaseAnchoredPosition;
         private Vector3 contentBaseScale;
+        private Vector3 titleBaseScale;
+        private Vector3 subtitleBaseScale;
         private Vector3 tryAgainTextBaseScale;
+        private Quaternion titleBaseRotation;
+        private Quaternion subtitleBaseRotation;
         private Color overlayBaseColor;
         private Image overlayImage;
+        private bool hasCachedVisualDefaults;
 
         private void Awake()
         {
             hasShownLosePopup = false;
+            hasCachedVisualDefaults = false;
             state = LosePopupState.Hidden;
             pendingAction = PendingAction.None;
             stateElapsedSeconds = 0f;
@@ -99,6 +136,7 @@ namespace DreamBlastClone.Controllers.Unity
                 popupRoot.SetActive(false);
             }
 
+            StopButtonFeedbacks();
             SetActionButtonsInteractable(false);
             state = LosePopupState.Hidden;
             pendingAction = PendingAction.None;
@@ -198,8 +236,17 @@ namespace DreamBlastClone.Controllers.Unity
                 contentYOffset: -contentEnterOffsetY,
                 contentScaleMultiplier: contentEnterScale,
                 titleYOffset: titleEnterOffsetY,
+                titleScaleMultiplier: titleEnterScale,
+                titleRotationDegrees: -5f,
+                subtitleXOffset: 0f,
+                subtitleYOffset: subtitleEnterOffsetY,
+                subtitleScaleMultiplier: subtitleEnterScale,
+                subtitleRotationDegrees: 0f,
                 overlayAlphaMultiplier: overlayEnterAlphaMultiplier,
-                tryAgainScaleMultiplier: 1f);
+                tryAgainScaleMultiplier: 1f,
+                closeButtonYOffset: closeButtonEnterOffsetY,
+                tryAgainButtonYOffset: -actionButtonsEnterOffsetY,
+                mainMenuButtonYOffset: -actionButtonsEnterOffsetY);
 
             if (enterDurationSeconds <= 0f)
             {
@@ -238,16 +285,28 @@ namespace DreamBlastClone.Controllers.Unity
             var progress = enterDurationSeconds > 0f
                 ? Mathf.Clamp01(stateElapsedSeconds / enterDurationSeconds)
                 : 1f;
-            var easedProgress = EaseOutCubic(progress);
+            var overlayProgress = EaseOutCubic(progress);
+            var contentProgress = EaseOutBack(progress);
+            var titleProgress = EaseOutBack(Mathf.Clamp01((progress - 0.1f) / 0.9f));
+            var buttonsProgress = EaseOutBack(Mathf.Clamp01((progress - 0.16f) / 0.84f));
 
             ApplyVisualState(
-                rootAlpha: easedProgress,
-                contentAlpha: Mathf.Lerp(0.82f, 1f, easedProgress),
-                contentYOffset: Mathf.Lerp(-contentEnterOffsetY, 0f, easedProgress),
-                contentScaleMultiplier: Mathf.Lerp(contentEnterScale, 1f, easedProgress),
-                titleYOffset: Mathf.Lerp(titleEnterOffsetY, 0f, easedProgress),
-                overlayAlphaMultiplier: Mathf.Lerp(overlayEnterAlphaMultiplier, 1f, easedProgress),
-                tryAgainScaleMultiplier: 1f);
+                rootAlpha: overlayProgress,
+                contentAlpha: overlayProgress,
+                contentYOffset: Mathf.LerpUnclamped(-contentEnterOffsetY, 0f, contentProgress),
+                contentScaleMultiplier: Mathf.LerpUnclamped(contentEnterScale, 1f, contentProgress),
+                titleYOffset: Mathf.LerpUnclamped(titleEnterOffsetY, 0f, titleProgress),
+                titleScaleMultiplier: Mathf.LerpUnclamped(titleEnterScale, 1f, titleProgress),
+                titleRotationDegrees: Mathf.LerpUnclamped(-5f, 0f, titleProgress),
+                subtitleXOffset: 0f,
+                subtitleYOffset: Mathf.LerpUnclamped(subtitleEnterOffsetY, 0f, Mathf.Clamp01(EaseOutBack(Mathf.Clamp01((progress - 0.18f) / 0.82f)))),
+                subtitleScaleMultiplier: Mathf.LerpUnclamped(subtitleEnterScale, 1f, Mathf.Clamp01(EaseOutBack(Mathf.Clamp01((progress - 0.18f) / 0.82f)))),
+                subtitleRotationDegrees: Mathf.LerpUnclamped(2f, 0f, Mathf.Clamp01(EaseOutBack(Mathf.Clamp01((progress - 0.18f) / 0.82f)))),
+                overlayAlphaMultiplier: Mathf.Lerp(overlayEnterAlphaMultiplier, 1f, overlayProgress),
+                tryAgainScaleMultiplier: 1f,
+                closeButtonYOffset: Mathf.LerpUnclamped(closeButtonEnterOffsetY, 0f, buttonsProgress),
+                tryAgainButtonYOffset: Mathf.LerpUnclamped(-actionButtonsEnterOffsetY, 0f, buttonsProgress),
+                mainMenuButtonYOffset: Mathf.LerpUnclamped(-actionButtonsEnterOffsetY, 0f, buttonsProgress));
 
             if (progress >= 1f)
             {
@@ -260,16 +319,26 @@ namespace DreamBlastClone.Controllers.Unity
             var progress = exitDurationSeconds > 0f
                 ? Mathf.Clamp01(stateElapsedSeconds / exitDurationSeconds)
                 : 1f;
-            var easedProgress = EaseInCubic(progress);
+            var overlayProgress = EaseInCubic(progress);
+            var contentProgress = EaseInBack(progress);
 
             ApplyVisualState(
-                rootAlpha: 1f - easedProgress,
-                contentAlpha: Mathf.Lerp(1f, 0.88f, easedProgress),
-                contentYOffset: Mathf.Lerp(0f, -contentEnterOffsetY * 0.45f, easedProgress),
-                contentScaleMultiplier: Mathf.Lerp(1f, contentEnterScale, easedProgress),
-                titleYOffset: Mathf.Lerp(0f, titleEnterOffsetY * 0.45f, easedProgress),
-                overlayAlphaMultiplier: Mathf.Lerp(1f, overlayEnterAlphaMultiplier, easedProgress),
-                tryAgainScaleMultiplier: 1f);
+                rootAlpha: 1f - overlayProgress,
+                contentAlpha: 1f - overlayProgress,
+                contentYOffset: Mathf.LerpUnclamped(0f, -contentEnterOffsetY * 0.45f, contentProgress),
+                contentScaleMultiplier: Mathf.LerpUnclamped(1f, contentEnterScale, contentProgress),
+                titleYOffset: Mathf.LerpUnclamped(0f, titleEnterOffsetY * 0.35f, contentProgress),
+                titleScaleMultiplier: Mathf.LerpUnclamped(1f, titleEnterScale, contentProgress),
+                titleRotationDegrees: Mathf.LerpUnclamped(EvaluateTitleTilt(), 4f, contentProgress),
+                subtitleXOffset: Mathf.LerpUnclamped(EvaluateSubtitleDrift(), 8f, contentProgress),
+                subtitleYOffset: Mathf.LerpUnclamped(EvaluateSubtitleFloat(), subtitleEnterOffsetY * 0.35f, contentProgress),
+                subtitleScaleMultiplier: Mathf.LerpUnclamped(EvaluateSubtitleScale(), subtitleEnterScale, contentProgress),
+                subtitleRotationDegrees: Mathf.LerpUnclamped(EvaluateSubtitleTilt(), -2f, contentProgress),
+                overlayAlphaMultiplier: Mathf.Lerp(1f, overlayEnterAlphaMultiplier, overlayProgress),
+                tryAgainScaleMultiplier: Mathf.LerpUnclamped(EvaluateTryAgainPulse(), 1f, overlayProgress),
+                closeButtonYOffset: Mathf.LerpUnclamped(0f, closeButtonExitOffsetY, contentProgress),
+                tryAgainButtonYOffset: Mathf.LerpUnclamped(0f, -actionButtonsExitOffsetY, contentProgress),
+                mainMenuButtonYOffset: Mathf.LerpUnclamped(0f, -actionButtonsExitOffsetY, contentProgress));
 
             if (progress >= 1f)
             {
@@ -312,13 +381,24 @@ namespace DreamBlastClone.Controllers.Unity
                 contentYOffset: -contentEnterOffsetY,
                 contentScaleMultiplier: contentEnterScale,
                 titleYOffset: titleEnterOffsetY,
+                titleScaleMultiplier: titleEnterScale,
+                titleRotationDegrees: -5f,
+                subtitleXOffset: 0f,
+                subtitleYOffset: subtitleEnterOffsetY,
+                subtitleScaleMultiplier: subtitleEnterScale,
+                subtitleRotationDegrees: 0f,
                 overlayAlphaMultiplier: overlayEnterAlphaMultiplier,
-                tryAgainScaleMultiplier: 1f);
+                tryAgainScaleMultiplier: 1f,
+                closeButtonYOffset: closeButtonEnterOffsetY,
+                tryAgainButtonYOffset: -actionButtonsEnterOffsetY,
+                mainMenuButtonYOffset: -actionButtonsEnterOffsetY);
 
             if (popupRoot != null)
             {
                 popupRoot.SetActive(false);
             }
+
+            StopButtonFeedbacks();
         }
 
         private void ApplyVisibleVisualState()
@@ -328,9 +408,18 @@ namespace DreamBlastClone.Controllers.Unity
                 contentAlpha: 1f,
                 contentYOffset: 0f,
                 contentScaleMultiplier: 1f,
-                titleYOffset: 0f,
+                titleYOffset: EvaluateTitleBob(),
+                titleScaleMultiplier: EvaluateTitlePulse(),
+                titleRotationDegrees: EvaluateTitleTilt(),
+                subtitleXOffset: EvaluateSubtitleDrift(),
+                subtitleYOffset: EvaluateSubtitleFloat(),
+                subtitleScaleMultiplier: EvaluateSubtitleScale(),
+                subtitleRotationDegrees: EvaluateSubtitleTilt(),
                 overlayAlphaMultiplier: 1f,
-                tryAgainScaleMultiplier: EvaluateTryAgainPulse());
+                tryAgainScaleMultiplier: EvaluateTryAgainPulse(),
+                closeButtonYOffset: 0f,
+                tryAgainButtonYOffset: 0f,
+                mainMenuButtonYOffset: 0f);
         }
 
         private void ApplyVisualState(
@@ -339,8 +428,17 @@ namespace DreamBlastClone.Controllers.Unity
             float contentYOffset,
             float contentScaleMultiplier,
             float titleYOffset,
+            float titleScaleMultiplier,
+            float titleRotationDegrees,
+            float subtitleXOffset,
+            float subtitleYOffset,
+            float subtitleScaleMultiplier,
+            float subtitleRotationDegrees,
             float overlayAlphaMultiplier,
-            float tryAgainScaleMultiplier)
+            float tryAgainScaleMultiplier,
+            float closeButtonYOffset,
+            float tryAgainButtonYOffset,
+            float mainMenuButtonYOffset)
         {
             if (popupCanvasGroup != null)
             {
@@ -365,11 +463,35 @@ namespace DreamBlastClone.Controllers.Unity
             if (titleTransform != null)
             {
                 titleTransform.anchoredPosition = titleBaseAnchoredPosition + Vector2.up * titleYOffset;
+                titleTransform.localScale = titleBaseScale * titleScaleMultiplier;
+                titleTransform.localRotation = titleBaseRotation * Quaternion.Euler(0f, 0f, titleRotationDegrees);
+            }
+
+            if (subtitleTransform != null)
+            {
+                subtitleTransform.anchoredPosition = subtitleBaseAnchoredPosition + new Vector2(subtitleXOffset, subtitleYOffset);
+                subtitleTransform.localScale = subtitleBaseScale * subtitleScaleMultiplier;
+                subtitleTransform.localRotation = subtitleBaseRotation * Quaternion.Euler(0f, 0f, subtitleRotationDegrees);
             }
 
             if (tryAgainTextTransform != null)
             {
                 tryAgainTextTransform.localScale = tryAgainTextBaseScale * tryAgainScaleMultiplier;
+            }
+
+            if (closeButtonTransform != null)
+            {
+                closeButtonTransform.anchoredPosition = closeButtonBaseAnchoredPosition + Vector2.up * closeButtonYOffset;
+            }
+
+            if (tryAgainButtonTransform != null)
+            {
+                tryAgainButtonTransform.anchoredPosition = tryAgainButtonBaseAnchoredPosition + Vector2.up * tryAgainButtonYOffset;
+            }
+
+            if (mainMenuButtonTransform != null)
+            {
+                mainMenuButtonTransform.anchoredPosition = mainMenuButtonBaseAnchoredPosition + Vector2.up * mainMenuButtonYOffset;
             }
 
             if (overlayImage != null)
@@ -417,13 +539,21 @@ namespace DreamBlastClone.Controllers.Unity
             popupCanvasGroup ??= popupRoot.GetComponent<CanvasGroup>() ?? popupRoot.AddComponent<CanvasGroup>();
             contentRoot ??= FindRectTransform("LosePopupPanel");
             titleTransform ??= FindRectTransform("LoseLabel");
+            subtitleTransform ??= FindRectTransform("LoseSubtitle");
             tryAgainTextTransform ??= FindRectTransform("TryAgainText");
+            closeButtonTransform ??= closeButton != null ? closeButton.transform as RectTransform : null;
+            tryAgainButtonTransform ??= tryAgainButton != null ? tryAgainButton.transform as RectTransform : null;
+            mainMenuButtonTransform ??= mainMenuButton != null ? mainMenuButton.transform as RectTransform : null;
             overlayImage ??= popupRoot.GetComponent<Image>();
 
             if (contentRoot != null && contentCanvasGroup == null)
             {
                 contentCanvasGroup = contentRoot.GetComponent<CanvasGroup>() ?? contentRoot.gameObject.AddComponent<CanvasGroup>();
             }
+
+            closeButtonFeedback = ResolveButtonFeedback(closeButton, closeButtonFeedback);
+            tryAgainButtonFeedback = ResolveButtonFeedback(tryAgainButton, tryAgainButtonFeedback);
+            mainMenuButtonFeedback = ResolveButtonFeedback(mainMenuButton, mainMenuButtonFeedback);
 
             if (closeButton is null
                 || tryAgainButton is null
@@ -454,6 +584,11 @@ namespace DreamBlastClone.Controllers.Unity
 
         private void CacheVisualDefaults()
         {
+            if (hasCachedVisualDefaults)
+            {
+                return;
+            }
+
             if (contentRoot != null)
             {
                 contentBaseAnchoredPosition = contentRoot.anchoredPosition;
@@ -463,6 +598,15 @@ namespace DreamBlastClone.Controllers.Unity
             if (titleTransform != null)
             {
                 titleBaseAnchoredPosition = titleTransform.anchoredPosition;
+                titleBaseScale = titleTransform.localScale;
+                titleBaseRotation = titleTransform.localRotation;
+            }
+
+            if (subtitleTransform != null)
+            {
+                subtitleBaseAnchoredPosition = subtitleTransform.anchoredPosition;
+                subtitleBaseScale = subtitleTransform.localScale;
+                subtitleBaseRotation = subtitleTransform.localRotation;
             }
 
             if (tryAgainTextTransform != null)
@@ -470,10 +614,27 @@ namespace DreamBlastClone.Controllers.Unity
                 tryAgainTextBaseScale = tryAgainTextTransform.localScale;
             }
 
+            if (closeButtonTransform != null)
+            {
+                closeButtonBaseAnchoredPosition = closeButtonTransform.anchoredPosition;
+            }
+
+            if (tryAgainButtonTransform != null)
+            {
+                tryAgainButtonBaseAnchoredPosition = tryAgainButtonTransform.anchoredPosition;
+            }
+
+            if (mainMenuButtonTransform != null)
+            {
+                mainMenuButtonBaseAnchoredPosition = mainMenuButtonTransform.anchoredPosition;
+            }
+
             if (overlayImage != null)
             {
                 overlayBaseColor = overlayImage.color;
             }
+
+            hasCachedVisualDefaults = true;
         }
 
         private Button FindButton(string childName)
@@ -520,9 +681,22 @@ namespace DreamBlastClone.Controllers.Unity
             return 1f - inverse * inverse * inverse;
         }
 
+        private static float EaseOutBack(float progress)
+        {
+            const float overshoot = 1.70158f;
+            var adjusted = progress - 1f;
+            return 1f + (overshoot + 1f) * adjusted * adjusted * adjusted + overshoot * adjusted * adjusted;
+        }
+
         private static float EaseInCubic(float progress)
         {
             return progress * progress * progress;
+        }
+
+        private static float EaseInBack(float progress)
+        {
+            const float overshoot = 1.70158f;
+            return (overshoot + 1f) * progress * progress * progress - overshoot * progress * progress;
         }
 
         private float EvaluateTryAgainPulse()
@@ -533,6 +707,93 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             return 1f + Mathf.Sin(stateElapsedSeconds * tryAgainPulseFrequency * Mathf.PI * 2f) * tryAgainPulseAmplitude;
+        }
+
+        private float EvaluateTitlePulse()
+        {
+            if (titleTransform == null || titleIdlePulseAmplitude <= 0f || titleIdlePulseFrequency <= 0f)
+            {
+                return 1f;
+            }
+
+            return 1f + Mathf.Sin(stateElapsedSeconds * titleIdlePulseFrequency * Mathf.PI * 2f) * titleIdlePulseAmplitude;
+        }
+
+        private float EvaluateTitleBob()
+        {
+            if (titleTransform == null || titleIdleBobAmplitude <= 0f || titleIdleBobFrequency <= 0f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Sin((stateElapsedSeconds + 0.1f) * titleIdleBobFrequency * Mathf.PI * 2f) * titleIdleBobAmplitude;
+        }
+
+        private float EvaluateTitleTilt()
+        {
+            if (titleTransform == null || titleIdleTiltAmplitude <= 0f || titleIdleTiltFrequency <= 0f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Sin((stateElapsedSeconds + 0.08f) * titleIdleTiltFrequency * Mathf.PI * 2f) * titleIdleTiltAmplitude;
+        }
+
+        private float EvaluateSubtitleScale()
+        {
+            if (subtitleTransform == null || subtitleIdleScaleAmplitude <= 0f || subtitleIdleScaleFrequency <= 0f)
+            {
+                return 1f;
+            }
+
+            return 1f + Mathf.Sin((stateElapsedSeconds + 0.17f) * subtitleIdleScaleFrequency * Mathf.PI * 2f) * subtitleIdleScaleAmplitude;
+        }
+
+        private float EvaluateSubtitleFloat()
+        {
+            if (subtitleTransform == null || subtitleIdleFloatAmplitude <= 0f || subtitleIdleFloatFrequency <= 0f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Sin((stateElapsedSeconds + 0.14f) * subtitleIdleFloatFrequency * Mathf.PI * 2f) * subtitleIdleFloatAmplitude;
+        }
+
+        private float EvaluateSubtitleDrift()
+        {
+            if (subtitleTransform == null || subtitleIdleDriftAmplitude <= 0f || subtitleIdleDriftFrequency <= 0f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Sin((stateElapsedSeconds + 0.31f) * subtitleIdleDriftFrequency * Mathf.PI * 2f) * subtitleIdleDriftAmplitude;
+        }
+
+        private float EvaluateSubtitleTilt()
+        {
+            if (subtitleTransform == null || subtitleIdleDriftAmplitude <= 0f || subtitleIdleDriftFrequency <= 0f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Sin((stateElapsedSeconds + 0.27f) * subtitleIdleDriftFrequency * Mathf.PI * 2f) * 0.9f;
+        }
+
+        private static UIButtonFeedbackView ResolveButtonFeedback(Button button, UIButtonFeedbackView existingFeedback)
+        {
+            if (existingFeedback != null || button == null)
+            {
+                return existingFeedback;
+            }
+
+            return button.GetComponent<UIButtonFeedbackView>() ?? button.gameObject.AddComponent<UIButtonFeedbackView>();
+        }
+
+        private void StopButtonFeedbacks()
+        {
+            closeButtonFeedback?.StopAndReset();
+            tryAgainButtonFeedback?.StopAndReset();
+            mainMenuButtonFeedback?.StopAndReset();
         }
 
         private enum LosePopupState

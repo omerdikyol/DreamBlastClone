@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 using DreamBlastClone.Views;
 
@@ -9,7 +10,8 @@ namespace DreamBlastClone.Controllers.Unity
     {
         [SerializeField] private LevelCatalogAsset levelCatalog;
         [SerializeField] private Button startButton;
-        [SerializeField] private MainSceneButtonIdleLoopView startButtonIdleLoop;
+        [FormerlySerializedAs("startButtonIdleLoop")]
+        [SerializeField] private UIButtonFeedbackView startButtonFeedback;
         [SerializeField] private Component levelLabel;
         [SerializeField] private string levelSceneName = "LevelScene";
 
@@ -43,9 +45,9 @@ namespace DreamBlastClone.Controllers.Unity
                 startButton.onClick.RemoveListener(HandleStartButtonClicked);
             }
 
-            if (startButtonIdleLoop != null)
+            if (startButtonFeedback != null)
             {
-                startButtonIdleLoop.StopAndReset();
+                startButtonFeedback.StopAndReset();
             }
         }
 
@@ -61,7 +63,7 @@ namespace DreamBlastClone.Controllers.Unity
                 startButton.interactable = !hasStartedLevelLoad && HasValidCatalog() && !IsFinished;
             }
 
-            RefreshStartButtonIdleLoop();
+            RefreshStartButtonFeedback();
         }
 
         public bool TryStartCurrentLevel()
@@ -119,25 +121,26 @@ namespace DreamBlastClone.Controllers.Unity
             TryStartCurrentLevel();
         }
 
-        private void RefreshStartButtonIdleLoop()
+        private void RefreshStartButtonFeedback()
         {
-            if (startButtonIdleLoop == null && startButton != null)
+            if (startButtonFeedback == null && startButton != null)
             {
-                startButtonIdleLoop = startButton.GetComponent<MainSceneButtonIdleLoopView>();
+                startButtonFeedback = startButton.GetComponent<UIButtonFeedbackView>()
+                    ?? startButton.gameObject.AddComponent<UIButtonFeedbackView>();
             }
 
-            if (startButtonIdleLoop == null)
+            if (startButtonFeedback == null)
             {
                 return;
             }
 
             if (startButton != null && startButton.interactable)
             {
-                startButtonIdleLoop.Play();
+                startButtonFeedback.PlayIdle();
                 return;
             }
 
-            startButtonIdleLoop.StopAndReset();
+            startButtonFeedback.StopAndReset();
         }
 
         private void SetLabelText(string value)

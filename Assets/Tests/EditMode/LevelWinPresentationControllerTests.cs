@@ -212,6 +212,25 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void ReenableResetsWinPresentationVisualState()
+        {
+            var setup = CreateController();
+
+            InvokeMethod(setup.Controller, "Awake");
+            InvokeMethod(setup.Controller, "OnEnable");
+            InvokeHandleTapProcessed(setup.Controller, LevelState.Win);
+            AdvanceWinPresentation(setup.Controller, 0.28f);
+            AdvanceWinPresentation(setup.Controller, 1.21f);
+
+            InvokeMethod(setup.Controller, "OnDisable");
+            InvokeMethod(setup.Controller, "OnEnable");
+
+            Assert.That(setup.PresentationRoot.activeSelf, Is.False);
+            Assert.That(setup.ContinueHintRoot.activeSelf, Is.False);
+            Assert.That(setup.PresentationRoot.GetComponent<CanvasGroup>().alpha, Is.EqualTo(0f).Within(0.001f));
+        }
+
+        [Test]
         public void WinPresentationPreservesConfiguredStarScale()
         {
             var setup = CreateController();
@@ -235,8 +254,10 @@ namespace DreamBlastClone.Tests.EditMode
             var presentationCanvasGroup = presentationRoot.AddComponent<CanvasGroup>();
             var overlayImage = presentationRoot.AddComponent<Image>();
             overlayImage.color = new Color(0f, 0f, 0f, 0.9f);
-            var continueHintRoot = CreateGameObject("ContinueHintRoot");
-            var continueHintCanvasGroup = continueHintRoot.AddComponent<CanvasGroup>();
+            var continueHintRootObject = new GameObject("ContinueHintRoot", typeof(RectTransform));
+            createdObjects.Add(continueHintRootObject);
+            var continueHintRoot = continueHintRootObject.GetComponent<RectTransform>();
+            var continueHintCanvasGroup = continueHintRootObject.AddComponent<CanvasGroup>();
             var particleRoot = CreateGameObject("WinCelebrationParticles").AddComponent<RectTransform>();
             var contentRoot = CreateGameObject("WinPopupPanel").AddComponent<RectTransform>();
             var starRoot = CreateGameObject("WinStar").AddComponent<RectTransform>();
@@ -249,7 +270,7 @@ namespace DreamBlastClone.Tests.EditMode
             contentRoot.SetParent(presentationRoot.transform, false);
             starRoot.SetParent(presentationRoot.transform, false);
             titleRoot.SetParent(contentRoot, false);
-            continueHintRoot.transform.SetParent(contentRoot, false);
+            continueHintRoot.SetParent(contentRoot, false);
 
             var catalog = ScriptableObject.CreateInstance<LevelCatalogAsset>();
             createdObjects.Add(catalog);
@@ -274,7 +295,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(controller, "inputBridge", inputBridge);
             SetField(controller, "flowController", flowController);
             SetField(controller, "presentationRoot", presentationRoot);
-            SetField(controller, "continueHintRoot", continueHintRoot);
+            SetField(controller, "continueHintRoot", continueHintRoot.gameObject);
             SetField(controller, "presentationCanvasGroup", presentationCanvasGroup);
             SetField(controller, "continueHintCanvasGroup", continueHintCanvasGroup);
             SetField(controller, "winCelebrationParticlePlayer", winParticlePlayer);
@@ -290,7 +311,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(controller, "starIdlePulseFrequency", 2f);
             SetField(controller, "overlayEnterAlphaMultiplier", 0.76f);
 
-            return new ControllerSetup(controller, inputBridge, flowController, presentationRoot, continueHintRoot, starRoot, winParticlePlayer);
+            return new ControllerSetup(controller, inputBridge, flowController, presentationRoot, continueHintRoot.gameObject, starRoot, winParticlePlayer);
         }
 
         private GameObject CreateGameObject(string name)

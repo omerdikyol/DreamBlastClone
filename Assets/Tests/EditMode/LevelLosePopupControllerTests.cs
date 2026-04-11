@@ -182,6 +182,24 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(setup.PopupCanvasGroup.alpha, Is.EqualTo(0f).Within(0.001f));
         }
 
+        [Test]
+        public void ReenableResetsLosePopupVisualState()
+        {
+            var setup = CreatePopupController();
+
+            InvokeMethod(setup.PopupController, "Awake");
+            InvokeMethod(setup.PopupController, "OnEnable");
+            InvokeHandleTapProcessed(setup.PopupController, LevelState.Lose);
+            AdvanceLosePresentation(setup.PopupController, 0.2f);
+
+            InvokeMethod(setup.PopupController, "OnDisable");
+            InvokeMethod(setup.PopupController, "OnEnable");
+
+            Assert.That(setup.PopupRoot.activeSelf, Is.False);
+            Assert.That(setup.PopupCanvasGroup.alpha, Is.EqualTo(0f).Within(0.001f));
+            Assert.That(setup.TryAgainButton.interactable, Is.False);
+        }
+
         private PopupControllerSetup CreatePopupController()
         {
             var runtime = CreateGameObject("LevelSceneRuntime");

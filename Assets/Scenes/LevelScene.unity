@@ -1112,12 +1112,12 @@ MonoBehaviour:
   titleTransform: {fileID: 1800000051}
   tryAgainTextTransform: {fileID: 0}
   popupSortingOrder: 100
-  enterDurationSeconds: 0.2
-  exitDurationSeconds: 0.16
-  contentEnterOffsetY: 28
-  contentEnterScale: 0.94
-  overlayEnterAlphaMultiplier: 1
-  titleEnterOffsetY: 10
+  enterDurationSeconds: 0.28
+  exitDurationSeconds: 0.18
+  contentEnterOffsetY: 62
+  contentEnterScale: 0.86
+  overlayEnterAlphaMultiplier: 0.55
+  titleEnterOffsetY: 18
   tryAgainPulseAmplitude: 0.1
   tryAgainPulseFrequency: 1.8
 --- !u!114 &1374160550

@@ -90,7 +90,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             SetField(launcher, "levelCatalog", catalog);
             SetField(launcher, "startButton", startButton);
-            SetField(launcher, "startButtonIdleLoop", startButtonIdleLoop);
+            SetField(launcher, "startButtonFeedback", startButtonIdleLoop);
             SetField(launcher, "levelLabel", levelLabel);
             InvokeMethod(launcher, "Awake");
             InvokeMethod(launcher, "OnEnable");
@@ -124,7 +124,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             SetField(launcher, "levelCatalog", catalog);
             SetField(launcher, "startButton", startButton);
-            SetField(launcher, "startButtonIdleLoop", startButtonIdleLoop);
+            SetField(launcher, "startButtonFeedback", startButtonIdleLoop);
             SetField(launcher, "levelLabel", levelLabel);
             InvokeMethod(launcher, "Awake");
             InvokeMethod(launcher, "OnEnable");
