@@ -153,8 +153,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.24999, y: 339.69}
-  m_SizeDelta: {x: 521.5, y: 247.63}
+  m_AnchoredPosition: {x: 0, y: 340.94}
+  m_SizeDelta: {x: 524, y: 250.13}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &103395044
 MonoBehaviour:
@@ -1032,8 +1032,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.SingleRocketActivationEffectPlayer
   effectRoot: {fileID: 0}
-  duration: 0.2
+  duration: 0.6
   effectZ: -0.2
+  rocketOverflowCells: 2
   horizontalRocketPartLeftSprite: {fileID: 21300000, guid: 4f53e731fc4e3c544ac010d58d182f4c, type: 3}
   horizontalRocketPartRightSprite: {fileID: 21300000, guid: e62fe0440cb54c8499890f74ea03191b, type: 3}
   verticalRocketPartTopSprite: {fileID: 21300000, guid: 39aab89e51f715d449405573be1e732f, type: 3}
@@ -1117,7 +1118,14 @@ MonoBehaviour:
   contentCanvasGroup: {fileID: 0}
   contentRoot: {fileID: 1800000011}
   titleTransform: {fileID: 1800000051}
+  subtitleTransform: {fileID: 0}
   tryAgainTextTransform: {fileID: 0}
+  closeButtonTransform: {fileID: 0}
+  tryAgainButtonTransform: {fileID: 0}
+  mainMenuButtonTransform: {fileID: 0}
+  closeButtonFeedback: {fileID: 0}
+  tryAgainButtonFeedback: {fileID: 0}
+  mainMenuButtonFeedback: {fileID: 0}
   popupSortingOrder: 100
   enterDurationSeconds: 0.28
   exitDurationSeconds: 0.18
@@ -1125,8 +1133,27 @@ MonoBehaviour:
   contentEnterScale: 0.86
   overlayEnterAlphaMultiplier: 0.55
   titleEnterOffsetY: 18
+  titleEnterScale: 0.88
+  subtitleEnterOffsetY: 14
+  subtitleEnterScale: 0.92
+  closeButtonEnterOffsetY: 28
+  closeButtonExitOffsetY: 14
+  actionButtonsEnterOffsetY: 34
+  actionButtonsExitOffsetY: 18
   tryAgainPulseAmplitude: 0.1
   tryAgainPulseFrequency: 1.8
+  titleIdlePulseAmplitude: 0.018
+  titleIdlePulseFrequency: 1.35
+  titleIdleBobAmplitude: 3
+  titleIdleBobFrequency: 1.15
+  titleIdleTiltAmplitude: 2.2
+  titleIdleTiltFrequency: 0.9
+  subtitleIdleScaleAmplitude: 0.01
+  subtitleIdleScaleFrequency: 1.05
+  subtitleIdleFloatAmplitude: 2.5
+  subtitleIdleFloatFrequency: 0.95
+  subtitleIdleDriftAmplitude: 6
+  subtitleIdleDriftFrequency: 0.62
 --- !u!114 &1374160550
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1149,6 +1176,7 @@ MonoBehaviour:
   contentRoot: {fileID: 1810000011}
   starTransform: {fileID: 1810000041}
   titleTransform: {fileID: 1810000031}
+  continueHintTransform: {fileID: 0}
   titleCanvasGroup: {fileID: 0}
   overlayImage: {fileID: 1810000003}
   enterDurationSeconds: 0.28
@@ -1157,12 +1185,19 @@ MonoBehaviour:
   presentationSortingOrder: 110
   contentEnterOffsetY: 36
   contentExitOffsetY: 12
+  contentEnterScale: 0.92
+  contentExitScale: 0.96
   starEnterStartScale: 0.84
   starExitEndScale: 1.08
   continueHintFadeDurationSeconds: 0.18
+  continueHintEnterOffsetY: -10
+  continueHintExitOffsetY: -6
   titleEnterOffsetY: 12
+  titleEnterScale: 0.94
   starIdlePulseAmplitude: 0.035
   starIdlePulseFrequency: 2.2
+  titleIdlePulseAmplitude: 0.01
+  titleIdlePulseFrequency: 1.35
   overlayEnterAlphaMultiplier: 0.76
 --- !u!114 &1374160551
 MonoBehaviour:
@@ -1177,10 +1212,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.SpecialItemComboPresentationPlayer
   effectRoot: {fileID: 0}
-  rocketRocketDuration: 0.22
-  tntRocketDuration: 0.24
+  rocketRocketDuration: 0.66
+  tntRocketDuration: 0.72
   tntTntDuration: 0.26
   effectZ: -0.18
+  rocketOverflowCells: 2
   flashScaleMultiplier: 0.92
   tntPulseScaleMultiplier: 1.2
   horizontalRocketPartLeftSprite: {fileID: 21300000, guid: 4f53e731fc4e3c544ac010d58d182f4c, type: 3}
@@ -1227,6 +1263,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.SingleTntActivationEffectPlayer
   effectRoot: {fileID: 0}
   duration: 0.22
+  settleBlockingDuration: 0.06
   effectZ: -0.18
   pulseScaleMultiplier: 1.35
   fieldParticleScaleMultiplier: 0.32
@@ -1336,7 +1373,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9c2ccfc9e5e144c4a3d0cf7793e93db5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.TapAnticipationPlayer
   effectRoot: {fileID: 0}
   duration: 0.1
@@ -1357,7 +1394,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8cf1da3449cb45a99d1c9931619d6854, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.ChaliceBoxTweenFeedbackPlayer
   effectRoot: {fileID: 0}
   duration: 0.14
@@ -1376,7 +1413,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b7b12ec5d8f84da885e2f3a1ddcc9912, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.StoneTweenFeedbackPlayer
   effectRoot: {fileID: 0}
   duration: 0.12
@@ -1425,6 +1462,8 @@ MonoBehaviour:
   gridBackgroundRenderer: {fileID: 1517054708}
   gridBackgroundPadding: {x: 0.2, y: 0.2}
   gridBackgroundZ: 0.5
+  boardClipMask: {fileID: 0}
+  boardClipMaskZ: -0.05
   cubePrefab: {fileID: 5005002260436004955, guid: cfe486e971910364eaeff19b281d74a2, type: 3}
   horizontalRocketPrefab: {fileID: 6099273607216682105, guid: 43b9ced082387e24fba7fdf3675a47aa, type: 3}
   verticalRocketPrefab: {fileID: 6497075117303000130, guid: cd2ac5a78b5a03c4eacabde021b7fa4f, type: 3}

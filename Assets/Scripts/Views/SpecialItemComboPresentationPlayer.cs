@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using DreamBlastClone.Core;
 using DreamBlastClone.Systems;
 using UnityEngine;
@@ -9,10 +10,11 @@ namespace DreamBlastClone.Views
     public sealed class SpecialItemComboPresentationPlayer : MonoBehaviour
     {
         [SerializeField] private Transform effectRoot;
-        [SerializeField] private float rocketRocketDuration = 0.22f;
-        [SerializeField] private float tntRocketDuration = 0.24f;
-        [SerializeField] private float tntTntDuration = 0.26f;
+        [SerializeField] private float rocketRocketDuration = 0.45f;
+        [SerializeField] private float tntRocketDuration = 0.5f;
+        [SerializeField] private float tntTntDuration = 0.38f;
         [SerializeField] private float effectZ = -0.18f;
+        [SerializeField] private float rocketOverflowCells = 2f;
         [SerializeField] private float flashScaleMultiplier = 0.92f;
         [SerializeField] private float tntPulseScaleMultiplier = 1.2f;
         [SerializeField] private Sprite horizontalRocketPartLeftSprite;
@@ -24,7 +26,7 @@ namespace DreamBlastClone.Views
         private readonly List<GameObject> spawnedRoots = new List<GameObject>();
         private readonly List<ActiveFlashVisual> activeFlashVisuals = new List<ActiveFlashVisual>();
         private readonly List<ActiveRocketSweepVisual> activeRocketSweeps = new List<ActiveRocketSweepVisual>();
-        private readonly List<SpriteRenderer> activeRocketRenderers = new List<SpriteRenderer>();
+        private readonly List<Tween> activeTweens = new List<Tween>();
 
         private ActiveTntPulseVisual activeTntPulse;
         private BoardView activeBoardView;
@@ -61,6 +63,7 @@ namespace DreamBlastClone.Views
             }
 
             Stop();
+            PresentationTweenBootstrap.EnsureInitialized();
 
             activeBoardView = boardView;
             activeDuration = duration;
@@ -77,7 +80,9 @@ namespace DreamBlastClone.Views
                 return false;
             }
 
-            ApplyCurrentState();
+            LaunchFlashTweens();
+            LaunchRocketSweepTweens();
+            LaunchTntPulseTween();
             return true;
         }
 
@@ -89,8 +94,6 @@ namespace DreamBlastClone.Views
             }
 
             elapsed = Mathf.Min(activeDuration, elapsed + Mathf.Max(0f, deltaTime));
-            ApplyCurrentState();
-
             if (elapsed >= activeDuration)
             {
                 Stop();
@@ -99,6 +102,13 @@ namespace DreamBlastClone.Views
 
         public void Stop()
         {
+            for (var index = activeTweens.Count - 1; index >= 0; index--)
+            {
+                activeTweens[index]?.Kill();
+            }
+
+            activeTweens.Clear();
+
             for (var index = spawnedRoots.Count - 1; index >= 0; index--)
             {
                 if (Application.isPlaying)
@@ -114,33 +124,14 @@ namespace DreamBlastClone.Views
             spawnedRoots.Clear();
             activeFlashVisuals.Clear();
             activeRocketSweeps.Clear();
-            activeRocketRenderers.Clear();
             activeTntPulse = default;
             activeBoardView = null;
             activeDuration = 0f;
             elapsed = 0f;
         }
 
-        private void ApplyCurrentState()
+        private void LaunchFlashTweens()
         {
-            if (activeDuration <= 0f)
-            {
-                return;
-            }
-
-            var progress = Mathf.Clamp01(elapsed / activeDuration);
-            var easedProgress = EaseOutCubic(progress);
-
-            ApplyFlashState(easedProgress);
-            ApplyRocketSweepState();
-            ApplyTntPulseState(easedProgress);
-        }
-
-        private void ApplyFlashState(float easedProgress)
-        {
-            var alphaMultiplier = 1f - easedProgress;
-            var scaleMultiplier = Mathf.Lerp(0.8f, 1.06f, easedProgress);
-
             for (var index = 0; index < activeFlashVisuals.Count; index++)
             {
                 var visual = activeFlashVisuals[index];
@@ -149,62 +140,78 @@ namespace DreamBlastClone.Views
                     continue;
                 }
 
-                visual.Renderer.transform.localScale = visual.InitialScale * scaleMultiplier;
-                var color = visual.BaseColor;
-                color.a *= alphaMultiplier;
-                visual.Renderer.color = color;
+                // Start compact, punch out with overshoot while fading
+                visual.Renderer.transform.localScale = visual.InitialScale * 0.7f;
+                var renderer = visual.Renderer;
+                var seq = DOTween.Sequence()
+                    .Join(TweenRendererAlpha(renderer, 0f, activeDuration).SetEase(Ease.InQuad))
+                    .Join(renderer.transform.DOScale(visual.InitialScale * 1.12f, activeDuration * 0.4f).SetEase(Ease.OutBack))
+                    .SetUpdate(UpdateType.Normal, isIndependentUpdate: true)
+                    .SetLink(renderer.gameObject, LinkBehaviour.KillOnDestroy);
+                activeTweens.Add(seq);
             }
         }
 
-        private void ApplyRocketSweepState()
+        private void LaunchRocketSweepTweens()
         {
-            var alphaMultiplier = 1f - Mathf.Clamp01(elapsed / activeDuration);
-
             for (var index = 0; index < activeRocketSweeps.Count; index++)
             {
                 var sweep = activeRocketSweeps[index];
-                var negativeProgress = sweep.NegativeTravelDuration > 0f
-                    ? Mathf.Clamp01(elapsed / sweep.NegativeTravelDuration)
-                    : 1f;
-                var positiveProgress = sweep.PositiveTravelDuration > 0f
-                    ? Mathf.Clamp01(elapsed / sweep.PositiveTravelDuration)
-                    : 1f;
-
-                sweep.NegativeRenderer.transform.position = Vector3.Lerp(
-                    sweep.OriginWorldPosition,
+                activeTweens.Add(CreateRocketPartTween(
+                    sweep.NegativeRenderer,
                     sweep.NegativeEndWorldPosition,
-                    EaseOutCubic(negativeProgress));
-                sweep.PositiveRenderer.transform.position = Vector3.Lerp(
-                    sweep.OriginWorldPosition,
+                    sweep.NegativeTravelDuration));
+                activeTweens.Add(CreateRocketPartTween(
+                    sweep.PositiveRenderer,
                     sweep.PositiveEndWorldPosition,
-                    EaseOutCubic(positiveProgress));
-            }
-
-            for (var index = 0; index < activeRocketRenderers.Count; index++)
-            {
-                var renderer = activeRocketRenderers[index];
-                if (renderer is null)
-                {
-                    continue;
-                }
-
-                var color = renderer.color;
-                color.a = alphaMultiplier;
-                renderer.color = color;
+                    sweep.PositiveTravelDuration));
             }
         }
 
-        private void ApplyTntPulseState(float easedProgress)
+        private Tween CreateRocketPartTween(SpriteRenderer renderer, Vector3 endPosition, float travelDuration)
+        {
+            // Pop scale at launch then normalize while traveling
+            var baseScale = renderer.transform.localScale;
+            renderer.transform.localScale = baseScale * 1.28f;
+            var safeTravelDuration = Mathf.Max(0.04f, travelDuration);
+
+            return DOTween.Sequence()
+                .Join(renderer.transform.DOScale(baseScale, 0.07f).SetEase(Ease.OutQuad))
+                .Join(renderer.transform.DOMove(endPosition, safeTravelDuration).SetEase(Ease.OutCubic))
+                .Join(TweenRendererAlpha(renderer, 0f, activeDuration).SetEase(Ease.InQuad))
+                .SetUpdate(UpdateType.Normal, isIndependentUpdate: true)
+                .SetLink(renderer.gameObject, LinkBehaviour.KillOnDestroy);
+        }
+
+        private void LaunchTntPulseTween()
         {
             if (activeTntPulse.Renderer is null)
             {
                 return;
             }
 
-            activeTntPulse.Renderer.transform.localScale = activeTntPulse.InitialScale * Mathf.Lerp(0.7f, 1.55f, easedProgress);
-            var color = activeTntPulse.BaseColor;
-            color.a *= 1f - easedProgress;
-            activeTntPulse.Renderer.color = color;
+            var renderer = activeTntPulse.Renderer;
+            var endScale = activeTntPulse.InitialScale * 1.55f;
+            var seq = DOTween.Sequence()
+                .Append(renderer.transform.DOScale(endScale, activeDuration * 0.55f).SetEase(Ease.OutBack))
+                .Join(TweenRendererAlpha(renderer, 0f, activeDuration).SetEase(Ease.InQuad))
+                .SetUpdate(UpdateType.Normal, isIndependentUpdate: true)
+                .SetLink(renderer.gameObject, LinkBehaviour.KillOnDestroy);
+            activeTweens.Add(seq);
+        }
+
+        private static Tween TweenRendererAlpha(SpriteRenderer renderer, float targetAlpha, float fadeDuration)
+        {
+            return DOTween.To(
+                () => renderer.color.a,
+                value =>
+                {
+                    var color = renderer.color;
+                    color.a = value;
+                    renderer.color = color;
+                },
+                targetAlpha,
+                fadeDuration);
         }
 
         private void CreateFlashVisuals(Transform root, SpecialItemComboPresentationDescriptor descriptor)
@@ -250,6 +257,17 @@ namespace DreamBlastClone.Views
                 var negativeEndWorldPosition = GetWorldPosition(sweepDescriptor.NegativeEnd, effectZ + 0.03f);
                 var positiveEndWorldPosition = GetWorldPosition(sweepDescriptor.PositiveEnd, effectZ + 0.03f);
 
+                // Extend past the grid edge so rocket halves fly off-screen.
+                // The board clip mask hides them once they cross the boundary.
+                if (rocketOverflowCells > 0f)
+                {
+                    var overflow = activeBoardView.CellSize * rocketOverflowCells;
+                    var negDir = (negativeEndWorldPosition - originWorldPosition).normalized;
+                    var posDir = (positiveEndWorldPosition - originWorldPosition).normalized;
+                    negativeEndWorldPosition += negDir * overflow;
+                    positiveEndWorldPosition += posDir * overflow;
+                }
+
                 negativeRenderer.transform.position = originWorldPosition;
                 positiveRenderer.transform.position = originWorldPosition;
 
@@ -271,8 +289,6 @@ namespace DreamBlastClone.Views
                     positiveEndWorldPosition,
                     negativeTravelDuration,
                     positiveTravelDuration));
-                activeRocketRenderers.Add(negativeRenderer);
-                activeRocketRenderers.Add(positiveRenderer);
             }
         }
 
@@ -319,6 +335,7 @@ namespace DreamBlastClone.Views
             var renderer = rendererObject.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite;
             renderer.color = Color.white;
+            renderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
             renderer.sortingOrder = 7;
             renderer.transform.localScale = GetSpriteScale(sprite, activeBoardView.CellSize);
             return renderer;
@@ -448,12 +465,6 @@ namespace DreamBlastClone.Views
 
                 runtimeFlashTexture = null;
             }
-        }
-
-        private static float EaseOutCubic(float progress)
-        {
-            var inverse = 1f - progress;
-            return 1f - inverse * inverse * inverse;
         }
 
         private readonly struct ActiveFlashVisual

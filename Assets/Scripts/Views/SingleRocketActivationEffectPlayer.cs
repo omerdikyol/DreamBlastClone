@@ -7,8 +7,9 @@ namespace DreamBlastClone.Views
     public sealed class SingleRocketActivationEffectPlayer : MonoBehaviour
     {
         [SerializeField] private Transform effectRoot;
-        [SerializeField] private float duration = 0.2f;
+        [SerializeField] private float duration = 0.5f;
         [SerializeField] private float effectZ = -0.2f;
+        [SerializeField] private float rocketOverflowCells = 2f;
         [SerializeField] private Sprite horizontalRocketPartLeftSprite;
         [SerializeField] private Sprite horizontalRocketPartRightSprite;
         [SerializeField] private Sprite verticalRocketPartTopSprite;
@@ -16,17 +17,44 @@ namespace DreamBlastClone.Views
         [SerializeField] private Sprite rocketParticleStarSprite;
         [SerializeField] private Sprite rocketParticleSmokeSprite;
 
-        private const float StarSpawnInterval = 0.03f;
-        private const float SmokeSpawnInterval = 0.07f;
-        private const float StarParticleLifetime = 0.11f;
-        private const float SmokeParticleLifetime = 0.18f;
-        private const float StarParticleSizeMultiplier = 0.26f;
-        private const float SmokeParticleSizeMultiplier = 0.34f;
-        private const float ParticleDriftDistance = 0.12f;
-        private const float SmokeTrailOffset = 0.12f;
-        private const float StarTrailOffset = 0.04f;
+        // --- star / smoke puff particles ---
+        private const float StarSpawnInterval = 0.025f;
+        private const float SmokeSpawnInterval = 0.025f;
+        private const float StarParticleLifetime = 0.15f;
+        private const float SmokeParticleLifetime = 0.35f;
+        private const float StarParticleSizeMultiplier = 0.42f;
+        private const float SmokeParticleSizeMultiplier = 1.1f;  // full cell-size cloud puffs
+        private const float ParticleDriftDistance = 0.5f;
+        private const float SmokeTrailOffset = 0.35f;
+        private const float StarTrailOffset = 0.1f;
         private const float FrontParticleZOffset = 0.01f;
         private const float BackParticleZOffset = -0.01f;
+
+        // --- streak / contrail particles ---
+        // Spawned every StreakSpawnInterval as elongated blobs aligned with the travel direction,
+        // creating a readable contrail behind each rocket half.
+        private const float StreakSpawnInterval = 0.03f;
+        private const float StreakParticleLifetime = 0.18f;
+        private const float StreakLengthFactor = 1.0f;       // streak length as fraction of cellSize
+        private const float StreakThicknessFactor = 0.2f;    // streak width as fraction of cellSize
+        private const float StreakTrailOffset = 0.25f;       // how far behind the rocket head the streak starts
+        private const float StreakZOffset = 0.005f;          // drawn in front of regular smoke
+
+        // --- origin burst ---
+        // Emitted once at split time: large smoke puffs that expand from the origin in all
+        // directions, giving the "blast" feel of the rocket engine firing.
+        private const int BurstParticleCount = 4;            // per half
+        private const float BurstParticleLifetime = 0.3f;
+        private const float BurstParticleSizeMin = 1.3f;     // relative to cellSize
+        private const float BurstParticleSizeMax = 2.0f;
+        private const float BurstDriftDistance = 0.55f;
+        private const float BurstZOffset = -0.02f;           // behind the rocket parts
+
+        // --- launch scale punch ---
+        // The parts briefly overshoot their resting scale in the first LaunchPunchDuration seconds,
+        // giving a "pop" feel at the split origin.
+        private const float LaunchPunchDuration = 0.07f;
+        private const float LaunchPunchPeak = 1.28f;
 
         private readonly List<ActiveParticle> activeParticles = new List<ActiveParticle>();
         private BoardView activeBoardView;
@@ -42,7 +70,11 @@ namespace DreamBlastClone.Views
         private float elapsed;
         private float nextStarSpawnTime;
         private float nextSmokeSpawnTime;
+        private float nextStreakSpawnTime;
         private int particleSequence;
+        // Base scales captured at spawn time so the launch punch multiplies cleanly.
+        private Vector3 baseNegativeScale;
+        private Vector3 basePositiveScale;
 
         public bool IsPlaying => negativePartRenderer is not null && positivePartRenderer is not null;
 
@@ -77,10 +109,19 @@ namespace DreamBlastClone.Views
             negativePartRenderer = CreatePartRenderer(root, negativeSprite, $"{descriptor.Orientation}RocketNegativePart");
             positivePartRenderer = CreatePartRenderer(root, positiveSprite, $"{descriptor.Orientation}RocketPositivePart");
             InitializeTravelDurations();
+
+            // Store natural scales so the launch punch can scale relative to them.
+            baseNegativeScale = negativePartRenderer.transform.localScale;
+            basePositiveScale = positivePartRenderer.transform.localScale;
+
             ApplyCurrentPositions();
             nextStarSpawnTime = 0f;
             nextSmokeSpawnTime = 0f;
+            nextStreakSpawnTime = 0f;
             particleSequence = 0;
+
+            // Emit the origin burst before the regular trail starts ticking.
+            EmitOriginBurst();
             EmitPendingParticles(elapsed);
             return true;
         }
@@ -126,15 +167,34 @@ namespace DreamBlastClone.Views
             elapsed = 0f;
             nextStarSpawnTime = 0f;
             nextSmokeSpawnTime = 0f;
+            nextStreakSpawnTime = 0f;
             particleSequence = 0;
+            baseNegativeScale = default;
+            basePositiveScale = default;
         }
 
         private void ApplyCurrentPositions()
         {
-            var negativeProgress = negativeTravelDuration > 0f ? Mathf.Clamp01(elapsed / negativeTravelDuration) : 1f;
-            var positiveProgress = positiveTravelDuration > 0f ? Mathf.Clamp01(elapsed / positiveTravelDuration) : 1f;
+            // EaseOutCubic: fast initial burst with sustained, readable travel across the board.
+            // More visible than EaseOutExpo — the player can follow the rocket's full path.
+            var negativeProgress = negativeTravelDuration > 0f
+                ? EaseOutCubic(Mathf.Clamp01(elapsed / negativeTravelDuration))
+                : 1f;
+            var positiveProgress = positiveTravelDuration > 0f
+                ? EaseOutCubic(Mathf.Clamp01(elapsed / positiveTravelDuration))
+                : 1f;
+
             negativePartRenderer.transform.position = Vector3.Lerp(originWorldPosition, negativeEndWorldPosition, negativeProgress);
             positivePartRenderer.transform.position = Vector3.Lerp(originWorldPosition, positiveEndWorldPosition, positiveProgress);
+
+            // Launch scale punch: over the first LaunchPunchDuration seconds the parts quickly
+            // overshoot to LaunchPunchPeak then settle at 1.0, giving the split a "pop" beat.
+            var launchT = LaunchPunchDuration > 0f ? Mathf.Clamp01(elapsed / LaunchPunchDuration) : 1f;
+            var launchScale = launchT < 0.45f
+                ? Mathf.Lerp(1f, LaunchPunchPeak, launchT / 0.45f)
+                : Mathf.Lerp(LaunchPunchPeak, 1f, (launchT - 0.45f) / 0.55f);
+            negativePartRenderer.transform.localScale = baseNegativeScale * launchScale;
+            positivePartRenderer.transform.localScale = basePositiveScale * launchScale;
         }
 
         private void EmitPendingParticles(float previousElapsed)
@@ -163,6 +223,82 @@ namespace DreamBlastClone.Views
 
                 nextSmokeSpawnTime += SmokeSpawnInterval;
             }
+
+            while (nextStreakSpawnTime <= elapsed)
+            {
+                if (nextStreakSpawnTime >= previousElapsed)
+                {
+                    EmitStreakParticlePair(nextStreakSpawnTime);
+                }
+
+                nextStreakSpawnTime += StreakSpawnInterval;
+            }
+        }
+
+        // Emits large smoke puffs that blast outward from the split origin.
+        // These are what give the "rocket engine firing" feel at the launch moment.
+        private void EmitOriginBurst()
+        {
+            if (rocketParticleSmokeSprite is null)
+            {
+                return;
+            }
+
+            for (var index = 0; index < BurstParticleCount; index++)
+            {
+                EmitBurstParticle(index, isNegativePart: true);
+                EmitBurstParticle(index, isNegativePart: false);
+            }
+        }
+
+        private void EmitBurstParticle(int burstIndex, bool isNegativePart)
+        {
+            var direction = GetPartDirection(isNegativePart);
+            if (direction.sqrMagnitude <= Mathf.Epsilon)
+            {
+                return;
+            }
+
+            var perpendicular = new Vector3(-direction.y, direction.x, 0f);
+
+            // Spread burst particles across a full 360° fan — the cloud expands in all directions.
+            var angleNorm = Hash01(BuildParticleSeed(isNegativePart, burstIndex * 0.137f, 11));
+            var angleDeg = angleNorm * 360f;
+            var angleRad = angleDeg * Mathf.Deg2Rad;
+            var driftDir = (direction * Mathf.Cos(angleRad) + perpendicular * Mathf.Sin(angleRad)).normalized;
+
+            var startPosition = originWorldPosition;
+            startPosition.z += BurstZOffset;
+            var driftAmount = BurstDriftDistance * Mathf.Lerp(0.7f, 1.3f, Hash01(BuildParticleSeed(isNegativePart, burstIndex * 0.137f, 12)));
+            var endPosition = startPosition + driftDir * driftAmount;
+
+            var sizeT = Hash01(BuildParticleSeed(isNegativePart, burstIndex * 0.137f, 13));
+            var targetSize = activeBoardView.CellSize * Mathf.Lerp(BurstParticleSizeMin, BurstParticleSizeMax, sizeT);
+            var startScale = GetSpriteScale(rocketParticleSmokeSprite, targetSize);
+            // Burst puffs expand as they fade, like real smoke.
+            var endScale = startScale * 1.5f;
+
+            var startRotation = Mathf.Lerp(0f, 360f, Hash01(BuildParticleSeed(isNegativePart, burstIndex * 0.137f, 14)));
+            var endRotation = startRotation + Mathf.Lerp(-25f, 25f, Hash01(BuildParticleSeed(isNegativePart, burstIndex * 0.137f, 15)));
+            var color = new Color(1f, 1f, 1f, 0.78f);
+
+            var renderer = CreateParticleRenderer(rocketParticleSmokeSprite, isNegativePart, "RocketParticleSmoke");
+            renderer.transform.position = startPosition;
+            renderer.transform.rotation = Quaternion.Euler(0f, 0f, startRotation);
+            renderer.transform.localScale = startScale;
+            renderer.color = color;
+
+            activeParticles.Add(new ActiveParticle(
+                renderer.gameObject,
+                renderer,
+                startPosition,
+                endPosition,
+                startScale,
+                endScale,
+                startRotation,
+                endRotation,
+                BurstParticleLifetime,
+                color));
         }
 
         private void EmitParticlePair(float spawnTime, Sprite sprite, float particleLifetime, float sizeMultiplier, float trailOffset, float zOffset)
@@ -189,19 +325,20 @@ namespace DreamBlastClone.Views
             var direction = GetPartDirection(isNegativePart);
             var partPosition = GetPartWorldPosition(isNegativePart, spawnTime);
             var perpendicular = new Vector3(-direction.y, direction.x, 0f);
-            var lateralSpread = Mathf.Lerp(-0.04f, 0.04f, Hash01(BuildParticleSeed(isNegativePart, spawnTime, 1)));
-            var driftScale = Mathf.Lerp(0.6f, 1f, Hash01(BuildParticleSeed(isNegativePart, spawnTime, 2)));
-            var drift = (-direction * ParticleDriftDistance * driftScale) + (perpendicular * lateralSpread);
+            var lateralSpread = Mathf.Lerp(-0.05f, 0.05f, Hash01(BuildParticleSeed(isNegativePart, spawnTime, 1)));
+            var driftScale = Mathf.Lerp(0.7f, 1f, Hash01(BuildParticleSeed(isNegativePart, spawnTime, 2)));
+            var drift = (-direction * ParticleDriftDistance * driftScale) + (perpendicular * lateralSpread * 2f);
             var startPosition = partPosition - direction * trailOffset + perpendicular * (lateralSpread * 0.5f);
             startPosition.z += zOffset;
             var endPosition = startPosition + drift;
-            var startScale = GetSpriteScale(sprite, activeBoardView.CellSize * sizeMultiplier * Mathf.Lerp(0.9f, 1.1f, Hash01(BuildParticleSeed(isNegativePart, spawnTime, 3))));
-            var endScale = startScale * Mathf.Lerp(1.25f, 1.6f, Hash01(BuildParticleSeed(isNegativePart, spawnTime, 4)));
+            var startScale = GetSpriteScale(sprite, activeBoardView.CellSize * sizeMultiplier * Mathf.Lerp(0.85f, 1.15f, Hash01(BuildParticleSeed(isNegativePart, spawnTime, 3))));
+            // Smoke puffs expand as they drift backward.
+            var endScale = startScale * Mathf.Lerp(1.3f, 1.7f, Hash01(BuildParticleSeed(isNegativePart, spawnTime, 4)));
             var startRotation = Mathf.Lerp(-20f, 20f, Hash01(BuildParticleSeed(isNegativePart, spawnTime, 5)));
             var endRotation = startRotation + Mathf.Lerp(-45f, 45f, Hash01(BuildParticleSeed(isNegativePart, spawnTime, 6)));
             var color = sprite == rocketParticleStarSprite
                 ? new Color(1f, 1f, 1f, 0.95f)
-                : new Color(1f, 1f, 1f, 0.58f);
+                : new Color(1f, 1f, 1f, 0.82f);
 
             var renderer = CreateParticleRenderer(sprite, isNegativePart, sprite == rocketParticleStarSprite ? "RocketParticleStar" : "RocketParticleSmoke");
             renderer.transform.position = startPosition;
@@ -219,6 +356,69 @@ namespace DreamBlastClone.Views
                 startRotation,
                 endRotation,
                 particleLifetime,
+                color));
+        }
+
+        // Emits an elongated streak particle aligned with the travel direction.
+        // These form the readable contrail/trace behind each rocket half.
+        private void EmitStreakParticlePair(float spawnTime)
+        {
+            EmitStreakParticle(spawnTime, isNegativePart: true);
+            EmitStreakParticle(spawnTime, isNegativePart: false);
+        }
+
+        private void EmitStreakParticle(float spawnTime, bool isNegativePart)
+        {
+            var travelDuration = isNegativePart ? negativeTravelDuration : positiveTravelDuration;
+            if (travelDuration <= 0f || spawnTime > travelDuration)
+            {
+                return;
+            }
+
+            var direction = GetPartDirection(isNegativePart);
+            if (direction.sqrMagnitude <= Mathf.Epsilon)
+            {
+                return;
+            }
+
+            var partPosition = GetPartWorldPosition(isNegativePart, spawnTime);
+            var startPosition = partPosition - direction * StreakTrailOffset;
+            startPosition.z += StreakZOffset;
+            // Slight backward drift gives the streak a "smearing" feel as it ages.
+            var endPosition = startPosition - direction * 0.08f;
+
+            var spriteBounds = rocketParticleSmokeSprite.bounds.size;
+            var safeW = Mathf.Max(spriteBounds.x, 0.001f);
+            var safeH = Mathf.Max(spriteBounds.y, 0.001f);
+            var cellSize = activeBoardView.CellSize;
+            // Non-uniform scale: long in travel direction, thin perpendicular — forms the streak shape.
+            var startScale = new Vector3(
+                cellSize * StreakLengthFactor / safeW,
+                cellSize * StreakThicknessFactor / safeH,
+                1f);
+            var endScale = startScale * 0.2f;
+
+            // Rotate the sprite so its local X axis aligns with the travel direction.
+            var dirAngle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            // Warm exhaust tint distinguishes the streak from regular smoke puffs.
+            var color = new Color(1f, 0.90f, 0.70f, 0.65f);
+
+            var renderer = CreateParticleRenderer(rocketParticleSmokeSprite, isNegativePart, "RocketParticleSmoke");
+            renderer.transform.position = startPosition;
+            renderer.transform.rotation = Quaternion.Euler(0f, 0f, dirAngle);
+            renderer.transform.localScale = startScale;
+            renderer.color = color;
+
+            activeParticles.Add(new ActiveParticle(
+                renderer.gameObject,
+                renderer,
+                startPosition,
+                endPosition,
+                startScale,
+                endScale,
+                dirAngle,
+                dirAngle,
+                StreakParticleLifetime,
                 color));
         }
 
@@ -254,6 +454,17 @@ namespace DreamBlastClone.Views
             negativeEndWorldPosition = GetWorldPosition(activeDescriptor.NegativeEnd);
             positiveEndWorldPosition = GetWorldPosition(activeDescriptor.PositiveEnd);
 
+            // Extend past the grid edge so the rocket halves fly off-screen.
+            // The board clip mask hides them once they cross the boundary.
+            if (rocketOverflowCells > 0f)
+            {
+                var overflow = activeBoardView.CellSize * rocketOverflowCells;
+                var negDir = (negativeEndWorldPosition - originWorldPosition).normalized;
+                var posDir = (positiveEndWorldPosition - originWorldPosition).normalized;
+                negativeEndWorldPosition += negDir * overflow;
+                positiveEndWorldPosition += posDir * overflow;
+            }
+
             var negativeDistance = Vector3.Distance(originWorldPosition, negativeEndWorldPosition);
             var positiveDistance = Vector3.Distance(originWorldPosition, positiveEndWorldPosition);
             var maxDistance = Mathf.Max(negativeDistance, positiveDistance);
@@ -282,11 +493,11 @@ namespace DreamBlastClone.Views
         private Vector3 GetPartWorldPosition(bool isNegativePart, float time)
         {
             var travelDuration = isNegativePart ? negativeTravelDuration : positiveTravelDuration;
-            var progress = travelDuration > 0f ? Mathf.Clamp01(time / travelDuration) : 1f;
+            var rawProgress = travelDuration > 0f ? Mathf.Clamp01(time / travelDuration) : 1f;
             return Vector3.Lerp(
                 originWorldPosition,
                 isNegativePart ? negativeEndWorldPosition : positiveEndWorldPosition,
-                progress);
+                EaseOutCubic(rawProgress));
         }
 
         private Vector3 GetPartDirection(bool isNegativePart)
@@ -313,6 +524,7 @@ namespace DreamBlastClone.Views
             var spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
             spriteRenderer.sprite = sprite;
             spriteRenderer.color = Color.white;
+            spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
             spriteRenderer.transform.localScale = GetSpriteScale(sprite);
             return spriteRenderer;
         }
@@ -323,6 +535,7 @@ namespace DreamBlastClone.Views
             gameObject.transform.SetParent(effectRoot is not null ? effectRoot : transform, worldPositionStays: false);
             var spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
             spriteRenderer.sprite = sprite;
+            spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
             return spriteRenderer;
         }
 
@@ -413,6 +626,7 @@ namespace DreamBlastClone.Views
             }
         }
 
+        // Fast initial burst that decelerates smoothly — rocket is visible across the full path.
         private static float EaseOutCubic(float progress)
         {
             var inverse = 1f - progress;

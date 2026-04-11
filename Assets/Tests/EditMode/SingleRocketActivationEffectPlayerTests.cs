@@ -67,6 +67,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(CountChildrenWithPrefix(effectRoot, "RocketParticleSmoke_"), Is.GreaterThan(0));
 
             AssertParticleSprites(effectRoot, starSprite, smokeSprite);
+            AssertMaskedRocketRenderers(effectRoot);
 
             player.Advance(player.Duration);
 
@@ -90,6 +91,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(ContainsChildWithPrefix(effectRoot, "VerticalRocketPositivePart"), Is.True);
             Assert.That(CountChildrenWithPrefix(effectRoot, "RocketParticleStar_"), Is.GreaterThan(0));
             Assert.That(CountChildrenWithPrefix(effectRoot, "RocketParticleSmoke_"), Is.GreaterThan(0));
+            AssertMaskedRocketRenderers(effectRoot);
 
             player.Advance(player.Duration);
 
@@ -147,6 +149,20 @@ namespace DreamBlastClone.Tests.EditMode
                 {
                     Assert.That(renderer.sprite, Is.SameAs(smokeSprite));
                 }
+            }
+        }
+
+        private static void AssertMaskedRocketRenderers(Transform effectRoot)
+        {
+            for (var index = 0; index < effectRoot.childCount; index++)
+            {
+                var renderer = effectRoot.GetChild(index).GetComponent<SpriteRenderer>();
+                if (renderer is null)
+                {
+                    continue;
+                }
+
+                Assert.That(renderer.maskInteraction, Is.EqualTo(SpriteMaskInteraction.VisibleInsideMask));
             }
         }
 

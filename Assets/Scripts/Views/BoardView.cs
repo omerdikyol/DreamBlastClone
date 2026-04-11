@@ -590,7 +590,7 @@ namespace DreamBlastClone.Views
         private void UpdateBoardClipMask(BoardModel board)
         {
             var clipMask = ResolveBoardClipMask();
-            if (clipMask is null)
+            if (clipMask == null)
             {
                 return;
             }
@@ -614,7 +614,7 @@ namespace DreamBlastClone.Views
 
         private SpriteMask ResolveBoardClipMask()
         {
-            if (boardClipMask is not null)
+            if (boardClipMask != null)
             {
                 return boardClipMask;
             }
@@ -627,7 +627,7 @@ namespace DreamBlastClone.Views
 
         private static Sprite GetRuntimeBoardClipMaskSprite()
         {
-            if (runtimeBoardClipMaskSprite is not null)
+            if (runtimeBoardClipMaskSprite != null)
             {
                 return runtimeBoardClipMaskSprite;
             }
