@@ -89,6 +89,23 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void VisibleStateEnablesContentRaycastsForButtons()
+        {
+            var setup = CreatePopupController();
+
+            InvokeMethod(setup.PopupController, "Awake");
+            InvokeMethod(setup.PopupController, "OnEnable");
+            InvokeHandleTapProcessed(setup.PopupController, LevelState.Lose);
+            AdvanceLosePresentation(setup.PopupController, 0.3f);
+
+            Assert.That(setup.ContentCanvasGroup.blocksRaycasts, Is.True);
+            Assert.That(setup.ContentCanvasGroup.interactable, Is.True);
+            Assert.That(setup.TryAgainButton.interactable, Is.True);
+            Assert.That(setup.MainMenuButton.interactable, Is.True);
+            Assert.That(setup.CloseButton.interactable, Is.True);
+        }
+
+        [Test]
         public void CloseButtonReturnsToMainSceneAfterExitAnimation()
         {
             var setup = CreatePopupController();
@@ -277,6 +294,7 @@ namespace DreamBlastClone.Tests.EditMode
                 flowController,
                 popupRoot,
                 popupCanvasGroup,
+                contentCanvasGroup,
                 titleLabel,
                 subtitleLabel,
                 closeButton,
@@ -331,6 +349,7 @@ namespace DreamBlastClone.Tests.EditMode
                 TestLevelSceneFlowController flowController,
                 GameObject popupRoot,
                 CanvasGroup popupCanvasGroup,
+                CanvasGroup contentCanvasGroup,
                 Text titleLabel,
                 Text subtitleLabel,
                 Button closeButton,
@@ -342,6 +361,7 @@ namespace DreamBlastClone.Tests.EditMode
                 FlowController = flowController;
                 PopupRoot = popupRoot;
                 PopupCanvasGroup = popupCanvasGroup;
+                ContentCanvasGroup = contentCanvasGroup;
                 TitleLabel = titleLabel;
                 SubtitleLabel = subtitleLabel;
                 CloseButton = closeButton;
@@ -358,6 +378,8 @@ namespace DreamBlastClone.Tests.EditMode
             public GameObject PopupRoot { get; }
 
             public CanvasGroup PopupCanvasGroup { get; }
+
+            public CanvasGroup ContentCanvasGroup { get; }
 
             public Text TitleLabel { get; }
 

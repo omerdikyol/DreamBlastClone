@@ -466,8 +466,10 @@ namespace DreamBlastClone.Controllers.Unity
             if (contentCanvasGroup != null)
             {
                 contentCanvasGroup.alpha = contentAlpha;
-                contentCanvasGroup.interactable = false;
-                contentCanvasGroup.blocksRaycasts = false;
+                // The buttons manage their own interactable state; the content group
+                // still needs to pass raycasts through to them on device.
+                contentCanvasGroup.interactable = contentAlpha > 0f;
+                contentCanvasGroup.blocksRaycasts = contentAlpha > 0f;
             }
 
             if (contentRoot != null)
