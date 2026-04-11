@@ -99,6 +99,27 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(effectRoot.childCount, Is.EqualTo(0));
         }
 
+        [Test]
+        public void AdvanceStopsCleanlyWhenARocketPartRendererWasExternallyDestroyed()
+        {
+            var boardView = CreateBoardView();
+            var player = CreatePlayer(out var effectRoot, out _, out _);
+            var descriptor = new SingleRocketActivationEffectDescriptor(
+                RocketOrientation.Horizontal,
+                new BoardCoordinate(2, 2),
+                new BoardCoordinate(0, 2),
+                new BoardCoordinate(4, 2));
+
+            Assert.That(player.TryPlay(boardView, descriptor), Is.True);
+
+            var negativePart = effectRoot.Find("HorizontalRocketNegativePart");
+            Assert.That(negativePart, Is.Not.Null);
+            Object.DestroyImmediate(negativePart.gameObject);
+
+            Assert.DoesNotThrow(() => player.Advance(0.05f));
+            Assert.That(player.IsPlaying, Is.False);
+        }
+
         private BoardView CreateBoardView()
         {
             var host = CreateGameObject("BoardViewHost");

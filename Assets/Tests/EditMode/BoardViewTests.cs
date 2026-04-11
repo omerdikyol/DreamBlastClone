@@ -349,6 +349,38 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void CreateTransientObstacleVisualDoesNotResurrectPreviouslyRemovedChaliceSlots()
+        {
+            var boardView = CreateConfiguredBoardView();
+            var previousBoard = new BoardModel(2, 2);
+            var currentBoard = new BoardModel(2, 2);
+            var previousChaliceBox = new ChaliceBoxObstacleModel(
+                new BoardCoordinate(0, 0),
+                remainingDoorDurability: 0,
+                requiredChaliceCount: 10,
+                collectedChaliceCount: 2);
+            var currentChaliceBox = new ChaliceBoxObstacleModel(
+                new BoardCoordinate(0, 0),
+                remainingDoorDurability: 0,
+                requiredChaliceCount: 10,
+                collectedChaliceCount: 4);
+
+            previousBoard.PlaceObstacle(previousChaliceBox.OccupiedCoordinates, previousChaliceBox);
+            currentBoard.PlaceObstacle(currentChaliceBox.OccupiedCoordinates, currentChaliceBox);
+            boardView.Render(currentBoard);
+
+            var transientVisual = boardView.CreateTransientObstacleVisual(
+                previousBoard,
+                previousChaliceBox.OccupiedCoordinates,
+                boardView.transform,
+                z: 0f);
+
+            var chaliceView = transientVisual.GetComponent<ChaliceBoxObstacleView>();
+            Assert.That(chaliceView, Is.Not.Null);
+            Assert.That(GetVisibleChaliceSlotCount(chaliceView), Is.EqualTo(6));
+        }
+
+        [Test]
         public void RenderChaliceBoxWithoutChaliceBoxObstacleViewThrows()
         {
             var board = new BoardModel(2, 2);

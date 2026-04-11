@@ -58,7 +58,7 @@ namespace DreamBlastClone.Tests.EditMode
                 new ChaliceBoxParticleEvent(new BoardCoordinate(1, 2), ChaliceBoxParticleEventType.DoorDamage, amount: 1)
             });
 
-            Assert.That(player.TryPlay(boardView, descriptor), Is.True);
+            Assert.That(player.TryPlay(boardView, descriptor, destroyBelowWorldY: -2f), Is.True);
             Assert.That(player.IsPlaying, Is.True);
             Assert.That(effectRoot.childCount, Is.EqualTo(4));
 
@@ -67,7 +67,11 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(firstChild.position.x, Is.EqualTo(center.x).Within(0.35f));
             Assert.That(firstChild.position.y, Is.EqualTo(center.y).Within(0.35f));
 
-            player.Advance(player.Duration);
+            player.Advance(0.1f);
+            Assert.That(player.IsPlaying, Is.True);
+            Assert.That(effectRoot.childCount, Is.EqualTo(4));
+
+            player.Advance(5f);
 
             Assert.That(player.IsPlaying, Is.False);
             Assert.That(effectRoot.childCount, Is.EqualTo(0));
@@ -83,7 +87,7 @@ namespace DreamBlastClone.Tests.EditMode
                 new ChaliceBoxParticleEvent(new BoardCoordinate(0, 0), ChaliceBoxParticleEventType.DoorBreak, amount: 1)
             });
 
-            Assert.That(player.TryPlay(boardView, descriptor), Is.True);
+            Assert.That(player.TryPlay(boardView, descriptor, destroyBelowWorldY: -2f), Is.True);
             Assert.That(effectRoot.childCount, Is.EqualTo(4));
 
             var usedSprites = effectRoot.GetComponentsInChildren<SpriteRenderer>().Select(renderer => renderer.sprite).ToArray();
@@ -100,7 +104,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(player.TryPlay(boardView, new ChaliceBoxParticleDescriptor(new[]
             {
                 new ChaliceBoxParticleEvent(new BoardCoordinate(0, 0), ChaliceBoxParticleEventType.ChaliceDamage, amount: 2)
-            })), Is.True);
+            }), destroyBelowWorldY: -2f), Is.True);
             var damageCount = effectRoot.childCount;
 
             player.Stop();
@@ -108,12 +112,30 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(player.TryPlay(boardView, new ChaliceBoxParticleDescriptor(new[]
             {
                 new ChaliceBoxParticleEvent(new BoardCoordinate(0, 0), ChaliceBoxParticleEventType.ChaliceComplete, amount: 2)
-            })), Is.True);
+            }), destroyBelowWorldY: -2f), Is.True);
             var completionCount = effectRoot.childCount;
 
             Assert.That(damageCount, Is.EqualTo(7));
             Assert.That(completionCount, Is.EqualTo(18));
             Assert.That(completionCount, Is.GreaterThan(damageCount));
+        }
+
+        [Test]
+        public void TryPlayUsesDedicatedChaliceDamageSpriteWhenAssigned()
+        {
+            var boardView = CreateBoardView();
+            var player = CreatePlayer(out var effectRoot, out _, out _);
+            var chaliceDamageSprite = CreateSprite(30, 18, 20f);
+            SetField(player, "chaliceDamageSprite", chaliceDamageSprite);
+
+            Assert.That(player.TryPlay(boardView, new ChaliceBoxParticleDescriptor(new[]
+            {
+                new ChaliceBoxParticleEvent(new BoardCoordinate(0, 0), ChaliceBoxParticleEventType.ChaliceDamage, amount: 2)
+            }), destroyBelowWorldY: -2f), Is.True);
+
+            Assert.That(effectRoot.childCount, Is.EqualTo(2));
+            var usedSprites = effectRoot.GetComponentsInChildren<SpriteRenderer>().Select(renderer => renderer.sprite).ToArray();
+            Assert.That(usedSprites, Is.All.SameAs(chaliceDamageSprite));
         }
 
         [Test]
@@ -150,7 +172,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(player.TryPlay(boardView, new ChaliceBoxParticleDescriptor(new[]
             {
                 new ChaliceBoxParticleEvent(new BoardCoordinate(0, 0), ChaliceBoxParticleEventType.DoorDamage, amount: 1)
-            })), Is.True);
+            }), destroyBelowWorldY: -2f), Is.True);
 
             var damageUsedSprites = effectRoot.GetComponentsInChildren<SpriteRenderer>().Select(renderer => renderer.sprite).ToArray();
             Assert.That(damageUsedSprites.Length, Is.EqualTo(1));
@@ -161,7 +183,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(player.TryPlay(boardView, new ChaliceBoxParticleDescriptor(new[]
             {
                 new ChaliceBoxParticleEvent(new BoardCoordinate(0, 0), ChaliceBoxParticleEventType.DoorBreak, amount: 1)
-            })), Is.True);
+            }), destroyBelowWorldY: -2f), Is.True);
 
             var breakUsedSprites = effectRoot.GetComponentsInChildren<SpriteRenderer>().Select(renderer => renderer.sprite).ToArray();
             Assert.That(breakUsedSprites, Is.SupersetOf(doorSprites));
@@ -172,7 +194,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(player.TryPlay(boardView, new ChaliceBoxParticleDescriptor(new[]
             {
                 new ChaliceBoxParticleEvent(new BoardCoordinate(0, 0), ChaliceBoxParticleEventType.ChaliceComplete, amount: 2)
-            })), Is.True);
+            }), destroyBelowWorldY: -2f), Is.True);
 
             var completionUsedSprites = effectRoot.GetComponentsInChildren<SpriteRenderer>().Select(renderer => renderer.sprite).ToArray();
             Assert.That(completionUsedSprites, Is.SupersetOf(chaliceSprites));
@@ -211,6 +233,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(player, "effectRoot", effectRoot);
             SetField(player, "duration", 0.36f);
             SetField(player, "doorPhaseSprites", doorSprites);
+            SetField(player, "chaliceDamageSprite", null);
             SetField(player, "chalicePhaseSprites", chaliceSprites);
             return player;
         }

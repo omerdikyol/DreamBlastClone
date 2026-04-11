@@ -66,6 +66,16 @@ namespace DreamBlastClone.Controllers.Unity
             RenderCurrentBoard();
         }
 
+        private void OnDisable()
+        {
+            ClearPendingPreview(stopPersistentObstacleParticles: true);
+        }
+
+        private void OnDestroy()
+        {
+            ClearPendingPreview(stopPersistentObstacleParticles: true);
+        }
+
         private void Update()
         {
             AdvancePendingPreview(Time.unscaledDeltaTime);
@@ -141,7 +151,7 @@ namespace DreamBlastClone.Controllers.Unity
                 return;
             }
 
-            ClearPendingPreview();
+            ClearPendingPreview(stopPersistentObstacleParticles: true);
             boardView.Render(sessionHost.Session.Board);
         }
 
@@ -333,20 +343,25 @@ namespace DreamBlastClone.Controllers.Unity
             return remainingPreviewSeconds > 0f && pendingFinalBoard is not null;
         }
 
-        private void ClearPendingPreview()
+        private void ClearPendingPreview(bool stopPersistentObstacleParticles = false)
         {
             destructionFeedbackPlayer?.Stop();
             tapAnticipationPlayer?.Stop();
             cubeBlastParticlePlayer?.Stop();
-            vaseParticlePlayer?.Stop();
-            stoneParticlePlayer?.Stop();
             stoneTweenFeedbackPlayer?.Stop();
-            chaliceBoxParticlePlayer?.Stop();
             chaliceBoxTweenFeedbackPlayer?.Stop();
             settleMotionPlayer?.Stop();
             singleRocketEffectPlayer?.Stop();
             singleTntEffectPlayer?.Stop();
             comboPresentationPlayer?.Stop();
+
+            if (stopPersistentObstacleParticles)
+            {
+                vaseParticlePlayer?.Stop();
+                stoneParticlePlayer?.Stop();
+                chaliceBoxParticlePlayer?.Stop();
+            }
+
             pendingFinalBoard = null;
             pendingSettleStartBoard = null;
             pendingSettleMotionDescriptor = null;
@@ -543,7 +558,7 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             var descriptor = vaseParticleDescriptorBuilder.Build(preTapBoard, tap);
-            if (!vaseParticlePlayer.TryPlay(boardView, descriptor))
+            if (!vaseParticlePlayer.TryPlay(boardView, descriptor, GetParticleDestroyWorldY()))
             {
                 return false;
             }
@@ -559,7 +574,7 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             var descriptor = stoneParticleDescriptorBuilder.Build(preTapBoard, tap);
-            if (!stoneParticlePlayer.TryPlay(boardView, descriptor))
+            if (!stoneParticlePlayer.TryPlay(boardView, descriptor, GetParticleDestroyWorldY()))
             {
                 return false;
             }
@@ -586,7 +601,7 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             var descriptor = chaliceBoxParticleDescriptorBuilder.Build(preTapBoard, tap);
-            if (!chaliceBoxParticlePlayer.TryPlay(boardView, descriptor))
+            if (!chaliceBoxParticlePlayer.TryPlay(boardView, descriptor, GetParticleDestroyWorldY()))
             {
                 return false;
             }
@@ -635,6 +650,12 @@ namespace DreamBlastClone.Controllers.Unity
         {
             var boardPlaneDistance = boardView.transform.position.z - inputCamera.transform.position.z;
             return inputCamera.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, boardPlaneDistance));
+        }
+
+        private float GetParticleDestroyWorldY()
+        {
+            var boardPlaneDistance = boardView.transform.position.z - inputCamera.transform.position.z;
+            return inputCamera.ViewportToWorldPoint(new Vector3(0.5f, 0f, boardPlaneDistance)).y;
         }
 
         private BoardCoordinate ResolveTapCoordinate(BoardModel board, Vector3 worldPoint, BoardCoordinate initialCoordinate)

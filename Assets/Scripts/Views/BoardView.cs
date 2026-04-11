@@ -532,6 +532,12 @@ namespace DreamBlastClone.Views
             var remainingChalices = Math.Max(0, Math.Min(ChaliceSlotCount, chaliceBox.RemainingChaliceCount));
             var removedSlotIndices = Array.Empty<int>();
             var hasTrackedState = chalicePresentationStates.TryGetValue(chaliceBox.Anchor, out var state);
+            if (!trackPresentationState && hasTrackedState)
+            {
+                // Transient copies should never resurrect already-removed chalices.
+                remainingChalices = Math.Min(remainingChalices, state.LastRemainingChalices);
+            }
+
             if (!hasTrackedState || remainingChalices > state.LastRemainingChalices)
             {
                 state = new ChaliceBoxPresentationState(CreateRandomRemovalOrder(), remainingChalices);

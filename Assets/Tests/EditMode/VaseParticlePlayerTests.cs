@@ -57,7 +57,7 @@ namespace DreamBlastClone.Tests.EditMode
                 new VaseParticleEvent(new BoardCoordinate(1, 2), isRemoval: false)
             });
 
-            Assert.That(player.TryPlay(boardView, descriptor), Is.True);
+            Assert.That(player.TryPlay(boardView, descriptor, destroyBelowWorldY: -2f), Is.True);
             Assert.That(player.IsPlaying, Is.True);
             Assert.That(effectRoot.childCount, Is.EqualTo(6));
 
@@ -65,7 +65,11 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(firstChild.position.x, Is.EqualTo(boardView.GetCellCenterWorld(new BoardCoordinate(1, 2)).x).Within(0.2f));
             Assert.That(firstChild.position.y, Is.EqualTo(boardView.GetCellCenterWorld(new BoardCoordinate(1, 2)).y).Within(0.2f));
 
-            player.Advance(player.Duration);
+            player.Advance(0.1f);
+            Assert.That(player.IsPlaying, Is.True);
+            Assert.That(effectRoot.childCount, Is.EqualTo(6));
+
+            player.Advance(5f);
 
             Assert.That(player.IsPlaying, Is.False);
             Assert.That(effectRoot.childCount, Is.EqualTo(0));
@@ -80,7 +84,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(player.TryPlay(boardView, new VaseParticleDescriptor(new[]
             {
                 new VaseParticleEvent(new BoardCoordinate(0, 0), isRemoval: false)
-            })), Is.True);
+            }), destroyBelowWorldY: -2f), Is.True);
             var damageCount = effectRoot.childCount;
 
             player.Stop();
@@ -88,7 +92,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(player.TryPlay(boardView, new VaseParticleDescriptor(new[]
             {
                 new VaseParticleEvent(new BoardCoordinate(0, 0), isRemoval: true)
-            })), Is.True);
+            }), destroyBelowWorldY: -2f), Is.True);
             var removalCount = effectRoot.childCount;
 
             Assert.That(damageCount, Is.EqualTo(6));
@@ -107,7 +111,7 @@ namespace DreamBlastClone.Tests.EditMode
                 new VaseParticleEvent(new BoardCoordinate(2, 1), isRemoval: true)
             });
 
-            Assert.That(player.TryPlay(boardView, descriptor), Is.True);
+            Assert.That(player.TryPlay(boardView, descriptor, destroyBelowWorldY: -2f), Is.True);
             Assert.That(effectRoot.childCount, Is.EqualTo(16));
         }
 

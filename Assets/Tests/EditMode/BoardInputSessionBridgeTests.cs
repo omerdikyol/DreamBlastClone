@@ -183,7 +183,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.True);
-            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
 
@@ -302,7 +302,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.False);
-            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.True);
 
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
 
@@ -382,7 +382,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.False);
-            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
         }
 
@@ -410,7 +410,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
 
-            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.True);
         }
 
         [Test]
@@ -435,7 +435,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
 
-            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.True);
         }
 
         [Test]
@@ -514,7 +514,7 @@ namespace DreamBlastClone.Tests.EditMode
             var feedbackRoot = GetDestructionFeedbackPlayer(bridge).transform;
             Assert.That(feedbackRoot.childCount, Is.EqualTo(2));
             Assert.That(ContainsChildNameWithFragment(feedbackRoot, "StoneObstacleModel"), Is.False);
-            Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetStoneTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
         }
@@ -545,7 +545,7 @@ namespace DreamBlastClone.Tests.EditMode
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
 
             Assert.That(session.Board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.Null);
-            Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetStoneTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
         }
 
@@ -578,7 +578,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
 
-            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
         }
 
         [Test]
@@ -629,7 +629,7 @@ namespace DreamBlastClone.Tests.EditMode
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
 
-            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
             Assert.That(session.Board.GetCell(chaliceBox.Anchor).Obstacle, Is.Null);
         }

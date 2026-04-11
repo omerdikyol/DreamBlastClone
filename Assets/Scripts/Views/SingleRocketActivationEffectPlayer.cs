@@ -77,7 +77,7 @@ namespace DreamBlastClone.Views
         private Vector3 baseNegativeScale;
         private Vector3 basePositiveScale;
 
-        public bool IsPlaying => negativePartRenderer is not null && positivePartRenderer is not null;
+        public bool IsPlaying => negativePartRenderer != null && positivePartRenderer != null;
 
         public float Duration => activeDuration > 0f ? activeDuration : ResolveConfiguredDuration();
 
@@ -216,6 +216,12 @@ namespace DreamBlastClone.Views
 
         private void ApplyCurrentPositions()
         {
+            if (negativePartRenderer == null || positivePartRenderer == null)
+            {
+                Stop();
+                return;
+            }
+
             // EaseOutCubic: fast initial burst with sustained, readable travel across the board.
             // More visible than EaseOutExpo — the player can follow the rocket's full path.
             var negativeProgress = negativeTravelDuration > 0f
@@ -613,7 +619,7 @@ namespace DreamBlastClone.Views
 
         private static void DestroyRenderer(ref SpriteRenderer spriteRenderer)
         {
-            if (spriteRenderer is null)
+            if (spriteRenderer == null)
             {
                 return;
             }
