@@ -51,7 +51,7 @@ namespace DreamBlastClone.Tests.EditMode
         public void TryPlayCreatesPulseAndFieldParticlesThenCleansUp()
         {
             var boardView = CreateBoardView();
-            var player = CreatePlayer(out var effectRoot, out var burstSprite, out var debrisSprite);
+            var player = CreatePlayer(out var effectRoot, out var burstSprite, out var debrisSprite, out var smokeSprite);
             var descriptor = new SingleTntActivationEffectDescriptor(
                 new BoardCoordinate(1, 1),
                 new[]
@@ -75,10 +75,14 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(player.IsPlaying, Is.True);
             Assert.That(player.Duration, Is.EqualTo(0.22f).Within(0.0001f));
             Assert.That(CountChildrenByPrefix(effectRoot, "SingleTntPulse"), Is.EqualTo(1));
+            Assert.That(CountChildrenByPrefix(effectRoot, "SingleTntOriginSmoke_"), Is.EqualTo(6));
+            Assert.That(CountChildrenByPrefix(effectRoot, "SingleTntSmoke_"), Is.EqualTo(9));
+            Assert.That(CountChildrenByPrefix(effectRoot, "SingleTntRadialDebris_"), Is.EqualTo(10));
             Assert.That(CountChildrenByPrefix(effectRoot, "SingleTntBurst_"), Is.EqualTo(9));
             Assert.That(CountChildrenByPrefix(effectRoot, "SingleTntDebris_"), Is.EqualTo(9));
 
-            AssertParticleSprites(effectRoot, burstSprite, debrisSprite);
+            AssertParticleSprites(effectRoot, burstSprite, debrisSprite, smokeSprite);
+            AssertMaskedRenderers(effectRoot);
 
             player.Advance(player.Duration);
 
@@ -95,7 +99,7 @@ namespace DreamBlastClone.Tests.EditMode
             return boardView;
         }
 
-        private SingleTntActivationEffectPlayer CreatePlayer(out Transform effectRoot, out Sprite burstSprite, out Sprite debrisSprite)
+        private SingleTntActivationEffectPlayer CreatePlayer(out Transform effectRoot, out Sprite burstSprite, out Sprite debrisSprite, out Sprite smokeSprite)
         {
             var host = CreateGameObject("SingleTntEffectPlayer");
             effectRoot = CreateGameObject("EffectRoot").transform;
@@ -104,14 +108,16 @@ namespace DreamBlastClone.Tests.EditMode
             var player = host.AddComponent<SingleTntActivationEffectPlayer>();
             burstSprite = CreateSprite(24, 24, 20f);
             debrisSprite = CreateSprite(22, 22, 20f);
+            smokeSprite = CreateSprite(26, 26, 20f);
             SetField(player, "effectRoot", effectRoot);
             SetField(player, "tntBurstSprite", burstSprite);
             SetField(player, "tntDebrisSprite", debrisSprite);
+            SetField(player, "tntSmokeSprite", smokeSprite);
             SetField(player, "duration", 0.22f);
             return player;
         }
 
-        private void AssertParticleSprites(Transform effectRoot, Sprite burstSprite, Sprite debrisSprite)
+        private void AssertParticleSprites(Transform effectRoot, Sprite burstSprite, Sprite debrisSprite, Sprite smokeSprite)
         {
             for (var index = 0; index < effectRoot.childCount; index++)
             {
@@ -124,10 +130,26 @@ namespace DreamBlastClone.Tests.EditMode
                 {
                     Assert.That(renderer.sprite, Is.SameAs(burstSprite));
                 }
-                else if (child.name.StartsWith("SingleTntDebris_", System.StringComparison.Ordinal))
+                else if (child.name.StartsWith("SingleTntDebris_", System.StringComparison.Ordinal)
+                    || child.name.StartsWith("SingleTntRadialDebris_", System.StringComparison.Ordinal))
                 {
                     Assert.That(renderer.sprite, Is.SameAs(debrisSprite));
                 }
+                else if (child.name.StartsWith("SingleTntOriginSmoke_", System.StringComparison.Ordinal)
+                    || child.name.StartsWith("SingleTntSmoke_", System.StringComparison.Ordinal))
+                {
+                    Assert.That(renderer.sprite, Is.SameAs(smokeSprite));
+                }
+            }
+        }
+
+        private static void AssertMaskedRenderers(Transform effectRoot)
+        {
+            for (var index = 0; index < effectRoot.childCount; index++)
+            {
+                var renderer = effectRoot.GetChild(index).GetComponent<SpriteRenderer>();
+                Assert.That(renderer, Is.Not.Null);
+                Assert.That(renderer.maskInteraction, Is.EqualTo(SpriteMaskInteraction.VisibleInsideMask));
             }
         }
 

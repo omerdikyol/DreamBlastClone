@@ -16,8 +16,17 @@ namespace DreamBlastClone.Views
         [SerializeField] private float pulseScaleMultiplier = 1.35f;
         [SerializeField] private float fieldParticleScaleMultiplier = 0.32f;
         [SerializeField] private float fieldParticleTravelDistance = 0.14f;
+        [SerializeField] private int originSmokeCount = 6;
+        [SerializeField] private float originSmokeScaleMultiplier = 0.85f;
+        [SerializeField] private float originSmokeTravelDistance = 0.45f;
+        [SerializeField] private float fieldSmokeScaleMultiplier = 0.62f;
+        [SerializeField] private float fieldSmokeTravelDistance = 0.22f;
+        [SerializeField] private int radialDebrisCount = 10;
+        [SerializeField] private float radialDebrisScaleMultiplier = 0.42f;
+        [SerializeField] private float radialDebrisTravelDistance = 0.9f;
         [SerializeField] private Sprite tntBurstSprite;
         [SerializeField] private Sprite tntDebrisSprite;
+        [SerializeField] private Sprite tntSmokeSprite;
 
         private readonly List<ActiveVisual> activeVisuals = new List<ActiveVisual>();
         private float elapsed;
@@ -45,9 +54,9 @@ namespace DreamBlastClone.Views
                 return false;
             }
 
-            if (tntBurstSprite is null || tntDebrisSprite is null)
+            if (tntBurstSprite is null || tntDebrisSprite is null || tntSmokeSprite is null)
             {
-                throw new InvalidOperationException("Single TNT effect requires TNT particle sprites to be assigned.");
+                throw new InvalidOperationException("Single TNT effect requires burst, debris, and smoke sprites to be assigned.");
             }
 
             Stop();
@@ -55,6 +64,9 @@ namespace DreamBlastClone.Views
 
             var root = effectRoot is not null ? effectRoot : transform;
             CreatePulse(boardView, root, descriptor);
+            CreateOriginSmoke(boardView, root, descriptor);
+            CreateFieldSmoke(boardView, root, descriptor);
+            CreateRadialDebris(boardView, root, descriptor);
             CreateFieldParticles(boardView, root, descriptor);
             ApplyCurrentState();
             return activeVisuals.Count > 0;
@@ -90,10 +102,7 @@ namespace DreamBlastClone.Views
         private void CreatePulse(BoardView boardView, Transform root, SingleTntActivationEffectDescriptor descriptor)
         {
             var pulseRoot = CreateRoot(root, "SingleTntPulse");
-            var renderer = pulseRoot.AddComponent<SpriteRenderer>();
-            renderer.sprite = tntBurstSprite;
-            renderer.color = new Color(1f, 1f, 1f, 0.95f);
-            renderer.sortingOrder = 11;
+            var renderer = CreateSpriteRenderer(pulseRoot, tntBurstSprite, new Color(1f, 1f, 1f, 0.95f), 11);
             pulseRoot.transform.position = GetWorldPosition(boardView, descriptor.Origin, effectZ + 0.02f);
             var startScale = GetSpriteScale(tntBurstSprite, boardView.CellSize * 0.75f);
             var endScale = GetSpriteScale(tntBurstSprite, boardView.CellSize * pulseScaleMultiplier);
@@ -108,6 +117,120 @@ namespace DreamBlastClone.Views
                 startRotation: 0f,
                 endRotation: 20f,
                 renderer.color));
+        }
+
+        private void CreateOriginSmoke(BoardView boardView, Transform root, SingleTntActivationEffectDescriptor descriptor)
+        {
+            var smokeCount = Mathf.Max(0, originSmokeCount);
+            var origin = GetWorldPosition(boardView, descriptor.Origin, effectZ + 0.018f);
+            for (var index = 0; index < smokeCount; index++)
+            {
+                var smokeRoot = CreateRoot(root, $"SingleTntOriginSmoke_{index}");
+                var renderer = CreateSpriteRenderer(
+                    smokeRoot,
+                    tntSmokeSprite,
+                    new Color(0.92f, 0.90f, 0.88f, 0.78f),
+                    8);
+
+                var startPosition = origin + BuildOffset(index + 401, boardView.CellSize * 0.06f);
+                var endPosition = startPosition + BuildOffset(index + 419, originSmokeTravelDistance);
+                var startScale = GetSpriteScale(tntSmokeSprite, boardView.CellSize * originSmokeScaleMultiplier * Mathf.Lerp(0.75f, 1.1f, Hash01(index + 433)));
+                var endScale = startScale * Mathf.Lerp(1.5f, 2.2f, Hash01(index + 449));
+                var startRotation = Mathf.Lerp(-20f, 20f, Hash01(index + 461));
+                var endRotation = startRotation + Mathf.Lerp(-35f, 35f, Hash01(index + 479));
+
+                smokeRoot.transform.position = startPosition;
+                smokeRoot.transform.localScale = startScale;
+                smokeRoot.transform.rotation = Quaternion.Euler(0f, 0f, startRotation);
+                activeVisuals.Add(new ActiveVisual(
+                    smokeRoot,
+                    renderer,
+                    startPosition,
+                    endPosition,
+                    startScale,
+                    endScale,
+                    startRotation,
+                    endRotation,
+                    renderer.color));
+            }
+        }
+
+        private void CreateFieldSmoke(BoardView boardView, Transform root, SingleTntActivationEffectDescriptor descriptor)
+        {
+            for (var index = 0; index < descriptor.AffectedCoordinates.Count; index++)
+            {
+                var coordinate = descriptor.AffectedCoordinates[index];
+                var smokeRoot = CreateRoot(root, $"SingleTntSmoke_{coordinate}_{index}");
+                var renderer = CreateSpriteRenderer(
+                    smokeRoot,
+                    tntSmokeSprite,
+                    new Color(0.88f, 0.87f, 0.86f, 0.62f),
+                    7);
+
+                var center = GetWorldPosition(boardView, coordinate, effectZ + 0.004f);
+                var startPosition = center + BuildOffset(index + 503, boardView.CellSize * 0.05f);
+                var endPosition = startPosition + BuildOffset(index + 521, fieldSmokeTravelDistance);
+                var startScale = GetSpriteScale(tntSmokeSprite, boardView.CellSize * fieldSmokeScaleMultiplier * Mathf.Lerp(0.85f, 1.15f, Hash01(index + 541)));
+                var endScale = startScale * Mathf.Lerp(1.3f, 1.8f, Hash01(index + 557));
+                var startRotation = Mathf.Lerp(-15f, 15f, Hash01(index + 571));
+                var endRotation = startRotation + Mathf.Lerp(-25f, 25f, Hash01(index + 587));
+
+                smokeRoot.transform.position = startPosition;
+                smokeRoot.transform.localScale = startScale;
+                smokeRoot.transform.rotation = Quaternion.Euler(0f, 0f, startRotation);
+                activeVisuals.Add(new ActiveVisual(
+                    smokeRoot,
+                    renderer,
+                    startPosition,
+                    endPosition,
+                    startScale,
+                    endScale,
+                    startRotation,
+                    endRotation,
+                    renderer.color));
+            }
+        }
+
+        private void CreateRadialDebris(BoardView boardView, Transform root, SingleTntActivationEffectDescriptor descriptor)
+        {
+            var debrisSpawnCount = Mathf.Max(0, radialDebrisCount);
+            if (debrisSpawnCount == 0)
+            {
+                return;
+            }
+
+            var origin = GetWorldPosition(boardView, descriptor.Origin, effectZ + 0.015f);
+            for (var index = 0; index < debrisSpawnCount; index++)
+            {
+                var particleRoot = CreateRoot(root, $"SingleTntRadialDebris_{index}");
+                var renderer = CreateSpriteRenderer(
+                    particleRoot,
+                    tntDebrisSprite,
+                    new Color(1f, 0.92f, 0.82f, 0.82f),
+                    10);
+
+                var direction = BuildOffset(index + 211, 1f).normalized;
+                var travelDistance = radialDebrisTravelDistance * Mathf.Lerp(0.6f, 1f, Hash01(index + 229));
+                var endPosition = origin + direction * travelDistance;
+                var startScale = GetSpriteScale(tntDebrisSprite, boardView.CellSize * radialDebrisScaleMultiplier * Mathf.Lerp(0.85f, 1.15f, Hash01(index + 241)));
+                var endScale = startScale * Mathf.Lerp(0.45f, 0.7f, Hash01(index + 257));
+                var startRotation = Mathf.Lerp(-30f, 30f, Hash01(index + 271));
+                var endRotation = startRotation + Mathf.Lerp(80f, 160f, Hash01(index + 283));
+
+                particleRoot.transform.position = origin;
+                particleRoot.transform.localScale = startScale;
+                particleRoot.transform.rotation = Quaternion.Euler(0f, 0f, startRotation);
+                activeVisuals.Add(new ActiveVisual(
+                    particleRoot,
+                    renderer,
+                    origin,
+                    endPosition,
+                    startScale,
+                    endScale,
+                    startRotation,
+                    endRotation,
+                    renderer.color));
+            }
         }
 
         private void CreateFieldParticles(BoardView boardView, Transform root, SingleTntActivationEffectDescriptor descriptor)
@@ -129,12 +252,13 @@ namespace DreamBlastClone.Views
             string prefix)
         {
             var particleRoot = CreateRoot(root, $"{prefix}_{coordinate}_{seed}");
-            var renderer = particleRoot.AddComponent<SpriteRenderer>();
-            renderer.sprite = sprite;
-            renderer.sortingOrder = sprite == tntBurstSprite ? 10 : 9;
-            renderer.color = sprite == tntBurstSprite
-                ? new Color(1f, 1f, 1f, 0.82f)
-                : new Color(1f, 1f, 1f, 0.62f);
+            var renderer = CreateSpriteRenderer(
+                particleRoot,
+                sprite,
+                sprite == tntBurstSprite
+                    ? new Color(1f, 1f, 1f, 0.82f)
+                    : new Color(1f, 1f, 1f, 0.62f),
+                sprite == tntBurstSprite ? 10 : 9);
 
             var center = GetWorldPosition(boardView, coordinate, sprite == tntBurstSprite ? effectZ + 0.01f : effectZ);
             var offset = BuildOffset(seed, boardView.CellSize * 0.08f);
@@ -183,6 +307,16 @@ namespace DreamBlastClone.Views
                 color.a *= 1f - easedProgress;
                 visual.Renderer.color = color;
             }
+        }
+
+        private SpriteRenderer CreateSpriteRenderer(GameObject root, Sprite sprite, Color color, int sortingOrder)
+        {
+            var renderer = root.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.color = color;
+            renderer.sortingOrder = sortingOrder;
+            renderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+            return renderer;
         }
 
         private static Vector3 GetWorldPosition(BoardView boardView, BoardCoordinate coordinate, float zOffset)
