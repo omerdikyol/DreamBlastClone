@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2405038871776079917}
   - component: {fileID: 892529356777039498}
+  - component: {fileID: 5530865036403187091}
   m_Layer: 0
   m_Name: VerticalRocketPrefab
   m_TagString: Untagged
@@ -91,3 +92,21 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &5530865036403187091
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6497075117303000130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2da615f72804446f91e24498f75a2662, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.BoardItemIdleLoopView
+  idleLoopStyle: 1
+  durationSeconds: 1.35
+  scaleAmplitude: 0.045
+  verticalAmplitude: 0.018
+  rotationAmplitudeDegrees: 2
+  phaseOffsetSeconds: 0.55

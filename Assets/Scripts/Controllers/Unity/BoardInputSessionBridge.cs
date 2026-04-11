@@ -381,7 +381,9 @@ namespace DreamBlastClone.Controllers.Unity
                 return false;
             }
 
-            remainingPreviewSeconds = singleTntEffectPlayer.Duration;
+            // Use the short settle-blocking window, not the full particle lifetime.
+            // Particles keep advancing via AdvancePendingPreview during settle.
+            remainingPreviewSeconds = singleTntEffectPlayer.SettleBlockingDuration;
             return true;
         }
 

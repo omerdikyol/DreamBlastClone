@@ -214,6 +214,11 @@ namespace DreamBlastClone.Views
                 instance.transform.localPosition = GetCellCenter(cell.Coordinate, itemZ);
                 ApplyItemAppearance(instance, cell.Item, cell.Coordinate, cubeVisualStates);
                 instance.transform.localScale = GetVisualScale(instance.transform, new Vector2(cellSize, cellSize));
+                if (instance.TryGetComponent<BoardItemIdleLoopView>(out var idleLoop))
+                {
+                    idleLoop.Play();
+                }
+
                 spawnedVisuals.Add(instance);
             }
         }

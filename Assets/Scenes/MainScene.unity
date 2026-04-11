@@ -166,6 +166,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: DreamBlastClone.Controllers.Unity::DreamBlastClone.Controllers.Unity.MainSceneLauncher
   levelCatalog: {fileID: 11400000, guid: 1a64d9d4f43845778a59cbefc459f7b8, type: 2}
   startButton: {fileID: 885875321}
+  startButtonIdleLoop: {fileID: 885875324}
   levelLabel: {fileID: 1487393359}
   levelSceneName: LevelScene
 --- !u!114 &200000003
@@ -297,6 +298,7 @@ GameObject:
   - component: {fileID: 885875323}
   - component: {fileID: 885875322}
   - component: {fileID: 885875321}
+  - component: {fileID: 885875324}
   m_Layer: 5
   m_Name: Button
   m_TagString: Untagged
@@ -398,6 +400,20 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &885875324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 885875319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01999bb3dbb6435bb3284fbbdf022d3f, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.MainSceneButtonIdleLoopView
+  durationSeconds: 1.8
+  scaleAmplitude: 0.055
 --- !u!222 &885875323
 CanvasRenderer:
   m_ObjectHideFlags: 0

@@ -9,6 +9,9 @@ namespace DreamBlastClone.Views
     {
         [SerializeField] private Transform effectRoot;
         [SerializeField] private float duration = 0.22f;
+        // How long TNT blocks settle — just the initial impact pop.
+        // Lingering particles keep animating during settle via Advance().
+        [SerializeField] private float settleBlockingDuration = 0.06f;
         [SerializeField] private float effectZ = -0.18f;
         [SerializeField] private float pulseScaleMultiplier = 1.35f;
         [SerializeField] private float fieldParticleScaleMultiplier = 0.32f;
@@ -22,6 +25,8 @@ namespace DreamBlastClone.Views
         public bool IsPlaying => activeVisuals.Count > 0;
 
         public float Duration => duration;
+
+        public float SettleBlockingDuration => Mathf.Min(settleBlockingDuration, duration);
 
         public bool TryPlay(BoardView boardView, SingleTntActivationEffectDescriptor descriptor)
         {

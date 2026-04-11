@@ -6,6 +6,7 @@
   <Project Path="DreamBlastClone.Systems.csproj" />
   <Project Path="DreamBlastClone.Data.csproj" />
   <Project Path="DreamBlastClone.Controllers.csproj" />
+  <Project Path="DOTween.Modules.csproj" />
   <Project Path="DreamBlastClone.Grid.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="DreamBlastClone.Obstacles.csproj" />

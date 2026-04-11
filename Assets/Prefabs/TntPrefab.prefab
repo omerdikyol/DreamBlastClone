@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6233826988547068484}
   - component: {fileID: 3332975197641820580}
+  - component: {fileID: 6162211424187623231}
   m_Layer: 0
   m_Name: TntPrefab
   m_TagString: Untagged
@@ -91,3 +92,21 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &6162211424187623231
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7020152914251748528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2da615f72804446f91e24498f75a2662, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.BoardItemIdleLoopView
+  idleLoopStyle: 2
+  durationSeconds: 2.4
+  scaleAmplitude: 0.045
+  verticalAmplitude: 0.008
+  rotationAmplitudeDegrees: 0.7
+  phaseOffsetSeconds: 0.75

@@ -597,6 +597,29 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void RenderStartsIdleLoopForLiveItemsButNotTransientCopies()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView();
+            var cubePrefab = (GameObject)GetField(boardView, "cubePrefab");
+            cubePrefab.AddComponent<BoardItemIdleLoopView>();
+
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+
+            boardView.Render(board);
+            var liveIdleLoop = GetItemRoot(boardView).GetChild(0).GetComponent<BoardItemIdleLoopView>();
+            var transientCube = boardView.CreateTransientCubeVisual(
+                board,
+                new BoardCoordinate(0, 0),
+                CubeColor.Red,
+                boardView.transform,
+                z: 0f);
+
+            Assert.That(liveIdleLoop.IsPlaying, Is.True);
+            Assert.That(transientCube.GetComponent<BoardItemIdleLoopView>().IsPlaying, Is.False);
+        }
+
+        [Test]
         public void RenderFitsTallItemSpritesInsideLogicalCellSize()
         {
             var board = new BoardModel(1, 1);

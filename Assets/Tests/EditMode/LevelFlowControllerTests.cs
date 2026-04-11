@@ -8,6 +8,7 @@ using DreamBlastClone.Grid;
 using DreamBlastClone.Items;
 using DreamBlastClone.Obstacles;
 using DreamBlastClone.Systems;
+using DreamBlastClone.Views;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UI;
@@ -82,12 +83,14 @@ namespace DreamBlastClone.Tests.EditMode
             var catalog = CreateCatalog(new TextAsset("1"), new TextAsset("2"), new TextAsset("3"));
             var launcher = CreateGameObject("Launcher").AddComponent<TestMainSceneLauncher>();
             var startButton = CreateButton("StartButton");
+            var startButtonIdleLoop = startButton.gameObject.AddComponent<MainSceneButtonIdleLoopView>();
             var levelLabel = CreateLabel("LevelLabel");
             var store = new CurrentLevelStore(PlayerPrefsKey);
             store.SetCurrentLevel(2);
 
             SetField(launcher, "levelCatalog", catalog);
             SetField(launcher, "startButton", startButton);
+            SetField(launcher, "startButtonIdleLoop", startButtonIdleLoop);
             SetField(launcher, "levelLabel", levelLabel);
             InvokeMethod(launcher, "Awake");
             InvokeMethod(launcher, "OnEnable");
@@ -96,12 +99,14 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(launcher.IsFinished, Is.False);
             Assert.That(levelLabel.text, Is.EqualTo("Level 2"));
             Assert.That(startButton.interactable, Is.True);
+            Assert.That(startButtonIdleLoop.IsPlaying, Is.True);
 
             startButton.onClick.Invoke();
 
             Assert.That(launcher.LoadedSceneName, Is.EqualTo("LevelScene"));
             Assert.That(launcher.TryStartCurrentLevel(), Is.False);
             Assert.That(startButton.interactable, Is.False);
+            Assert.That(startButtonIdleLoop.IsPlaying, Is.False);
 
             InvokeMethod(launcher, "OnDisable");
         }
@@ -112,12 +117,14 @@ namespace DreamBlastClone.Tests.EditMode
             var catalog = CreateCatalog(new TextAsset("1"), new TextAsset("2"), new TextAsset("3"));
             var launcher = CreateGameObject("Launcher").AddComponent<TestMainSceneLauncher>();
             var startButton = CreateButton("StartButton");
+            var startButtonIdleLoop = startButton.gameObject.AddComponent<MainSceneButtonIdleLoopView>();
             var levelLabel = CreateLabel("LevelLabel");
             var store = new CurrentLevelStore(PlayerPrefsKey);
             store.SetCurrentLevel(4);
 
             SetField(launcher, "levelCatalog", catalog);
             SetField(launcher, "startButton", startButton);
+            SetField(launcher, "startButtonIdleLoop", startButtonIdleLoop);
             SetField(launcher, "levelLabel", levelLabel);
             InvokeMethod(launcher, "Awake");
             InvokeMethod(launcher, "OnEnable");
@@ -126,6 +133,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(launcher.IsFinished, Is.True);
             Assert.That(levelLabel.text, Is.EqualTo("Finished"));
             Assert.That(startButton.interactable, Is.False);
+            Assert.That(startButtonIdleLoop.IsPlaying, Is.False);
 
             startButton.onClick.Invoke();
 

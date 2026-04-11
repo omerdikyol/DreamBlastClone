@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using DreamBlastClone.Views;
 
 namespace DreamBlastClone.Controllers.Unity
 {
@@ -8,6 +9,7 @@ namespace DreamBlastClone.Controllers.Unity
     {
         [SerializeField] private LevelCatalogAsset levelCatalog;
         [SerializeField] private Button startButton;
+        [SerializeField] private MainSceneButtonIdleLoopView startButtonIdleLoop;
         [SerializeField] private Component levelLabel;
         [SerializeField] private string levelSceneName = "LevelScene";
 
@@ -25,7 +27,7 @@ namespace DreamBlastClone.Controllers.Unity
 
         private void OnEnable()
         {
-            if (startButton is not null)
+            if (startButton != null)
             {
                 startButton.onClick.AddListener(HandleStartButtonClicked);
             }
@@ -36,23 +38,30 @@ namespace DreamBlastClone.Controllers.Unity
 
         private void OnDisable()
         {
-            if (startButton is not null)
+            if (startButton != null)
             {
                 startButton.onClick.RemoveListener(HandleStartButtonClicked);
+            }
+
+            if (startButtonIdleLoop != null)
+            {
+                startButtonIdleLoop.StopAndReset();
             }
         }
 
         public void RefreshUi()
         {
-            if (levelLabel is not null)
+            if (levelLabel != null)
             {
                 SetLabelText(IsFinished ? "Finished" : $"Level {CurrentLevelNumber}");
             }
 
-            if (startButton is not null)
+            if (startButton != null)
             {
                 startButton.interactable = !hasStartedLevelLoad && HasValidCatalog() && !IsFinished;
             }
+
+            RefreshStartButtonIdleLoop();
         }
 
         public bool TryStartCurrentLevel()
@@ -102,12 +111,33 @@ namespace DreamBlastClone.Controllers.Unity
 
         private bool HasValidCatalog()
         {
-            return levelCatalog is not null && levelCatalog.LevelCount > 0;
+            return levelCatalog != null && levelCatalog.LevelCount > 0;
         }
 
         private void HandleStartButtonClicked()
         {
             TryStartCurrentLevel();
+        }
+
+        private void RefreshStartButtonIdleLoop()
+        {
+            if (startButtonIdleLoop == null && startButton != null)
+            {
+                startButtonIdleLoop = startButton.GetComponent<MainSceneButtonIdleLoopView>();
+            }
+
+            if (startButtonIdleLoop == null)
+            {
+                return;
+            }
+
+            if (startButton != null && startButton.interactable)
+            {
+                startButtonIdleLoop.Play();
+                return;
+            }
+
+            startButtonIdleLoop.StopAndReset();
         }
 
         private void SetLabelText(string value)
