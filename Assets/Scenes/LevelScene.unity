@@ -671,7 +671,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -305.9, y: -246}
+  m_AnchoredPosition: {x: -303.1, y: -246.4}
   m_SizeDelta: {x: 84, y: 84}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &735411717
@@ -692,6 +692,8 @@ MonoBehaviour:
   completedCountTarget: {fileID: 1754224042}
   completedCountSprite: {fileID: 8096300645454206010, guid: 334e59f29a244ba4cb6b01539cf34fc7, type: 3}
   activeColor: {r: 1, g: 1, b: 1, a: 1}
+  completedCheckPopDuration: 0.18
+  completedCheckStartScaleMultiplier: 1.28
 --- !u!1 &755320353
 GameObject:
   m_ObjectHideFlags: 0
@@ -3265,8 +3267,8 @@ RectTransform:
   m_GameObject: {fileID: 1810000010}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 2}
-  m_ConstrainProportionsScale: 1
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1810000021}
   - {fileID: 1810000041}

@@ -107,7 +107,14 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(moveLabel.text, Is.EqualTo("02"));
             var completedGoalItem = GetActiveGoalItems(goalContainer).Single();
             Assert.That(GetCountText(completedGoalItem), Is.EqualTo(string.Empty));
-            Assert.That(GetCheckImage(completedGoalItem).enabled, Is.True);
+            var checkImage = GetCheckImage(completedGoalItem);
+            Assert.That(checkImage.enabled, Is.True);
+            Assert.That(checkImage.transform.localScale.x, Is.GreaterThan(1f));
+
+            InvokeMethod(completedGoalItem.GetComponent<LevelGoalItemView>(), "Update");
+            InvokeMethod(completedGoalItem.GetComponent<LevelGoalItemView>(), "AdvanceCompletedCheckAnimation", 0.18f);
+
+            Assert.That(checkImage.transform.localScale.x, Is.EqualTo(1f).Within(0.001f));
 
             InvokeMethod(controller, "OnDisable");
         }
@@ -198,6 +205,26 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(goalItems[0].anchoredPosition.x, Is.LessThan(goalItems[1].anchoredPosition.x));
             Assert.That(goalItems[0].localScale.x, Is.LessThan(1f));
             Assert.That(goalItems[1].localScale.x, Is.LessThan(1f));
+
+            InvokeMethod(controller, "OnDisable");
+        }
+
+        [Test]
+        public void LayoutExpandsSpacingWhenGoalTemplateScaleIsLarger()
+        {
+            var session = CreateSessionWithGoals(
+                new LevelGoalDefinition(LevelGoalType.Stone, 1),
+                new LevelGoalDefinition(LevelGoalType.Vase, 1));
+            var controller = CreateConfiguredHudController(session, out _, out var goalContainer, out var goalTemplate);
+            goalTemplate.localScale = new Vector3(2f, 2f, 2f);
+
+            InvokeMethod(controller, "OnEnable");
+            InvokeMethod(controller, "Start");
+
+            var goalItems = GetActiveGoalItems(goalContainer).OrderBy(item => item.anchoredPosition.x).ToArray();
+            Assert.That(goalItems, Has.Length.EqualTo(2));
+            Assert.That(goalItems[1].anchoredPosition.x - goalItems[0].anchoredPosition.x, Is.GreaterThan(70f));
+            Assert.That(goalItems.All(item => item.localScale.x > 1f), Is.True);
 
             InvokeMethod(controller, "OnDisable");
         }

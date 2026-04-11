@@ -131,14 +131,28 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             var templatePosition = goalItemTemplate.anchoredPosition;
+            var layoutSize = multiGoalLayoutSize * ResolveTemplateScaleMultiplier();
             var layout = BuildGoalLayout(goalCount);
 
             for (var index = 0; index < goalCount; index++)
             {
                 var itemTransform = (RectTransform)spawnedGoalItems[index].transform;
-                itemTransform.anchoredPosition = templatePosition + layout[index].Offset * multiGoalLayoutSize;
+                itemTransform.anchoredPosition = templatePosition + layout[index].Offset * layoutSize;
                 itemTransform.localScale = goalItemTemplate.localScale * layout[index].ScaleMultiplier;
             }
+        }
+
+        private float ResolveTemplateScaleMultiplier()
+        {
+            if (goalItemTemplate is null)
+            {
+                return 1f;
+            }
+
+            return Mathf.Max(
+                1f,
+                Mathf.Abs(goalItemTemplate.localScale.x),
+                Mathf.Abs(goalItemTemplate.localScale.y));
         }
 
         private static IReadOnlyList<GoalLayoutSlot> BuildGoalLayout(int goalCount)
