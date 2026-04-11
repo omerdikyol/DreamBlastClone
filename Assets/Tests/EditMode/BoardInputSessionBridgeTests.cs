@@ -515,6 +515,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(feedbackRoot.childCount, Is.EqualTo(2));
             Assert.That(ContainsChildNameWithFragment(feedbackRoot, "StoneObstacleModel"), Is.False);
             Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetStoneTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
         }
 
@@ -538,12 +539,14 @@ namespace DreamBlastClone.Tests.EditMode
             var feedbackRoot = GetDestructionFeedbackPlayer(bridge).transform;
             Assert.That(ContainsChildNameWithFragment(feedbackRoot, "StoneObstacleModel"), Is.True);
             Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetStoneTweenFeedbackPlayer(bridge).IsPlaying, Is.True);
 
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
 
             Assert.That(session.Board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.Null);
             Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetStoneTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
         }
 
         [Test]
@@ -916,6 +919,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(bridge, "cubeBlastParticlePlayer", CreateCubeBlastParticlePlayer());
             SetField(bridge, "vaseParticlePlayer", CreateVaseParticlePlayer());
             SetField(bridge, "stoneParticlePlayer", CreateStoneParticlePlayer());
+            SetField(bridge, "stoneTweenFeedbackPlayer", CreateStoneTweenFeedbackPlayer());
             SetField(bridge, "chaliceBoxParticlePlayer", CreateChaliceBoxParticlePlayer());
             SetField(bridge, "chaliceBoxTweenFeedbackPlayer", CreateChaliceBoxTweenFeedbackPlayer());
             SetField(bridge, "settleMotionPlayer", CreateSettleMotionPlayer());
@@ -1004,6 +1008,11 @@ namespace DreamBlastClone.Tests.EditMode
         private StoneParticlePlayer GetStoneParticlePlayer(BoardInputSessionBridge bridge)
         {
             return (StoneParticlePlayer)GetField(bridge, "stoneParticlePlayer");
+        }
+
+        private StoneTweenFeedbackPlayer GetStoneTweenFeedbackPlayer(BoardInputSessionBridge bridge)
+        {
+            return (StoneTweenFeedbackPlayer)GetField(bridge, "stoneTweenFeedbackPlayer");
         }
 
         private ChaliceBoxParticlePlayer GetChaliceBoxParticlePlayer(BoardInputSessionBridge bridge)
@@ -1142,6 +1151,14 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(effectPlayer, "mainChunkSprite", CreateSprite(24, 24, 20f));
             SetField(effectPlayer, "fragmentSprite", CreateSprite(18, 18, 20f));
             SetField(effectPlayer, "dustSprite", CreateSprite(20, 16, 20f));
+            return effectPlayer;
+        }
+
+        private StoneTweenFeedbackPlayer CreateStoneTweenFeedbackPlayer()
+        {
+            var host = CreateGameObject("StoneTweenFeedbackPlayer");
+            var effectPlayer = host.AddComponent<StoneTweenFeedbackPlayer>();
+            SetField(effectPlayer, "duration", 0.12f);
             return effectPlayer;
         }
 

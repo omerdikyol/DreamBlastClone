@@ -906,6 +906,7 @@ GameObject:
   - component: {fileID: 1374160556}
   - component: {fileID: 1374160557}
   - component: {fileID: 1374160558}
+  - component: {fileID: 1374160559}
   m_Layer: 0
   m_Name: LevelSceneRuntime
   m_TagString: Untagged
@@ -975,6 +976,7 @@ MonoBehaviour:
   cubeBlastParticlePlayer: {fileID: 1374160552}
   vaseParticlePlayer: {fileID: 1374160554}
   stoneParticlePlayer: {fileID: 1374160555}
+  stoneTweenFeedbackPlayer: {fileID: 1374160559}
   chaliceBoxParticlePlayer: {fileID: 1374160556}
   chaliceBoxTweenFeedbackPlayer: {fileID: 1374160558}
   settleMotionPlayer: {fileID: 1374160547}
@@ -1357,6 +1359,27 @@ MonoBehaviour:
   doorBreakScaleMultiplier: 1.16
   chaliceDamageScaleMultiplier: 1.08
   chaliceCompleteScaleMultiplier: 1.22
+--- !u!114 &1374160559
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1374160538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7b12ec5d8f84da885e2f3a1ddcc9912, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.StoneTweenFeedbackPlayer
+  effectRoot: {fileID: 0}
+  duration: 0.12
+  effectZ: -0.18
+  impactScaleMultiplier: 0.82
+  recoilScaleMultiplier: 1.04
+  endScaleMultiplier: 0.08
+  impactDipDistance: 0.025
+  recoilLiftDistance: 0.04
+  recoilRotationDegrees: 3
 --- !u!1 &1517054704
 GameObject:
   m_ObjectHideFlags: 0
