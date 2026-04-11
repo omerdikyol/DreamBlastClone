@@ -911,6 +911,7 @@ GameObject:
   - component: {fileID: 1374160557}
   - component: {fileID: 1374160558}
   - component: {fileID: 1374160559}
+  - component: {fileID: 1374160560}
   m_Layer: 0
   m_Name: LevelSceneRuntime
   m_TagString: Untagged
@@ -1471,6 +1472,42 @@ MonoBehaviour:
   impactDipDistance: 0.025
   recoilLiftDistance: 0.04
   recoilRotationDegrees: 3
+--- !u!114 &1374160560
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1374160538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cc4f0f59d2544b89e0bde88f66db7e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DreamBlastClone.Controllers.Unity::DreamBlastClone.Controllers.Unity.LevelStartPresentationController
+  inputBridge: {fileID: 1374160542}
+  boardView: {fileID: 1517054705}
+  gridBackgroundRenderer: {fileID: 1517054708}
+  canvasRoot: {fileID: 755320357}
+  topBarBackground: {fileID: 103395043}
+  moveTextTransform: {fileID: 159883208}
+  moveNumberTransform: {fileID: 593086823}
+  goalTextTransform: {fileID: 2106949272}
+  backgroundRoot: {fileID: 117355017}
+  winPresentationRoot: {fileID: 1810000000}
+  losePopupRoot: {fileID: 1800000000}
+  boardRevealDurationSeconds: 0.28
+  boardStartScale: 0.92
+  boardStartOffsetY: -0.2
+  itemRevealDurationSeconds: 0.18
+  itemRevealStaggerSeconds: 0.022
+  topBarRevealDelaySeconds: 0.08
+  topBarBackgroundDurationSeconds: 0.22
+  topBarElementDurationSeconds: 0.18
+  topBarElementStaggerSeconds: 0.045
+  topBarBackgroundStartOffsetY: 34
+  topBarElementStartOffsetY: 24
+  topBarBackgroundStartScale: 0.985
+  topBarElementStartScale: 0.96
 --- !u!1 &1517054704
 GameObject:
   m_ObjectHideFlags: 0
@@ -3230,19 +3267,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.WinCelebrationParticlePlayer
   effectRoot: {fileID: 1810000061}
   particleSprite: {fileID: -1100984736764964828, guid: c50e1f8f8e4fc1a4e8cd36e6641a8e26, type: 3}
-  initialBurstCount: 14
-  ambientBurstCount: 3
+  initialBurstCount: 24
+  ambientBurstCount: 5
   ambientSpawnInterval: 0.12
   particleLifetime: 1.05
   initialSpawnRadius: 90
   ambientSpawnRadius: 126
   travelDistance: 68
   driftUpward: 18
-  initialStartSize: 34
-  ambientStartSize: 18
-  endSize: 10
-  primaryColor: {r: 1, g: 0.93, b: 0.63, a: 0.92}
-  secondaryColor: {r: 1, g: 1, b: 1, a: 0.68}
+  initialStartSize: 52
+  ambientStartSize: 28
+  endSize: 16
+  primaryColor: {r: 1, g: 0.86, b: 0.22, a: 0.96}
+  secondaryColor: {r: 1, g: 0.92, b: 0.45, a: 0.76}
 --- !u!1 &1810000010
 GameObject:
   m_ObjectHideFlags: 0
@@ -3280,8 +3317,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 560, y: 620}
+  m_AnchoredPosition: {x: 5.8557, y: -17.05}
+  m_SizeDelta: {x: 1068, y: 1461.1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1810000012
 CanvasRenderer:
@@ -3356,7 +3393,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 198}
+  m_AnchoredPosition: {x: 0, y: 357}
   m_SizeDelta: {x: 420, y: 88}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1810000022
@@ -3489,8 +3526,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 42
-  m_fontSizeBase: 42
+  m_fontSize: 85
+  m_fontSizeBase: 85
   m_fontWeight: 700
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -3528,7 +3565,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: -185.64789, y: 0, z: -181.8592, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -3568,8 +3605,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 18}
-  m_SizeDelta: {x: 320, y: 302}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 470.81, y: 444.33}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1810000042
 CanvasRenderer:
@@ -3592,7 +3629,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 0.9647059, b: 0.75686276, a: 1}
+  m_Color: {r: 1, g: 0.88, b: 0.24, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -3643,7 +3680,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -271}
+  m_AnchoredPosition: {x: 0, y: -525}
   m_SizeDelta: {x: 440, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1810000052
@@ -3701,8 +3738,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 73
+  m_fontSizeBase: 73
   m_fontWeight: 700
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -3740,7 +3777,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: -166.70422, y: 0, z: -155.33783, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -3771,7 +3808,7 @@ RectTransform:
   m_GameObject: {fileID: 1810000060}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3, y: 3, z: 3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1810000001}

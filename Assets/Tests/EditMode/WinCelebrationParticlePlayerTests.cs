@@ -127,7 +127,7 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
-        public void TryPlayPrefersStarSpriteForParticlesWhenAvailable()
+        public void TryPlayPrefersConfiguredParticleSpriteWhenAvailable()
         {
             var rootObject = CreateGameObject("WinPresentationRoot");
             var rootRect = rootObject.AddComponent<RectTransform>();
@@ -155,7 +155,7 @@ namespace DreamBlastClone.Tests.EditMode
             for (var index = 0; index < effectRoot.childCount; index++)
             {
                 var particleImage = effectRoot.GetChild(index).GetComponent<Image>();
-                Assert.That(particleImage.sprite, Is.EqualTo(starSprite));
+                Assert.That(particleImage.sprite, Is.EqualTo(fallbackSprite));
             }
         }
 

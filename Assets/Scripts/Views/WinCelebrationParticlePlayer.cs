@@ -229,7 +229,11 @@ namespace DreamBlastClone.Views
             }
 
             var starColor = starImage.color;
-            runtimeParticleSprite = starImage.sprite != null ? starImage.sprite : runtimeParticleSprite;
+            if (runtimeParticleSprite == null && starImage.sprite != null)
+            {
+                runtimeParticleSprite = starImage.sprite;
+            }
+
             runtimePrimaryColor = new Color(starColor.r, starColor.g, starColor.b, primaryColor.a);
             runtimeSecondaryColor = new Color(starColor.r, starColor.g, starColor.b, secondaryColor.a);
         }
