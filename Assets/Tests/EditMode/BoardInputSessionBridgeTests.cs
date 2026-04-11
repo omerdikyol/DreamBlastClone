@@ -458,6 +458,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.True);
 
             var chaliceVisual = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab");
             Assert.That(chaliceVisual.transform.Find("Doors").GetComponent<SpriteRenderer>().enabled, Is.True);
@@ -514,6 +515,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(feedbackRoot.childCount, Is.EqualTo(2));
             Assert.That(ContainsChildNameWithFragment(feedbackRoot, "StoneObstacleModel"), Is.False);
             Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
         }
 
         [Test]
@@ -565,6 +567,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
             Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.True);
 
             var chaliceVisual = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab");
             Assert.That(chaliceVisual.transform.Find("Doors").GetComponent<SpriteRenderer>().enabled, Is.False);
@@ -593,6 +596,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
             Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.True);
 
             var chaliceVisual = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab");
             Assert.That(chaliceVisual.transform.Find("Doors").GetComponent<SpriteRenderer>().enabled, Is.False);
@@ -617,11 +621,13 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
             Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.True);
 
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
 
             Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
             Assert.That(session.Board.GetCell(chaliceBox.Anchor).Obstacle, Is.Null);
         }
 
@@ -652,6 +658,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
 
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
@@ -910,6 +917,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(bridge, "vaseParticlePlayer", CreateVaseParticlePlayer());
             SetField(bridge, "stoneParticlePlayer", CreateStoneParticlePlayer());
             SetField(bridge, "chaliceBoxParticlePlayer", CreateChaliceBoxParticlePlayer());
+            SetField(bridge, "chaliceBoxTweenFeedbackPlayer", CreateChaliceBoxTweenFeedbackPlayer());
             SetField(bridge, "settleMotionPlayer", CreateSettleMotionPlayer());
             SetField(bridge, "singleRocketEffectPlayer", CreateRocketEffectPlayer());
             SetField(bridge, "singleTntEffectPlayer", CreateTntEffectPlayer());
@@ -1003,6 +1011,11 @@ namespace DreamBlastClone.Tests.EditMode
             return (ChaliceBoxParticlePlayer)GetField(bridge, "chaliceBoxParticlePlayer");
         }
 
+        private ChaliceBoxTweenFeedbackPlayer GetChaliceBoxTweenFeedbackPlayer(BoardInputSessionBridge bridge)
+        {
+            return (ChaliceBoxTweenFeedbackPlayer)GetField(bridge, "chaliceBoxTweenFeedbackPlayer");
+        }
+
         private BoardSettleMotionPlayer GetSettleMotionPlayer(BoardInputSessionBridge bridge)
         {
             return (BoardSettleMotionPlayer)GetField(bridge, "settleMotionPlayer");
@@ -1053,6 +1066,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(chaliceView, "backgroundRenderer", backgroundRenderer);
             SetField(chaliceView, "doorsRenderer", doorsRenderer);
             SetField(chaliceView, "chaliceRenderer", chaliceRenderer);
+            prefab.AddComponent<ChaliceBoxTweenPresentationView>();
             return prefab;
         }
 
@@ -1157,6 +1171,14 @@ namespace DreamBlastClone.Tests.EditMode
                 CreateSprite(24, 16, 20f),
                 CreateSprite(16, 24, 20f)
             });
+            return effectPlayer;
+        }
+
+        private ChaliceBoxTweenFeedbackPlayer CreateChaliceBoxTweenFeedbackPlayer()
+        {
+            var host = CreateGameObject("ChaliceBoxTweenFeedbackPlayer");
+            var effectPlayer = host.AddComponent<ChaliceBoxTweenFeedbackPlayer>();
+            SetField(effectPlayer, "duration", 0.14f);
             return effectPlayer;
         }
 

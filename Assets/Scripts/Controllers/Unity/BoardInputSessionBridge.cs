@@ -24,6 +24,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private VaseParticlePlayer vaseParticlePlayer;
         [SerializeField] private StoneParticlePlayer stoneParticlePlayer;
         [SerializeField] private ChaliceBoxParticlePlayer chaliceBoxParticlePlayer;
+        [SerializeField] private ChaliceBoxTweenFeedbackPlayer chaliceBoxTweenFeedbackPlayer;
         [SerializeField] private BoardSettleMotionPlayer settleMotionPlayer;
         [SerializeField] private SingleRocketActivationEffectPlayer singleRocketEffectPlayer;
         [SerializeField] private SingleTntActivationEffectPlayer singleTntEffectPlayer;
@@ -190,6 +191,7 @@ namespace DreamBlastClone.Controllers.Unity
             TryStartVaseParticles(preTapBoard, tapResult.Tap);
             TryStartStoneParticles(preTapBoard, tapResult.Tap);
             TryStartChaliceBoxParticles(preTapBoard, tapResult.Tap);
+            TryStartChaliceBoxTweenFeedback(preTapBoard, tapResult.Tap);
 
             if (TryStartSingleRocketEffect(resolvedCoordinate, tapResult.Tap, out var rocketDuration))
             {
@@ -269,6 +271,11 @@ namespace DreamBlastClone.Controllers.Unity
                 chaliceBoxParticlePlayer.Advance(deltaTime);
             }
 
+            if (chaliceBoxTweenFeedbackPlayer is not null)
+            {
+                chaliceBoxTweenFeedbackPlayer.Advance(deltaTime);
+            }
+
             if (singleRocketEffectPlayer is not null)
             {
                 singleRocketEffectPlayer.Advance(deltaTime);
@@ -327,6 +334,7 @@ namespace DreamBlastClone.Controllers.Unity
             vaseParticlePlayer?.Stop();
             stoneParticlePlayer?.Stop();
             chaliceBoxParticlePlayer?.Stop();
+            chaliceBoxTweenFeedbackPlayer?.Stop();
             settleMotionPlayer?.Stop();
             singleRocketEffectPlayer?.Stop();
             singleTntEffectPlayer?.Stop();
@@ -565,6 +573,17 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             return true;
+        }
+
+        private bool TryStartChaliceBoxTweenFeedback(BoardModel preTapBoard, BoardTapDispatchResult tap)
+        {
+            if (boardView is null || chaliceBoxTweenFeedbackPlayer is null)
+            {
+                return false;
+            }
+
+            var descriptor = chaliceBoxParticleDescriptorBuilder.Build(preTapBoard, tap);
+            return chaliceBoxTweenFeedbackPlayer.TryPlay(boardView, preTapBoard, descriptor);
         }
 
         private SpecialItemComboPresentationDescriptor BuildComboPresentationDescriptor(BoardTapDispatchResult tap)

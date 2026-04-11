@@ -26,7 +26,12 @@ namespace DreamBlastClone.Views
 
         private readonly List<SpriteRenderer> slotRenderers = new List<SpriteRenderer>(SlotLayouts.Length);
 
-        public void SetAppearance(bool isDoorPhase, IReadOnlyList<bool> visibleSlotMask)
+        public void SetAppearance(
+            bool isDoorPhase,
+            IReadOnlyList<bool> visibleSlotMask,
+            bool startTweenPresentation = true,
+            IReadOnlyList<int> removedSlotIndices = null,
+            float phaseOffset = 0f)
         {
             var background = backgroundRenderer != null ? backgroundRenderer : transform.Find("Bg")?.GetComponent<SpriteRenderer>();
             var doors = doorsRenderer != null ? doorsRenderer : transform.Find("Doors")?.GetComponent<SpriteRenderer>();
@@ -62,11 +67,13 @@ namespace DreamBlastClone.Views
             {
                 doors.enabled = true;
                 SetSlotVisibility(visibleSlotMask: null);
+                ApplyTweenPresentation(background, doors, isDoorPhase, startTweenPresentation, removedSlotIndices, phaseOffset);
                 return;
             }
 
             doors.enabled = false;
             SetSlotVisibility(visibleSlotMask);
+            ApplyTweenPresentation(background, doors, isDoorPhase, startTweenPresentation, removedSlotIndices, phaseOffset);
         }
 
         private void EnsureSlotRenderers(SpriteRenderer backgroundRenderer, SpriteRenderer chaliceTemplate)
@@ -117,6 +124,29 @@ namespace DreamBlastClone.Views
                 renderer.enabled = visibleSlotMask != null && visibleSlotMask[index];
                 renderer.color = Color.white;
             }
+        }
+
+        private void ApplyTweenPresentation(
+            SpriteRenderer background,
+            SpriteRenderer doors,
+            bool isDoorPhase,
+            bool startTweenPresentation,
+            IReadOnlyList<int> removedSlotIndices,
+            float phaseOffset)
+        {
+            if (!TryGetComponent<ChaliceBoxTweenPresentationView>(out var tweenPresentation))
+            {
+                return;
+            }
+
+            tweenPresentation.PlayState(
+                background,
+                doors,
+                slotRenderers,
+                isDoorPhase,
+                startTweenPresentation,
+                removedSlotIndices ?? Array.Empty<int>(),
+                phaseOffset);
         }
 
         private readonly struct ChaliceSlotLayout

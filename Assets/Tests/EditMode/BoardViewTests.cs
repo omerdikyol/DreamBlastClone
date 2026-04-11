@@ -236,6 +236,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetRenderer(chaliceView, "doorsRenderer").enabled, Is.True);
             Assert.That(GetRenderer(chaliceView, "chaliceRenderer").enabled, Is.False);
             Assert.That(GetVisibleChaliceSlotCount(chaliceView), Is.EqualTo(0));
+            Assert.That(chaliceView.GetComponent<ChaliceBoxTweenPresentationView>().IsPlaying, Is.True);
         }
 
         [Test]
@@ -259,12 +260,14 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(doorsRenderer.enabled, Is.False);
             Assert.That(GetRenderer(chaliceView, "chaliceRenderer").enabled, Is.False);
             Assert.That(GetVisibleChaliceSlotCount(chaliceView), Is.EqualTo(10));
+            Assert.That(chaliceView.GetComponent<ChaliceBoxTweenPresentationView>().IsPlaying, Is.True);
 
             chaliceBox.CollectedChaliceCount = 5;
             boardView.Render(board);
 
             chaliceView = FindChildByPrefix(GetObstacleRoot(boardView), "ChaliceBoxPrefab").GetComponent<ChaliceBoxObstacleView>();
             Assert.That(GetVisibleChaliceSlotCount(chaliceView), Is.EqualTo(5));
+            Assert.That(chaliceView.GetComponent<ChaliceBoxTweenPresentationView>().IsPlaying, Is.True);
         }
 
         [Test]
@@ -314,6 +317,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(chaliceView, Is.Not.Null);
             Assert.That(GetRenderer(chaliceView, "doorsRenderer").enabled, Is.False);
             Assert.That(GetVisibleChaliceSlotCount(chaliceView), Is.EqualTo(6));
+            Assert.That(chaliceView.GetComponent<ChaliceBoxTweenPresentationView>().IsPlaying, Is.False);
         }
 
         [Test]
@@ -341,6 +345,7 @@ namespace DreamBlastClone.Tests.EditMode
             var secondVisibleSlots = GetVisibleChaliceSlotNames(chaliceView);
             Assert.That(secondVisibleSlots, Has.Count.EqualTo(6));
             Assert.That(secondVisibleSlots, Is.SubsetOf(firstVisibleSlots));
+            Assert.That(chaliceView.GetComponent<ChaliceBoxTweenPresentationView>().ActiveRemovalCloneCount, Is.EqualTo(2));
         }
 
         [Test]
@@ -830,6 +835,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(chaliceView, "backgroundRenderer", backgroundRenderer);
             SetField(chaliceView, "doorsRenderer", doorsRenderer);
             SetField(chaliceView, "chaliceRenderer", chaliceRenderer);
+            prefab.AddComponent<ChaliceBoxTweenPresentationView>();
 
             return prefab;
         }

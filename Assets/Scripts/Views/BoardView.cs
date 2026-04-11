@@ -193,7 +193,7 @@ namespace DreamBlastClone.Views
             instance.transform.position = transform.TransformPoint(GetFootprintCenter(occupiedCoordinates, z));
             instance.transform.rotation = transform.rotation;
             instance.transform.localScale = GetVisualScale(instance.transform, GetFootprintSize(occupiedCoordinates));
-            ApplyObstacleAppearance(instance, cell.Obstacle);
+            ApplyObstacleAppearance(instance, cell.Obstacle, startChaliceBoxTweenPresentation: false);
             return instance;
         }
 
@@ -256,7 +256,7 @@ namespace DreamBlastClone.Views
                 instance.transform.localScale = GetVisualScale(
                     instance.transform,
                     GetFootprintSize(occupiedCoordinates));
-                ApplyObstacleAppearance(instance, obstacle);
+                ApplyObstacleAppearance(instance, obstacle, startChaliceBoxTweenPresentation: true);
                 spawnedVisuals.Add(instance);
             }
         }
@@ -333,7 +333,7 @@ namespace DreamBlastClone.Views
             }
         }
 
-        private void ApplyObstacleAppearance(GameObject instance, ObstacleModel obstacle)
+        private void ApplyObstacleAppearance(GameObject instance, ObstacleModel obstacle, bool startChaliceBoxTweenPresentation)
         {
             switch (obstacle)
             {
@@ -341,7 +341,7 @@ namespace DreamBlastClone.Views
                     ApplyVaseAppearance(instance, vase);
                     break;
                 case ChaliceBoxObstacleModel chaliceBox:
-                    ApplyChaliceBoxAppearance(instance, chaliceBox);
+                    ApplyChaliceBoxAppearance(instance, chaliceBox, startChaliceBoxTweenPresentation);
                     break;
                 default:
                     ApplyDefaultObstacleAppearance(instance);
@@ -359,16 +359,20 @@ namespace DreamBlastClone.Views
             vaseObstacleView.SetAppearance(vase.RemainingDurability);
         }
 
-        private void ApplyChaliceBoxAppearance(GameObject instance, ChaliceBoxObstacleModel chaliceBox)
+        private void ApplyChaliceBoxAppearance(GameObject instance, ChaliceBoxObstacleModel chaliceBox, bool startTweenPresentation)
         {
             if (!instance.TryGetComponent<ChaliceBoxObstacleView>(out var chaliceBoxView))
             {
                 throw new InvalidOperationException("BoardView requires chaliceBoxPrefab to include a ChaliceBoxObstacleView component.");
             }
 
+            var visualState = ResolveChaliceBoxVisualState(chaliceBox, trackPresentationState: startTweenPresentation);
             chaliceBoxView.SetAppearance(
                 chaliceBox.RemainingDoorDurability > 0,
-                ResolveChaliceSlotMask(chaliceBox));
+                visualState.VisibleSlotMask,
+                startTweenPresentation,
+                visualState.RemovedSlotIndices,
+                GetIdlePhaseOffset(chaliceBox.Anchor));
         }
 
         private void ApplyDefaultObstacleAppearance(GameObject instance)
@@ -444,24 +448,40 @@ namespace DreamBlastClone.Views
             }
         }
 
-        private IReadOnlyList<bool> ResolveChaliceSlotMask(ChaliceBoxObstacleModel chaliceBox)
+        private ChaliceBoxVisualState ResolveChaliceBoxVisualState(ChaliceBoxObstacleModel chaliceBox, bool trackPresentationState)
         {
             if (chaliceBox.RemainingDoorDurability > 0)
             {
-                chalicePresentationStates.Remove(chaliceBox.Anchor);
-                return HiddenChaliceSlotMask;
+                if (trackPresentationState)
+                {
+                    chalicePresentationStates.Remove(chaliceBox.Anchor);
+                }
+
+                return new ChaliceBoxVisualState(HiddenChaliceSlotMask, Array.Empty<int>());
             }
 
             var remainingChalices = Math.Max(0, Math.Min(ChaliceSlotCount, chaliceBox.RemainingChaliceCount));
-            if (!chalicePresentationStates.TryGetValue(chaliceBox.Anchor, out var state)
-                || remainingChalices > state.LastRemainingChalices)
+            var removedSlotIndices = Array.Empty<int>();
+            var hasTrackedState = chalicePresentationStates.TryGetValue(chaliceBox.Anchor, out var state);
+            if (!hasTrackedState || remainingChalices > state.LastRemainingChalices)
             {
                 state = new ChaliceBoxPresentationState(CreateRandomRemovalOrder(), remainingChalices);
-                chalicePresentationStates[chaliceBox.Anchor] = state;
+                if (trackPresentationState)
+                {
+                    chalicePresentationStates[chaliceBox.Anchor] = state;
+                }
             }
             else
             {
-                state.LastRemainingChalices = remainingChalices;
+                if (trackPresentationState && remainingChalices < state.LastRemainingChalices)
+                {
+                    removedSlotIndices = GetNewlyRemovedChaliceSlots(state, remainingChalices);
+                }
+
+                if (trackPresentationState)
+                {
+                    state.LastRemainingChalices = remainingChalices;
+                }
             }
 
             var visibleSlotMask = new bool[ChaliceSlotCount];
@@ -475,7 +495,22 @@ namespace DreamBlastClone.Views
                 visibleSlotMask[state.RemovalOrder[removedCount]] = false;
             }
 
-            return visibleSlotMask;
+            return new ChaliceBoxVisualState(visibleSlotMask, removedSlotIndices);
+        }
+
+        private static int[] GetNewlyRemovedChaliceSlots(ChaliceBoxPresentationState state, int remainingChalices)
+        {
+            var previousRemovedCount = ChaliceSlotCount - state.LastRemainingChalices;
+            var nextRemovedCount = ChaliceSlotCount - remainingChalices;
+            var newlyRemovedCount = Math.Max(0, nextRemovedCount - previousRemovedCount);
+            var removedSlots = new int[newlyRemovedCount];
+
+            for (var index = 0; index < newlyRemovedCount; index++)
+            {
+                removedSlots[index] = state.RemovalOrder[previousRemovedCount + index];
+            }
+
+            return removedSlots;
         }
 
         private int[] CreateRandomRemovalOrder()
@@ -660,6 +695,19 @@ namespace DreamBlastClone.Views
             public int[] RemovalOrder { get; }
 
             public int LastRemainingChalices { get; set; }
+        }
+
+        private readonly struct ChaliceBoxVisualState
+        {
+            public ChaliceBoxVisualState(IReadOnlyList<bool> visibleSlotMask, IReadOnlyList<int> removedSlotIndices)
+            {
+                VisibleSlotMask = visibleSlotMask;
+                RemovedSlotIndices = removedSlotIndices;
+            }
+
+            public IReadOnlyList<bool> VisibleSlotMask { get; }
+
+            public IReadOnlyList<int> RemovedSlotIndices { get; }
         }
     }
 }

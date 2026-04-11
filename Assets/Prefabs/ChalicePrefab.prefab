@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 5344876140323505267}
   - component: {fileID: 7380942099855516956}
   - component: {fileID: 6486282021577092625}
+  - component: {fileID: 4538165218729001440}
   m_Layer: 0
   m_Name: ChalicePrefab
   m_TagString: Untagged
@@ -110,6 +111,26 @@ MonoBehaviour:
   backgroundRenderer: {fileID: 6370362287213213511}
   doorsRenderer: {fileID: 1014604525497019039}
   chaliceRenderer: {fileID: 9007498975695966546}
+--- !u!114 &4538165218729001440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3632859418613727848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b9df3517d6f4d82a4d5fd1dd0c6cfb3, type: 3}
+  m_Name: ''
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.ChaliceBoxTweenPresentationView
+  doorIdleDuration: 1.45
+  doorIdleScaleAmplitude: 0.018
+  doorIdleRotationDegrees: 1.4
+  chaliceIdleDuration: 1.25
+  chaliceIdleScaleAmplitude: 0.045
+  chaliceIdleFloatDistance: 0.018
+  removedChaliceDuration: 0.18
+  removedChaliceLiftDistance: 0.08
 --- !u!1 &4484423719539291708
 GameObject:
   m_ObjectHideFlags: 0
