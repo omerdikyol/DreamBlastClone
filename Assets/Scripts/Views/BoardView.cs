@@ -28,6 +28,8 @@ namespace DreamBlastClone.Views
         [SerializeField] private SpriteRenderer gridBackgroundRenderer;
         [SerializeField] private Vector2 gridBackgroundPadding = new Vector2(0.2f, 0.2f);
         [SerializeField] private float gridBackgroundZ = 0.5f;
+        [SerializeField] private SpriteMask boardClipMask;
+        [SerializeField] private float boardClipMaskZ = -0.05f;
 
         [Header("Item Prefabs")]
         [SerializeField] private GameObject cubePrefab;
@@ -46,6 +48,7 @@ namespace DreamBlastClone.Views
         private readonly CubeGroupDetector cubeGroupDetector = new CubeGroupDetector();
         private readonly Dictionary<BoardCoordinate, ChaliceBoxPresentationState> chalicePresentationStates = new Dictionary<BoardCoordinate, ChaliceBoxPresentationState>();
         private readonly System.Random chalicePresentationRandom = new System.Random();
+        private static Sprite runtimeBoardClipMaskSprite;
 
         public float CellSize => cellSize;
 
@@ -64,6 +67,7 @@ namespace DreamBlastClone.Views
 
             Clear();
             UpdateGridBackground(board);
+            UpdateBoardClipMask(board);
             RenderObstacles(board);
             RenderItems(board, startItemIdleLoops);
         }
@@ -118,6 +122,30 @@ namespace DreamBlastClone.Views
         public Vector3 GetCellCenterWorld(BoardCoordinate coordinate)
         {
             return transform.TransformPoint(GetCellCenter(coordinate, 0f));
+        }
+
+        public void ApplyBoardClipMask(BoardModel board, GameObject visual)
+        {
+            if (board is null)
+            {
+                throw new ArgumentNullException(nameof(board));
+            }
+
+            if (visual is null)
+            {
+                throw new ArgumentNullException(nameof(visual));
+            }
+
+            UpdateBoardClipMask(board);
+
+            var renderers = visual.GetComponentsInChildren<SpriteRenderer>(includeInactive: true);
+            for (var index = 0; index < renderers.Length; index++)
+            {
+                if (renderers[index] is not null)
+                {
+                    renderers[index].maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+                }
+            }
         }
 
         public GameObject CreateTransientItemVisual(BoardModel sourceBoard, BoardCoordinate coordinate, Transform parent, float z)
@@ -557,6 +585,59 @@ namespace DreamBlastClone.Views
 
             backgroundTransform.localScale = Vector3.one;
             gridBackgroundRenderer.size = targetSize;
+        }
+
+        private void UpdateBoardClipMask(BoardModel board)
+        {
+            var clipMask = ResolveBoardClipMask();
+            if (clipMask is null)
+            {
+                return;
+            }
+
+            clipMask.sprite = GetRuntimeBoardClipMaskSprite();
+            clipMask.alphaCutoff = 0.01f;
+
+            var targetSize = new Vector2(
+                board.Width * cellSize,
+                board.Height * cellSize);
+            var center = new Vector3(
+                origin.x + board.Width * cellSize * 0.5f,
+                origin.y + board.Height * cellSize * 0.5f,
+                boardClipMaskZ);
+
+            var maskTransform = clipMask.transform;
+            maskTransform.localPosition = center;
+            maskTransform.localRotation = Quaternion.identity;
+            maskTransform.localScale = new Vector3(targetSize.x, targetSize.y, 1f);
+        }
+
+        private SpriteMask ResolveBoardClipMask()
+        {
+            if (boardClipMask is not null)
+            {
+                return boardClipMask;
+            }
+
+            var clipObject = new GameObject("BoardClipMask");
+            clipObject.transform.SetParent(transform, false);
+            boardClipMask = clipObject.AddComponent<SpriteMask>();
+            return boardClipMask;
+        }
+
+        private static Sprite GetRuntimeBoardClipMaskSprite()
+        {
+            if (runtimeBoardClipMaskSprite is not null)
+            {
+                return runtimeBoardClipMaskSprite;
+            }
+
+            runtimeBoardClipMaskSprite = Sprite.Create(
+                Texture2D.whiteTexture,
+                new Rect(0f, 0f, 1f, 1f),
+                new Vector2(0.5f, 0.5f),
+                1f);
+            return runtimeBoardClipMaskSprite;
         }
 
         private Vector3 GetCellCenter(BoardCoordinate coordinate, float z)

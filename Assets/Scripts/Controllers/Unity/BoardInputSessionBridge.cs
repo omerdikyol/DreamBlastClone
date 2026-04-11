@@ -158,7 +158,7 @@ namespace DreamBlastClone.Controllers.Unity
             {
                 if (tapResult.Tap.IsValidTap)
                 {
-                    boardView.Render(finalBoard, startItemIdleLoops: false);
+                    boardView.Render(finalBoard);
                 }
 
                 if (TryStartTapAnticipation(preTapBoard, resolvedCoordinate, tapResult.Tap, out var invalidTapDuration))
@@ -367,7 +367,7 @@ namespace DreamBlastClone.Controllers.Unity
                 return false;
             }
 
-            boardView.Render(pendingSettleStartBoard, startItemIdleLoops: false);
+            boardView.Render(pendingSettleStartBoard);
 
             if (!settleMotionPlayer.TryPlay(boardView, pendingFinalBoard, pendingSettleMotionDescriptor))
             {

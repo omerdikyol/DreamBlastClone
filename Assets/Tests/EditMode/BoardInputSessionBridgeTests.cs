@@ -1203,8 +1203,16 @@ namespace DreamBlastClone.Tests.EditMode
         {
             var host = CreateGameObject("SettleMotionPlayer");
             var effectPlayer = host.AddComponent<BoardSettleMotionPlayer>();
-            SetField(effectPlayer, "secondsPerCell", 0.08f);
+            SetField(effectPlayer, "shortFallDurationSeconds", 0.11f);
+            SetField(effectPlayer, "longFallDurationSeconds", 0.28f);
+            SetField(effectPlayer, "distanceForLongFallSeconds", 7f);
             SetField(effectPlayer, "minimumDuration", 0.12f);
+            SetField(effectPlayer, "gravityCascadeDelayStep", 0.03f);
+            SetField(effectPlayer, "shortLandingDurationSeconds", 0.055f);
+            SetField(effectPlayer, "longLandingDurationSeconds", 0.08f);
+            SetField(effectPlayer, "landingDipCells", 0.065f);
+            SetField(effectPlayer, "landingScaleX", 1.04f);
+            SetField(effectPlayer, "landingScaleY", 0.95f);
             SetField(effectPlayer, "effectZ", -0.12f);
             return effectPlayer;
         }

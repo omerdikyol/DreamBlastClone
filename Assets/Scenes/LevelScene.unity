@@ -1070,9 +1070,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.BoardSettleMotionPlayer
   effectRoot: {fileID: 0}
-  secondsPerCell: 0.08
+  shortFallDurationSeconds: 0.11
+  longFallDurationSeconds: 0.28
+  distanceForLongFallSeconds: 7
   minimumDuration: 0.12
-  columnLandingStep: 0.04
+  gravityCascadeDelayStep: 0.03
+  shortLandingDurationSeconds: 0.055
+  longLandingDurationSeconds: 0.08
+  landingDipCells: 0.065
+  landingScaleX: 1.04
+  landingScaleY: 0.95
   effectZ: -0.12
 --- !u!114 &1374160548
 MonoBehaviour:

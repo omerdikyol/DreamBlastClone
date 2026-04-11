@@ -661,6 +661,20 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void RenderCreatesBoardClipMaskSizedToPlayableBoardFootprint()
+        {
+            var board = new BoardModel(6, 4);
+            var boardView = CreateConfiguredBoardView(cellSize: 0.5f);
+
+            boardView.Render(board);
+
+            var clipMask = (SpriteMask)GetField(boardView, "boardClipMask");
+            Assert.That(clipMask, Is.Not.Null);
+            Assert.That(clipMask.transform.localPosition, Is.EqualTo(new Vector3(0f, 0f, -0.05f)));
+            Assert.That(clipMask.transform.localScale, Is.EqualTo(new Vector3(3f, 2f, 1f)));
+        }
+
+        [Test]
         public void RerenderClearsStaleVisualsAndRebuildsFromCurrentBoardState()
         {
             var board = new BoardModel(2, 2);

@@ -79,6 +79,37 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void TryPlayMakesLongFallsTakeLongerButClampsBelowSluggishDuration()
+        {
+            var boardView = CreateConfiguredBoardView();
+
+            var shortBoard = new BoardModel(1, 2);
+            shortBoard.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Blue));
+            var shortPlayer = CreatePlayer(out _);
+            var shortDescriptor = new BoardSettleMotionDescriptor(
+                new[]
+                {
+                    new ItemSettleMove(new BoardCoordinate(0, 1), new BoardCoordinate(0, 0))
+                },
+                System.Array.Empty<RefillSpawnMotion>());
+
+            var longBoard = new BoardModel(1, 8);
+            longBoard.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Green));
+            var longPlayer = CreatePlayer(out _);
+            var longDescriptor = new BoardSettleMotionDescriptor(
+                new[]
+                {
+                    new ItemSettleMove(new BoardCoordinate(0, 7), new BoardCoordinate(0, 0))
+                },
+                System.Array.Empty<RefillSpawnMotion>());
+
+            Assert.That(shortPlayer.TryPlay(boardView, shortBoard, shortDescriptor), Is.True);
+            Assert.That(longPlayer.TryPlay(boardView, longBoard, longDescriptor), Is.True);
+            Assert.That(shortPlayer.Duration, Is.LessThan(longPlayer.Duration));
+            Assert.That(longPlayer.Duration, Is.LessThan(0.37f));
+        }
+
+        [Test]
         public void TryPlayReturnsFalseForEmptyDescriptor()
         {
             var finalBoard = new BoardModel(1, 1);
@@ -107,7 +138,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(player.TryPlay(boardView, finalBoard, descriptor), Is.True);
 
-            player.Advance(0.34f);
+            player.Advance(0.26f);
 
             Assert.That(Vector3.Distance(effectRoot.GetChild(0).position, boardView.GetCellCenterWorld(new BoardCoordinate(0, 0))), Is.LessThan(0.0001f));
             Assert.That(Vector3.Distance(effectRoot.GetChild(1).position, boardView.GetCellCenterWorld(new BoardCoordinate(0, 3))), Is.GreaterThan(0.01f));
@@ -138,6 +169,52 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(effectRoot.GetChild(0).position.y, Is.LessThan(effectRoot.GetChild(1).position.y));
             Assert.That(effectRoot.GetChild(1).position.y, Is.LessThan(effectRoot.GetChild(2).position.y));
+        }
+
+        [Test]
+        public void TryPlayConfiguresRefillVisualToBeClippedInsideBoardMask()
+        {
+            var finalBoard = new BoardModel(1, 4);
+            finalBoard.PlaceItem(new BoardCoordinate(0, 2), new CubeItemModel(CubeColor.Green));
+
+            var boardView = CreateConfiguredBoardView();
+            var player = CreatePlayer(out var effectRoot);
+            var descriptor = new BoardSettleMotionDescriptor(
+                System.Array.Empty<ItemSettleMove>(),
+                new[]
+                {
+                    new RefillSpawnMotion(new BoardCoordinate(0, 4), new BoardCoordinate(0, 2), CubeColor.Green)
+                });
+
+            Assert.That(player.TryPlay(boardView, finalBoard, descriptor), Is.True);
+
+            var refillRenderer = effectRoot.GetChild(0).GetComponent<SpriteRenderer>();
+            Assert.That(refillRenderer.maskInteraction, Is.EqualTo(SpriteMaskInteraction.VisibleInsideMask));
+        }
+
+        [Test]
+        public void TryPlayLateLandingReturnsNearDestinationAndBaseScaleBeforeCleanup()
+        {
+            var finalBoard = new BoardModel(1, 3);
+            finalBoard.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Blue));
+
+            var boardView = CreateConfiguredBoardView();
+            var player = CreatePlayer(out var effectRoot);
+            var descriptor = new BoardSettleMotionDescriptor(
+                new[]
+                {
+                    new ItemSettleMove(new BoardCoordinate(0, 2), new BoardCoordinate(0, 0))
+                },
+                System.Array.Empty<RefillSpawnMotion>());
+
+            Assert.That(player.TryPlay(boardView, finalBoard, descriptor), Is.True);
+
+            player.Advance(player.Duration - 0.001f);
+
+            var visual = effectRoot.GetChild(0);
+            var destination = boardView.GetCellCenterWorld(new BoardCoordinate(0, 0));
+            Assert.That(Vector3.Distance(visual.position, destination), Is.LessThan(0.002f));
+            Assert.That(Vector3.Distance(visual.localScale, Vector3.one), Is.LessThan(0.02f));
         }
 
         private BoardView CreateConfiguredBoardView()
@@ -172,9 +249,16 @@ namespace DreamBlastClone.Tests.EditMode
             effectRoot.SetParent(host.transform, false);
             var player = host.AddComponent<BoardSettleMotionPlayer>();
             SetField(player, "effectRoot", effectRoot);
-            SetField(player, "secondsPerCell", 0.08f);
+            SetField(player, "shortFallDurationSeconds", 0.11f);
+            SetField(player, "longFallDurationSeconds", 0.28f);
+            SetField(player, "distanceForLongFallSeconds", 7f);
             SetField(player, "minimumDuration", 0.12f);
-            SetField(player, "columnLandingStep", 0.04f);
+            SetField(player, "gravityCascadeDelayStep", 0.03f);
+            SetField(player, "shortLandingDurationSeconds", 0.055f);
+            SetField(player, "longLandingDurationSeconds", 0.08f);
+            SetField(player, "landingDipCells", 0.065f);
+            SetField(player, "landingScaleX", 1.04f);
+            SetField(player, "landingScaleY", 0.95f);
             SetField(player, "effectZ", 0f);
             return player;
         }
