@@ -1,7 +1,6 @@
 using System;
 using DreamBlastClone.Core;
 using DreamBlastClone.Data;
-using DreamBlastClone.Grid;
 using DreamBlastClone.Systems;
 
 namespace DreamBlastClone.Controllers
@@ -18,25 +17,26 @@ namespace DreamBlastClone.Controllers
                 throw new ArgumentNullException(nameof(levelDefinition));
             }
 
-            var colorResolver = new DeterministicCubeColorResolver();
-            var board = levelBoardBuilder.Build(levelDefinition, colorResolver);
+            var deterministicSeed = BuildDeterministicSeed(levelDefinition);
+            var initialColorResolver = new DeterministicInitialCubeColorResolver(deterministicSeed);
+            var refillColorResolver = new DeterministicRefillSequenceResolver(deterministicSeed);
+            var board = levelBoardBuilder.Build(levelDefinition, initialColorResolver);
             var goals = levelGoalDefinitionBuilder.Build(levelDefinition);
-            return new LevelSession(board, levelDefinition.MoveCount, colorResolver, goals);
+            return new LevelSession(board, levelDefinition.MoveCount, refillColorResolver, goals);
         }
 
-        private sealed class DeterministicCubeColorResolver : IRandomCubeColorResolver, IRefillCubeColorResolver
+        private static uint BuildDeterministicSeed(LevelDefinition levelDefinition)
         {
-            public CubeColor ResolveColor(BoardCoordinate coordinate)
+            unchecked
             {
-                var hash = unchecked((uint)(coordinate.X * 73856093) ^ (uint)(coordinate.Y * 19349663));
+                var seed = 2166136261u;
+                seed = (seed ^ (uint)levelDefinition.LevelNumber) * 16777619u;
+                seed = (seed ^ (uint)levelDefinition.GridWidth) * 16777619u;
+                seed = (seed ^ (uint)levelDefinition.GridHeight) * 16777619u;
+                seed = (seed ^ (uint)levelDefinition.MoveCount) * 16777619u;
+                seed = (seed ^ (uint)levelDefinition.CellDefinitions.Count) * 16777619u;
 
-                return (hash % 4u) switch
-                {
-                    0u => CubeColor.Red,
-                    1u => CubeColor.Green,
-                    2u => CubeColor.Blue,
-                    _ => CubeColor.Yellow
-                };
+                return seed;
             }
         }
     }

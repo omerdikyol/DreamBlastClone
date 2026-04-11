@@ -354,7 +354,7 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
-        public void TryHandleScreenTapNearAdjacentRocketsSnapsToSpecialCombo()
+        public void TryHandleScreenTapNearAdjacentRocketsDoesNotActivateSpecialCombo()
         {
             var board = new BoardModel(3, 3);
             board.PlaceItem(new BoardCoordinate(1, 1), new RocketItemModel(RocketOrientation.Horizontal));
@@ -374,16 +374,17 @@ namespace DreamBlastClone.Tests.EditMode
             var screenPosition = GetCamera(bridge).WorldToScreenPoint(worldPoint);
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
-            Assert.That(session.RemainingMoves, Is.EqualTo(4));
+            Assert.That(session.RemainingMoves, Is.EqualTo(5));
             Assert.That(capturedTapResult, Is.Not.Null);
-            Assert.That(capturedTapResult.Tap.RouteType, Is.EqualTo(TapRouteType.SpecialItem));
-            Assert.That(capturedTapResult.Tap.SpecialItem.Combo.IsComboActivated, Is.True);
-            Assert.That(capturedTapResult.Tap.SpecialItem.Combo.RemovedItemCoordinates, Does.Contain(new BoardCoordinate(1, 0)));
+            Assert.That(capturedTapResult.DidSpendMove, Is.False);
+            Assert.That(capturedTapResult.Tap.RouteType, Is.EqualTo(TapRouteType.NormalCube));
+            Assert.That(capturedTapResult.Tap.IsValidTap, Is.False);
+            Assert.That(capturedTapResult.Tap.SpecialItem.IsValidTap, Is.False);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
-            Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.True);
-            Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.False);
-            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.True);
-            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.False);
         }
 
         [Test]

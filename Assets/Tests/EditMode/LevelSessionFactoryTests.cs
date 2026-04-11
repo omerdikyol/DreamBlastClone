@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using DreamBlastClone.Controllers;
 using DreamBlastClone.Core;
 using DreamBlastClone.Data;
@@ -47,6 +48,40 @@ namespace DreamBlastClone.Tests.EditMode
             var cubeB = (CubeItemModel)sessionB.Board.GetCell(randomCoordinate).Item;
 
             Assert.That(cubeA.Color, Is.EqualTo(cubeB.Color));
+        }
+
+        [Test]
+        public void CreateUsesDeterministicRefillSequenceAcrossMatchingPlaythroughs()
+        {
+            var factory = new LevelSessionFactory();
+            var level = new LevelDefinition(
+                levelNumber: 99,
+                gridWidth: 2,
+                gridHeight: 3,
+                moveCount: 5,
+                cellDefinitions: new[]
+                {
+                    new LevelCellDefinition(new BoardCoordinate(0, 0), new CubeLevelItemDefinition(CubeColor.Red)),
+                    new LevelCellDefinition(new BoardCoordinate(1, 0), new CubeLevelItemDefinition(CubeColor.Red)),
+                    new LevelCellDefinition(new BoardCoordinate(1, 2), obstacle: new StoneLevelObstacleDefinition())
+                });
+
+            var sessionA = factory.Create(level);
+            var sessionB = factory.Create(level);
+
+            var resultA = sessionA.ProcessTap(new BoardCoordinate(0, 0));
+            var resultB = sessionB.ProcessTap(new BoardCoordinate(0, 0));
+
+            Assert.That(resultA.Tap.NormalCube.IsValidTap, Is.True);
+            Assert.That(resultB.Tap.NormalCube.IsValidTap, Is.True);
+            Assert.That(resultA.Tap.NormalCube.Refill.Spawns, Is.EqualTo(resultB.Tap.NormalCube.Refill.Spawns));
+
+            foreach (var coordinate in resultA.Tap.NormalCube.Refill.Spawns.Select(spawn => spawn.Coordinate))
+            {
+                var cubeA = (CubeItemModel)sessionA.Board.GetCell(coordinate).Item;
+                var cubeB = (CubeItemModel)sessionB.Board.GetCell(coordinate).Item;
+                Assert.That(cubeA.Color, Is.EqualTo(cubeB.Color), $"Expected matching refill color at {coordinate}.");
+            }
         }
 
         [Test]

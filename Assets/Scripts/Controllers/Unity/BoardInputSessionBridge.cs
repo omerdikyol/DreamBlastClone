@@ -675,11 +675,6 @@ namespace DreamBlastClone.Controllers.Unity
                 return initialCoordinate;
             }
 
-            if (TryResolveNearbySpecialCoordinate(board, worldPoint, initialCoordinate, out var nearbySpecialCoordinate))
-            {
-                return nearbySpecialCoordinate;
-            }
-
             var initialDistanceSquared = GetCellCenterDistanceSquared(initialCoordinate, worldPoint);
             var stickyRadiusSquared = boardView.CellSize * CubeTapStickinessFactor;
             stickyRadiusSquared *= stickyRadiusSquared;
@@ -724,41 +719,6 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             return bestCoordinate;
-        }
-
-        private bool TryResolveNearbySpecialCoordinate(
-            BoardModel board,
-            Vector3 worldPoint,
-            BoardCoordinate initialCoordinate,
-            out BoardCoordinate specialCoordinate)
-        {
-            specialCoordinate = default;
-            var bestDistanceSquared = float.MaxValue;
-            var snapRadiusSquared = boardView.CellSize * CubeTapSnapRadiusFactor;
-            snapRadiusSquared *= snapRadiusSquared;
-
-            foreach (var candidate in GetTapCandidateCoordinates(initialCoordinate))
-            {
-                if (!board.TryGetCell(candidate, out var candidateCell)
-                    || candidateCell.Item is not (RocketItemModel or TntItemModel))
-                {
-                    continue;
-                }
-
-                var centerDistanceSquared = GetCellCenterDistanceSquared(candidate, worldPoint);
-                if (centerDistanceSquared > snapRadiusSquared)
-                {
-                    continue;
-                }
-
-                if (centerDistanceSquared < bestDistanceSquared)
-                {
-                    specialCoordinate = candidate;
-                    bestDistanceSquared = centerDistanceSquared;
-                }
-            }
-
-            return bestDistanceSquared < float.MaxValue;
         }
 
         private float GetCellCenterDistanceSquared(BoardCoordinate coordinate, Vector3 worldPoint)
