@@ -21,11 +21,13 @@ namespace DreamBlastClone.Views
         [SerializeField] private Sprite horizontalRocketPartRightSprite;
         [SerializeField] private Sprite verticalRocketPartTopSprite;
         [SerializeField] private Sprite verticalRocketPartBottomSprite;
+        [SerializeField] private Sprite rocketParticleStarSprite;
+        [SerializeField] private Sprite rocketParticleSmokeSprite;
         [SerializeField] private Sprite tntSprite;
 
         private readonly List<GameObject> spawnedRoots = new List<GameObject>();
         private readonly List<ActiveFlashVisual> activeFlashVisuals = new List<ActiveFlashVisual>();
-        private readonly List<ActiveRocketSweepVisual> activeRocketSweeps = new List<ActiveRocketSweepVisual>();
+        private readonly List<SingleRocketActivationEffectPlayer> activeRocketSweepPlayers = new List<SingleRocketActivationEffectPlayer>();
         private readonly List<Tween> activeTweens = new List<Tween>();
 
         private ActiveTntPulseVisual activeTntPulse;
@@ -81,7 +83,6 @@ namespace DreamBlastClone.Views
             }
 
             LaunchFlashTweens();
-            LaunchRocketSweepTweens();
             LaunchTntPulseTween();
             return true;
         }
@@ -94,6 +95,12 @@ namespace DreamBlastClone.Views
             }
 
             elapsed = Mathf.Min(activeDuration, elapsed + Mathf.Max(0f, deltaTime));
+
+            for (var index = 0; index < activeRocketSweepPlayers.Count; index++)
+            {
+                activeRocketSweepPlayers[index]?.Advance(deltaTime);
+            }
+
             if (elapsed >= activeDuration)
             {
                 Stop();
@@ -109,6 +116,11 @@ namespace DreamBlastClone.Views
 
             activeTweens.Clear();
 
+            for (var index = activeRocketSweepPlayers.Count - 1; index >= 0; index--)
+            {
+                activeRocketSweepPlayers[index]?.Stop();
+            }
+
             for (var index = spawnedRoots.Count - 1; index >= 0; index--)
             {
                 if (Application.isPlaying)
@@ -123,7 +135,7 @@ namespace DreamBlastClone.Views
 
             spawnedRoots.Clear();
             activeFlashVisuals.Clear();
-            activeRocketSweeps.Clear();
+            activeRocketSweepPlayers.Clear();
             activeTntPulse = default;
             activeBoardView = null;
             activeDuration = 0f;
@@ -150,37 +162,6 @@ namespace DreamBlastClone.Views
                     .SetLink(renderer.gameObject, LinkBehaviour.KillOnDestroy);
                 activeTweens.Add(seq);
             }
-        }
-
-        private void LaunchRocketSweepTweens()
-        {
-            for (var index = 0; index < activeRocketSweeps.Count; index++)
-            {
-                var sweep = activeRocketSweeps[index];
-                activeTweens.Add(CreateRocketPartTween(
-                    sweep.NegativeRenderer,
-                    sweep.NegativeEndWorldPosition,
-                    sweep.NegativeTravelDuration));
-                activeTweens.Add(CreateRocketPartTween(
-                    sweep.PositiveRenderer,
-                    sweep.PositiveEndWorldPosition,
-                    sweep.PositiveTravelDuration));
-            }
-        }
-
-        private Tween CreateRocketPartTween(SpriteRenderer renderer, Vector3 endPosition, float travelDuration)
-        {
-            // Pop scale at launch then normalize while traveling
-            var baseScale = renderer.transform.localScale;
-            renderer.transform.localScale = baseScale * 1.28f;
-            var safeTravelDuration = Mathf.Max(0.04f, travelDuration);
-
-            return DOTween.Sequence()
-                .Join(renderer.transform.DOScale(baseScale, 0.07f).SetEase(Ease.OutQuad))
-                .Join(renderer.transform.DOMove(endPosition, safeTravelDuration).SetEase(Ease.OutCubic))
-                .Join(TweenRendererAlpha(renderer, 0f, activeDuration).SetEase(Ease.InQuad))
-                .SetUpdate(UpdateType.Normal, isIndependentUpdate: true)
-                .SetLink(renderer.gameObject, LinkBehaviour.KillOnDestroy);
         }
 
         private void LaunchTntPulseTween()
@@ -240,56 +221,40 @@ namespace DreamBlastClone.Views
 
         private void CreateRocketSweepVisuals(Transform root, SpecialItemComboPresentationDescriptor descriptor)
         {
+            var rocketVisualSource = ResolveRocketVisualSource();
+
             for (var index = 0; index < descriptor.RocketSweeps.Count; index++)
             {
                 var sweepDescriptor = descriptor.RocketSweeps[index];
                 var sweepRoot = CreateRoot(root, $"ComboRocketSweep_{sweepDescriptor.Orientation}_{index}");
-                var negativeRenderer = CreateRocketPartRenderer(
+                var rocketPlayer = sweepRoot.AddComponent<SingleRocketActivationEffectPlayer>();
+                rocketPlayer.ConfigureForRuntime(
                     sweepRoot.transform,
-                    ResolveNegativeSprite(sweepDescriptor.Orientation),
-                    $"{sweepDescriptor.Orientation}NegativePart");
-                var positiveRenderer = CreateRocketPartRenderer(
-                    sweepRoot.transform,
-                    ResolvePositiveSprite(sweepDescriptor.Orientation),
-                    $"{sweepDescriptor.Orientation}PositivePart");
+                    activeDuration,
+                    (rocketVisualSource?.EffectZ ?? effectZ) + 0.03f,
+                    rocketVisualSource?.RocketOverflowCells ?? rocketOverflowCells,
+                    ResolveSprite(horizontalRocketPartLeftSprite, rocketVisualSource?.HorizontalRocketPartLeftSprite),
+                    ResolveSprite(horizontalRocketPartRightSprite, rocketVisualSource?.HorizontalRocketPartRightSprite),
+                    ResolveSprite(verticalRocketPartTopSprite, rocketVisualSource?.VerticalRocketPartTopSprite),
+                    ResolveSprite(verticalRocketPartBottomSprite, rocketVisualSource?.VerticalRocketPartBottomSprite),
+                    ResolveSprite(rocketParticleStarSprite, rocketVisualSource?.RocketParticleStarSprite),
+                    ResolveSprite(rocketParticleSmokeSprite, rocketVisualSource?.RocketParticleSmokeSprite));
 
-                var originWorldPosition = GetWorldPosition(sweepDescriptor.Origin, effectZ + 0.03f);
-                var negativeEndWorldPosition = GetWorldPosition(sweepDescriptor.NegativeEnd, effectZ + 0.03f);
-                var positiveEndWorldPosition = GetWorldPosition(sweepDescriptor.PositiveEnd, effectZ + 0.03f);
-
-                // Extend past the grid edge so rocket halves fly off-screen.
-                // The board clip mask hides them once they cross the boundary.
-                if (rocketOverflowCells > 0f)
+                if (rocketPlayer.TryPlay(activeBoardView, sweepDescriptor))
                 {
-                    var overflow = activeBoardView.CellSize * rocketOverflowCells;
-                    var negDir = (negativeEndWorldPosition - originWorldPosition).normalized;
-                    var posDir = (positiveEndWorldPosition - originWorldPosition).normalized;
-                    negativeEndWorldPosition += negDir * overflow;
-                    positiveEndWorldPosition += posDir * overflow;
+                    activeRocketSweepPlayers.Add(rocketPlayer);
                 }
-
-                negativeRenderer.transform.position = originWorldPosition;
-                positiveRenderer.transform.position = originWorldPosition;
-
-                var negativeDistance = Vector3.Distance(originWorldPosition, negativeEndWorldPosition);
-                var positiveDistance = Vector3.Distance(originWorldPosition, positiveEndWorldPosition);
-                var maxDistance = Mathf.Max(negativeDistance, positiveDistance);
-                var negativeTravelDuration = maxDistance > Mathf.Epsilon
-                    ? activeDuration * (negativeDistance / maxDistance)
-                    : 0f;
-                var positiveTravelDuration = maxDistance > Mathf.Epsilon
-                    ? activeDuration * (positiveDistance / maxDistance)
-                    : 0f;
-
-                activeRocketSweeps.Add(new ActiveRocketSweepVisual(
-                    negativeRenderer,
-                    positiveRenderer,
-                    originWorldPosition,
-                    negativeEndWorldPosition,
-                    positiveEndWorldPosition,
-                    negativeTravelDuration,
-                    positiveTravelDuration));
             }
+        }
+
+        private SingleRocketActivationEffectPlayer ResolveRocketVisualSource()
+        {
+            return GetComponent<SingleRocketActivationEffectPlayer>();
+        }
+
+        private static Sprite ResolveSprite(Sprite primary, Sprite fallback)
+        {
+            return primary != null ? primary : fallback;
         }
 
         private void CreateTntPulseVisual(Transform root, SpecialItemComboPresentationDescriptor descriptor)
@@ -321,38 +286,6 @@ namespace DreamBlastClone.Views
             root.transform.SetParent(parent, worldPositionStays: false);
             spawnedRoots.Add(root);
             return root;
-        }
-
-        private SpriteRenderer CreateRocketPartRenderer(Transform parent, Sprite sprite, string name)
-        {
-            if (sprite is null)
-            {
-                throw new InvalidOperationException("Combo presentation requires all rocket part sprites to be assigned.");
-            }
-
-            var rendererObject = new GameObject(name);
-            rendererObject.transform.SetParent(parent, worldPositionStays: false);
-            var renderer = rendererObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = sprite;
-            renderer.color = Color.white;
-            renderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
-            renderer.sortingOrder = 7;
-            renderer.transform.localScale = GetSpriteScale(sprite, activeBoardView.CellSize);
-            return renderer;
-        }
-
-        private Sprite ResolveNegativeSprite(RocketOrientation orientation)
-        {
-            return orientation == RocketOrientation.Horizontal
-                ? horizontalRocketPartLeftSprite
-                : verticalRocketPartBottomSprite;
-        }
-
-        private Sprite ResolvePositiveSprite(RocketOrientation orientation)
-        {
-            return orientation == RocketOrientation.Horizontal
-                ? horizontalRocketPartRightSprite
-                : verticalRocketPartTopSprite;
         }
 
         private Vector3 GetWorldPosition(BoardCoordinate coordinate, float zOffset)
@@ -481,41 +414,6 @@ namespace DreamBlastClone.Views
             public Vector3 InitialScale { get; }
 
             public Color BaseColor { get; }
-        }
-
-        private readonly struct ActiveRocketSweepVisual
-        {
-            public ActiveRocketSweepVisual(
-                SpriteRenderer negativeRenderer,
-                SpriteRenderer positiveRenderer,
-                Vector3 originWorldPosition,
-                Vector3 negativeEndWorldPosition,
-                Vector3 positiveEndWorldPosition,
-                float negativeTravelDuration,
-                float positiveTravelDuration)
-            {
-                NegativeRenderer = negativeRenderer;
-                PositiveRenderer = positiveRenderer;
-                OriginWorldPosition = originWorldPosition;
-                NegativeEndWorldPosition = negativeEndWorldPosition;
-                PositiveEndWorldPosition = positiveEndWorldPosition;
-                NegativeTravelDuration = negativeTravelDuration;
-                PositiveTravelDuration = positiveTravelDuration;
-            }
-
-            public SpriteRenderer NegativeRenderer { get; }
-
-            public SpriteRenderer PositiveRenderer { get; }
-
-            public Vector3 OriginWorldPosition { get; }
-
-            public Vector3 NegativeEndWorldPosition { get; }
-
-            public Vector3 PositiveEndWorldPosition { get; }
-
-            public float NegativeTravelDuration { get; }
-
-            public float PositiveTravelDuration { get; }
         }
 
         private readonly struct ActiveTntPulseVisual

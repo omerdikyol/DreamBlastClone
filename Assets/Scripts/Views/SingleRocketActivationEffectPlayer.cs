@@ -72,13 +72,54 @@ namespace DreamBlastClone.Views
         private float nextSmokeSpawnTime;
         private float nextStreakSpawnTime;
         private int particleSequence;
+        private float runtimeDurationOverride = -1f;
         // Base scales captured at spawn time so the launch punch multiplies cleanly.
         private Vector3 baseNegativeScale;
         private Vector3 basePositiveScale;
 
         public bool IsPlaying => negativePartRenderer is not null && positivePartRenderer is not null;
 
-        public float Duration => activeDuration > 0f ? activeDuration : duration;
+        public float Duration => activeDuration > 0f ? activeDuration : ResolveConfiguredDuration();
+
+        public float EffectZ => effectZ;
+
+        public float RocketOverflowCells => rocketOverflowCells;
+
+        public Sprite HorizontalRocketPartLeftSprite => horizontalRocketPartLeftSprite;
+
+        public Sprite HorizontalRocketPartRightSprite => horizontalRocketPartRightSprite;
+
+        public Sprite VerticalRocketPartTopSprite => verticalRocketPartTopSprite;
+
+        public Sprite VerticalRocketPartBottomSprite => verticalRocketPartBottomSprite;
+
+        public Sprite RocketParticleStarSprite => rocketParticleStarSprite;
+
+        public Sprite RocketParticleSmokeSprite => rocketParticleSmokeSprite;
+
+        public void ConfigureForRuntime(
+            Transform runtimeEffectRoot,
+            float durationOverride,
+            float runtimeEffectZ,
+            float runtimeRocketOverflowCells,
+            Sprite runtimeHorizontalRocketPartLeftSprite,
+            Sprite runtimeHorizontalRocketPartRightSprite,
+            Sprite runtimeVerticalRocketPartTopSprite,
+            Sprite runtimeVerticalRocketPartBottomSprite,
+            Sprite runtimeRocketParticleStarSprite,
+            Sprite runtimeRocketParticleSmokeSprite)
+        {
+            effectRoot = runtimeEffectRoot;
+            runtimeDurationOverride = durationOverride;
+            effectZ = runtimeEffectZ;
+            rocketOverflowCells = runtimeRocketOverflowCells;
+            horizontalRocketPartLeftSprite = runtimeHorizontalRocketPartLeftSprite;
+            horizontalRocketPartRightSprite = runtimeHorizontalRocketPartRightSprite;
+            verticalRocketPartTopSprite = runtimeVerticalRocketPartTopSprite;
+            verticalRocketPartBottomSprite = runtimeVerticalRocketPartBottomSprite;
+            rocketParticleStarSprite = runtimeRocketParticleStarSprite;
+            rocketParticleSmokeSprite = runtimeRocketParticleSmokeSprite;
+        }
 
         public bool TryPlay(BoardView boardView, SingleRocketActivationEffectDescriptor descriptor)
         {
@@ -92,7 +133,7 @@ namespace DreamBlastClone.Views
                 throw new ArgumentNullException(nameof(descriptor));
             }
 
-            if (duration <= 0f)
+            if (ResolveConfiguredDuration() <= 0f)
             {
                 return false;
             }
@@ -450,6 +491,7 @@ namespace DreamBlastClone.Views
 
         private void InitializeTravelDurations()
         {
+            var configuredDuration = ResolveConfiguredDuration();
             originWorldPosition = GetWorldPosition(activeDescriptor.Origin);
             negativeEndWorldPosition = GetWorldPosition(activeDescriptor.NegativeEnd);
             positiveEndWorldPosition = GetWorldPosition(activeDescriptor.PositiveEnd);
@@ -473,14 +515,14 @@ namespace DreamBlastClone.Views
             {
                 negativeTravelDuration = 0f;
                 positiveTravelDuration = 0f;
-                activeDuration = duration;
+                activeDuration = configuredDuration;
                 return;
             }
 
             // Both parts move at the same speed; the shorter side simply finishes earlier.
-            negativeTravelDuration = duration * (negativeDistance / maxDistance);
-            positiveTravelDuration = duration * (positiveDistance / maxDistance);
-            activeDuration = duration;
+            negativeTravelDuration = configuredDuration * (negativeDistance / maxDistance);
+            positiveTravelDuration = configuredDuration * (positiveDistance / maxDistance);
+            activeDuration = configuredDuration;
         }
 
         private Vector3 GetWorldPosition(Core.BoardCoordinate coordinate)
@@ -631,6 +673,11 @@ namespace DreamBlastClone.Views
         {
             var inverse = 1f - progress;
             return 1f - inverse * inverse * inverse;
+        }
+
+        private float ResolveConfiguredDuration()
+        {
+            return runtimeDurationOverride > 0f ? runtimeDurationOverride : duration;
         }
 
         private struct ActiveParticle

@@ -181,6 +181,8 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(CountChildrenByPrefix(effectRoot, "ComboRocketSweep_"), Is.EqualTo(6));
             Assert.That(CountChildrenByPrefix(effectRoot, "ComboFlash_"), Is.EqualTo(21));
             Assert.That(CountChildrenByPrefix(effectRoot, "ComboTntPulse"), Is.EqualTo(1));
+            Assert.That(CountDescendantsByPrefix(effectRoot, "RocketParticleStar_"), Is.GreaterThan(0));
+            Assert.That(CountDescendantsByPrefix(effectRoot, "RocketParticleSmoke_"), Is.GreaterThan(0));
 
             player.Advance(player.Duration);
 
@@ -209,6 +211,8 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(player, "horizontalRocketPartRightSprite", CreateSprite(19, 18, 19f));
             SetField(player, "verticalRocketPartTopSprite", CreateSprite(18, 19, 18f));
             SetField(player, "verticalRocketPartBottomSprite", CreateSprite(19, 19, 19f));
+            SetField(player, "rocketParticleStarSprite", CreateSprite(14, 14, 20f));
+            SetField(player, "rocketParticleSmokeSprite", CreateSprite(20, 20, 20f));
             SetField(player, "tntSprite", CreateSprite(24, 24, 24f));
             SetField(player, "rocketRocketDuration", 0.22f);
             SetField(player, "tntRocketDuration", 0.24f);
@@ -245,6 +249,23 @@ namespace DreamBlastClone.Tests.EditMode
                 {
                     count++;
                 }
+            }
+
+            return count;
+        }
+
+        private static int CountDescendantsByPrefix(Transform root, string prefix)
+        {
+            var count = 0;
+            for (var index = 0; index < root.childCount; index++)
+            {
+                var child = root.GetChild(index);
+                if (child.name.StartsWith(prefix, System.StringComparison.Ordinal))
+                {
+                    count++;
+                }
+
+                count += CountDescendantsByPrefix(child, prefix);
             }
 
             return count;
