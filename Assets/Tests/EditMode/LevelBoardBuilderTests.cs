@@ -116,7 +116,7 @@ namespace DreamBlastClone.Tests.EditMode
             var chaliceBox = (ChaliceBoxObstacleModel)board.GetCell(new BoardCoordinate(0, 0)).Obstacle;
 
             Assert.That(chaliceBox.Anchor, Is.EqualTo(new BoardCoordinate(0, 0)));
-            Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(4));
+            Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(1));
             Assert.That(chaliceBox.RequiredChaliceCount, Is.EqualTo(10));
             Assert.That(chaliceBox.CollectedChaliceCount, Is.EqualTo(0));
             Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Obstacle, Is.SameAs(chaliceBox));

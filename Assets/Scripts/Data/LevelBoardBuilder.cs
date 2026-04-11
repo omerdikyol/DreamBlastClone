@@ -118,7 +118,7 @@ namespace DreamBlastClone.Data
             {
                 var chaliceBox = new ChaliceBoxObstacleModel(
                     region.Anchor,
-                    remainingDoorDurability: 4,
+                    remainingDoorDurability: 1,
                     requiredChaliceCount: 10,
                     collectedChaliceCount: 0);
                 board.PlaceObstacle(region.OccupiedCoordinates, chaliceBox);

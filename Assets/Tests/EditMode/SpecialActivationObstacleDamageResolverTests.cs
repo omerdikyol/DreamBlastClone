@@ -95,10 +95,10 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
-        public void DoorPhaseChaliceBoxTakesExactlyOneTotalDamagePerSpecialEvent()
+        public void RocketOpensDoorInOneHit()
         {
             var board = new BoardModel(3, 3);
-            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 0), remainingDoorDurability: 4);
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 0), remainingDoorDurability: 1);
 
             board.PlaceItem(new BoardCoordinate(0, 1), new RocketItemModel(RocketOrientation.Horizontal));
             board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
@@ -111,7 +111,28 @@ namespace DreamBlastClone.Tests.EditMode
                 new ObstacleDamage(chaliceBox.Anchor, 1)
             }));
             Assert.That(result.RemovedCoordinates, Is.Empty);
-            Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(3));
+            Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(0));
+            Assert.That(chaliceBox.CollectedChaliceCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TntOpensDoorInOneHit()
+        {
+            var board = new BoardModel(5, 5);
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(2, 1), remainingDoorDurability: 1);
+
+            board.PlaceItem(new BoardCoordinate(2, 2), new TntItemModel());
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+
+            var activation = specialItemTapResolver.Resolve(board, new BoardCoordinate(2, 2));
+            var result = damageResolver.Resolve(board, activation);
+
+            Assert.That(result.Damages, Is.EqualTo(new[]
+            {
+                new ObstacleDamage(chaliceBox.Anchor, 1)
+            }));
+            Assert.That(result.RemovedCoordinates, Is.Empty);
+            Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(0));
             Assert.That(chaliceBox.CollectedChaliceCount, Is.EqualTo(0));
         }
 
@@ -119,8 +140,8 @@ namespace DreamBlastClone.Tests.EditMode
         public void DoorPhaseEachTouchedChaliceBoxTakesOneDamagePerSpecialEvent()
         {
             var board = new BoardModel(3, 6);
-            var bottomChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 0), remainingDoorDurability: 4);
-            var topChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 2), remainingDoorDurability: 4);
+            var bottomChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 0), remainingDoorDurability: 1);
+            var topChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 2), remainingDoorDurability: 1);
 
             board.PlaceItem(new BoardCoordinate(1, 5), new RocketItemModel(RocketOrientation.Vertical));
             board.PlaceObstacle(bottomChaliceBox.OccupiedCoordinates, bottomChaliceBox);
@@ -134,8 +155,8 @@ namespace DreamBlastClone.Tests.EditMode
                 new ObstacleDamage(bottomChaliceBox.Anchor, 1),
                 new ObstacleDamage(topChaliceBox.Anchor, 1)
             }));
-            Assert.That(bottomChaliceBox.RemainingDoorDurability, Is.EqualTo(3));
-            Assert.That(topChaliceBox.RemainingDoorDurability, Is.EqualTo(3));
+            Assert.That(bottomChaliceBox.RemainingDoorDurability, Is.EqualTo(0));
+            Assert.That(topChaliceBox.RemainingDoorDurability, Is.EqualTo(0));
         }
 
         [Test]

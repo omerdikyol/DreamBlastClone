@@ -132,11 +132,11 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
-        public void DoorPhaseChaliceBoxTakesExactlyOneTotalDamagePerComboEvent()
+        public void ComboOpensDoorInOneHit()
         {
             var board = new BoardModel(5, 5);
             var tap = new BoardCoordinate(2, 2);
-            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(2, 1), remainingDoorDurability: 4);
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(2, 1), remainingDoorDurability: 1);
 
             board.PlaceItem(tap, new TntItemModel());
             board.PlaceItem(new BoardCoordinate(2, 3), new RocketItemModel(RocketOrientation.Horizontal));
@@ -150,7 +150,7 @@ namespace DreamBlastClone.Tests.EditMode
                 new ObstacleDamage(chaliceBox.Anchor, 1)
             }));
             Assert.That(result.RemovedCoordinates, Is.Empty);
-            Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(3));
+            Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(0));
             Assert.That(chaliceBox.CollectedChaliceCount, Is.EqualTo(0));
         }
 

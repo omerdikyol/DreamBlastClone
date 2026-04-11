@@ -145,10 +145,10 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
-        public void DoorPhaseChaliceBoxTakesOneDamageTotalPerBlastEvent()
+        public void NormalBlastOpensDoorInOneHit()
         {
             var board = new BoardModel(3, 2);
-            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 0), remainingDoorDurability: 4);
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 0), remainingDoorDurability: 1);
 
             board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Blue));
             board.PlaceItem(new BoardCoordinate(0, 1), new CubeItemModel(CubeColor.Blue));
@@ -161,7 +161,7 @@ namespace DreamBlastClone.Tests.EditMode
             {
                 new ObstacleDamage(chaliceBox.Anchor, 1)
             }));
-            Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(3));
+            Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(0));
             Assert.That(chaliceBox.CollectedChaliceCount, Is.EqualTo(0));
             Assert.That(board.GetCell(chaliceBox.Anchor).Obstacle, Is.SameAs(chaliceBox));
             Assert.That(board.GetCell(chaliceBox.Anchor.Offset(1, 1)).Obstacle, Is.SameAs(chaliceBox));
@@ -171,8 +171,8 @@ namespace DreamBlastClone.Tests.EditMode
         public void DoorPhaseEachTouchedChaliceBoxTakesOneDamagePerBlastEvent()
         {
             var board = new BoardModel(3, 4);
-            var bottomChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 0), remainingDoorDurability: 4);
-            var topChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 2), remainingDoorDurability: 4);
+            var bottomChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 0), remainingDoorDurability: 1);
+            var topChaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 2), remainingDoorDurability: 1);
 
             for (var y = 0; y < 4; y++)
             {
@@ -190,8 +190,8 @@ namespace DreamBlastClone.Tests.EditMode
                 new ObstacleDamage(bottomChaliceBox.Anchor, 1),
                 new ObstacleDamage(topChaliceBox.Anchor, 1)
             }));
-            Assert.That(bottomChaliceBox.RemainingDoorDurability, Is.EqualTo(3));
-            Assert.That(topChaliceBox.RemainingDoorDurability, Is.EqualTo(3));
+            Assert.That(bottomChaliceBox.RemainingDoorDurability, Is.EqualTo(0));
+            Assert.That(topChaliceBox.RemainingDoorDurability, Is.EqualTo(0));
         }
 
         [Test]

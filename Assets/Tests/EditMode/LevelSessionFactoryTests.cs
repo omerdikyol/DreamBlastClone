@@ -117,6 +117,27 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void CreateBuildsLevelThreeChaliceBoxesWithOneHitDoors()
+        {
+            var parser = new LevelJsonParser();
+            var factory = new LevelSessionFactory();
+
+            var level = parser.Parse(ReadLevelJson("level_03.json"));
+            var session = factory.Create(level);
+            var chaliceBoxes = session.Board
+                .GetAllCells()
+                .Select(cell => cell.Obstacle)
+                .OfType<ChaliceBoxObstacleModel>()
+                .Distinct()
+                .ToArray();
+
+            Assert.That(session.RemainingMoves, Is.EqualTo(20));
+            Assert.That(chaliceBoxes, Has.Length.EqualTo(4));
+            Assert.That(chaliceBoxes.All(chaliceBox => chaliceBox.RemainingDoorDurability == 1), Is.True);
+            Assert.That(chaliceBoxes.All(chaliceBox => chaliceBox.RequiredChaliceCount == 10), Is.True);
+        }
+
+        [Test]
         public void LevelOneTapDoesNotFillStoneCellsWithItems()
         {
             var parser = new LevelJsonParser();
