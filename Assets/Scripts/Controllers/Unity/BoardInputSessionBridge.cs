@@ -198,7 +198,7 @@ namespace DreamBlastClone.Controllers.Unity
                 presentationDuration = Math.Max(presentationDuration, anticipationDuration);
             }
 
-            TryStartCubeBlastParticles(tapResult.Tap);
+            TryStartCubeBlastParticles(preTapBoard, tapResult.Tap);
             TryStartVaseParticles(preTapBoard, tapResult.Tap);
             TryStartStoneParticles(preTapBoard, tapResult.Tap);
             TryStartStoneTweenFeedback(preTapBoard, tapResult.Tap);
@@ -531,17 +531,16 @@ namespace DreamBlastClone.Controllers.Unity
             return true;
         }
 
-        private bool TryStartCubeBlastParticles(BoardTapDispatchResult tap)
+        private bool TryStartCubeBlastParticles(BoardModel preTapBoard, BoardTapDispatchResult tap)
         {
             if (boardView is null
                 || cubeBlastParticlePlayer is null
-                || tap.RouteType != TapRouteType.NormalCube
-                || !tap.NormalCube.IsValidTap)
+                || preTapBoard is null)
             {
                 return false;
             }
 
-            var descriptor = cubeBlastParticleDescriptorBuilder.Build(tap.NormalCube);
+            var descriptor = cubeBlastParticleDescriptorBuilder.Build(preTapBoard, tap);
             if (descriptor is null || !cubeBlastParticlePlayer.TryPlay(boardView, descriptor, GetParticleDestroyWorldY()))
             {
                 return false;

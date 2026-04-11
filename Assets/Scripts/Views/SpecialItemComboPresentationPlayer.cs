@@ -23,14 +23,16 @@ namespace DreamBlastClone.Views
         [SerializeField] private Sprite verticalRocketPartBottomSprite;
         [SerializeField] private Sprite rocketParticleStarSprite;
         [SerializeField] private Sprite rocketParticleSmokeSprite;
-        [SerializeField] private Sprite tntSprite;
+        [SerializeField] private Sprite tntBurstSprite;
+        [SerializeField] private Sprite tntDebrisSprite;
 
         private readonly List<GameObject> spawnedRoots = new List<GameObject>();
         private readonly List<ActiveFlashVisual> activeFlashVisuals = new List<ActiveFlashVisual>();
         private readonly List<SingleRocketActivationEffectPlayer> activeRocketSweepPlayers = new List<SingleRocketActivationEffectPlayer>();
         private readonly List<Tween> activeTweens = new List<Tween>();
 
-        private ActiveTntPulseVisual activeTntPulse;
+        private ActiveTntAreaVisual activeTntPulse;
+        private ActiveTntAreaVisual activeTntExplosion;
         private BoardView activeBoardView;
         private float activeDuration;
         private float elapsed;
@@ -74,7 +76,7 @@ namespace DreamBlastClone.Views
             var root = effectRoot is not null ? effectRoot : transform;
             CreateFlashVisuals(root, descriptor);
             CreateRocketSweepVisuals(root, descriptor);
-            CreateTntPulseVisual(root, descriptor);
+            CreateTntExplosionVisuals(root, descriptor);
 
             if (spawnedRoots.Count == 0)
             {
@@ -83,7 +85,7 @@ namespace DreamBlastClone.Views
             }
 
             LaunchFlashTweens();
-            LaunchTntPulseTween();
+            LaunchTntAreaTweens();
             return true;
         }
 
@@ -137,6 +139,7 @@ namespace DreamBlastClone.Views
             activeFlashVisuals.Clear();
             activeRocketSweepPlayers.Clear();
             activeTntPulse = default;
+            activeTntExplosion = default;
             activeBoardView = null;
             activeDuration = 0f;
             elapsed = 0f;
@@ -164,21 +167,38 @@ namespace DreamBlastClone.Views
             }
         }
 
-        private void LaunchTntPulseTween()
+        private void LaunchTntAreaTweens()
         {
             if (activeTntPulse.Renderer is null)
+            {
+            }
+            else
+            {
+                var renderer = activeTntPulse.Renderer;
+                var endScale = activeTntPulse.InitialScale * 1.15f;
+                var seq = DOTween.Sequence()
+                    .Append(renderer.transform.DOScale(endScale, activeDuration * 0.55f).SetEase(Ease.OutBack))
+                    .Join(TweenRendererAlpha(renderer, 0f, activeDuration).SetEase(Ease.InQuad))
+                    .SetUpdate(UpdateType.Normal, isIndependentUpdate: true)
+                    .SetLink(renderer.gameObject, LinkBehaviour.KillOnDestroy);
+                activeTweens.Add(seq);
+            }
+
+            if (activeTntExplosion.Renderer is null)
             {
                 return;
             }
 
-            var renderer = activeTntPulse.Renderer;
-            var endScale = activeTntPulse.InitialScale * 1.55f;
-            var seq = DOTween.Sequence()
-                .Append(renderer.transform.DOScale(endScale, activeDuration * 0.55f).SetEase(Ease.OutBack))
-                .Join(TweenRendererAlpha(renderer, 0f, activeDuration).SetEase(Ease.InQuad))
-                .SetUpdate(UpdateType.Normal, isIndependentUpdate: true)
-                .SetLink(renderer.gameObject, LinkBehaviour.KillOnDestroy);
-            activeTweens.Add(seq);
+            {
+                var renderer = activeTntExplosion.Renderer;
+                var endScale = activeTntExplosion.InitialScale * 1.12f;
+                var seq = DOTween.Sequence()
+                    .Append(renderer.transform.DOScale(endScale, activeDuration * 0.25f).SetEase(Ease.OutCubic))
+                    .Join(TweenRendererAlpha(renderer, 0f, activeDuration * 0.8f).SetEase(Ease.InQuad))
+                    .SetUpdate(UpdateType.Normal, isIndependentUpdate: true)
+                    .SetLink(renderer.gameObject, LinkBehaviour.KillOnDestroy);
+                activeTweens.Add(seq);
+            }
         }
 
         private static Tween TweenRendererAlpha(SpriteRenderer renderer, float targetAlpha, float fadeDuration)
@@ -257,27 +277,49 @@ namespace DreamBlastClone.Views
             return primary != null ? primary : fallback;
         }
 
-        private void CreateTntPulseVisual(Transform root, SpecialItemComboPresentationDescriptor descriptor)
+        private void CreateTntExplosionVisuals(Transform root, SpecialItemComboPresentationDescriptor descriptor)
         {
             if (!descriptor.HasTntPulse)
             {
                 return;
             }
 
-            if (tntSprite is null)
+            var tntVisualSource = ResolveTntVisualSource();
+            var burstSprite = ResolveSprite(tntBurstSprite, tntVisualSource?.TntBurstSprite);
+            var debrisSprite = ResolveSprite(tntDebrisSprite, tntVisualSource?.TntDebrisSprite);
+            if (burstSprite is null || debrisSprite is null)
             {
-                throw new InvalidOperationException("Combo presentation requires TNT sprite to be assigned for TNT-based combos.");
+                throw new InvalidOperationException("Combo presentation requires TNT burst and debris sprites to be assigned for TNT-based combos.");
             }
 
-            var pulseRoot = CreateRoot(root, "ComboTntPulse");
-            var renderer = pulseRoot.AddComponent<SpriteRenderer>();
-            renderer.sprite = tntSprite;
-            renderer.color = ResolveTntPulseColor(descriptor.ComboType);
-            renderer.sortingOrder = 8;
-            pulseRoot.transform.position = GetPulseWorldPosition(descriptor.ParticipatingSpecialCoordinates);
-            pulseRoot.transform.localScale = GetSpriteScale(tntSprite, activeBoardView.CellSize * tntPulseScaleMultiplier);
+            var areaCenter = GetAreaWorldCenter(descriptor.FlashCoordinates, effectZ + 0.04f);
+            var areaDiameter = GetAreaDiameter(descriptor.FlashCoordinates);
 
-            activeTntPulse = new ActiveTntPulseVisual(renderer, pulseRoot.transform.localScale, renderer.color);
+            var pulseRoot = CreateRoot(root, "ComboTntPulse");
+            var pulseRenderer = pulseRoot.AddComponent<SpriteRenderer>();
+            pulseRenderer.sprite = burstSprite;
+            pulseRenderer.color = ResolveTntPulseColor(descriptor.ComboType);
+            pulseRenderer.sortingOrder = 8;
+            pulseRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+            pulseRoot.transform.position = areaCenter;
+            pulseRoot.transform.localScale = GetSpriteScale(burstSprite, areaDiameter * tntPulseScaleMultiplier);
+
+            var explosionRoot = CreateRoot(root, "ComboTntExplosion");
+            var explosionRenderer = explosionRoot.AddComponent<SpriteRenderer>();
+            explosionRenderer.sprite = debrisSprite;
+            explosionRenderer.color = ResolveTntExplosionColor(descriptor.ComboType);
+            explosionRenderer.sortingOrder = 9;
+            explosionRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+            explosionRoot.transform.position = areaCenter;
+            explosionRoot.transform.localScale = GetSpriteScale(debrisSprite, areaDiameter * 0.98f);
+
+            activeTntPulse = new ActiveTntAreaVisual(pulseRenderer, pulseRoot.transform.localScale, pulseRenderer.color);
+            activeTntExplosion = new ActiveTntAreaVisual(explosionRenderer, explosionRoot.transform.localScale, explosionRenderer.color);
+        }
+
+        private SingleTntActivationEffectPlayer ResolveTntVisualSource()
+        {
+            return GetComponent<SingleTntActivationEffectPlayer>();
         }
 
         private GameObject CreateRoot(Transform parent, string name)
@@ -311,6 +353,56 @@ namespace DreamBlastClone.Views
             var average = total / participatingSpecialCoordinates.Count;
             average.z = activeBoardView.transform.position.z + effectZ + 0.04f;
             return average;
+        }
+
+        private Vector3 GetAreaWorldCenter(IReadOnlyList<BoardCoordinate> coordinates, float zOffset)
+        {
+            if (coordinates.Count == 0)
+            {
+                return GetPulseWorldPosition(System.Array.Empty<BoardCoordinate>());
+            }
+
+            var minX = int.MaxValue;
+            var minY = int.MaxValue;
+            var maxX = int.MinValue;
+            var maxY = int.MinValue;
+            for (var index = 0; index < coordinates.Count; index++)
+            {
+                var coordinate = coordinates[index];
+                minX = Math.Min(minX, coordinate.X);
+                minY = Math.Min(minY, coordinate.Y);
+                maxX = Math.Max(maxX, coordinate.X);
+                maxY = Math.Max(maxY, coordinate.Y);
+            }
+
+            var bottomLeft = GetWorldPosition(new BoardCoordinate(minX, minY), zOffset);
+            var topRight = GetWorldPosition(new BoardCoordinate(maxX, maxY), zOffset);
+            return (bottomLeft + topRight) * 0.5f;
+        }
+
+        private float GetAreaDiameter(IReadOnlyList<BoardCoordinate> coordinates)
+        {
+            if (coordinates.Count == 0)
+            {
+                return activeBoardView.CellSize;
+            }
+
+            var minX = int.MaxValue;
+            var minY = int.MaxValue;
+            var maxX = int.MinValue;
+            var maxY = int.MinValue;
+            for (var index = 0; index < coordinates.Count; index++)
+            {
+                var coordinate = coordinates[index];
+                minX = Math.Min(minX, coordinate.X);
+                minY = Math.Min(minY, coordinate.Y);
+                maxX = Math.Max(maxX, coordinate.X);
+                maxY = Math.Max(maxY, coordinate.Y);
+            }
+
+            var width = (maxX - minX + 1) * activeBoardView.CellSize;
+            var height = (maxY - minY + 1) * activeBoardView.CellSize;
+            return Mathf.Max(width, height);
         }
 
         private Vector3 GetSpriteScale(Sprite sprite, float targetSize)
@@ -348,6 +440,13 @@ namespace DreamBlastClone.Views
             return comboType == SpecialItemComboType.TntTnt
                 ? new Color(1f, 0.86f, 0.8f, 0.95f)
                 : new Color(1f, 0.9f, 0.72f, 0.9f);
+        }
+
+        private static Color ResolveTntExplosionColor(SpecialItemComboType comboType)
+        {
+            return comboType == SpecialItemComboType.TntTnt
+                ? new Color(1f, 1f, 1f, 0.9f)
+                : new Color(1f, 1f, 1f, 0.84f);
         }
 
         private Sprite GetOrCreateRuntimeFlashSprite()
@@ -416,9 +515,9 @@ namespace DreamBlastClone.Views
             public Color BaseColor { get; }
         }
 
-        private readonly struct ActiveTntPulseVisual
+        private readonly struct ActiveTntAreaVisual
         {
-            public ActiveTntPulseVisual(SpriteRenderer renderer, Vector3 initialScale, Color baseColor)
+            public ActiveTntAreaVisual(SpriteRenderer renderer, Vector3 initialScale, Color baseColor)
             {
                 Renderer = renderer;
                 InitialScale = initialScale;

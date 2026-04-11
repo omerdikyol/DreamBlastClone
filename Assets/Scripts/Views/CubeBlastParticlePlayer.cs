@@ -49,57 +49,66 @@ namespace DreamBlastClone.Views
                 return false;
             }
 
-            var sprite = ResolveParticleSprite(descriptor.CubeColor);
-            if (sprite is null)
-            {
-                throw new InvalidOperationException($"Cube blast particles require a sprite for cube color '{descriptor.CubeColor}'.");
-            }
-
             Stop();
             this.destroyBelowWorldY = destroyBelowWorldY - destroyBelowPadding;
 
             var root = effectRoot is not null ? effectRoot : transform;
 
-            foreach (var coordinate in descriptor.BurstCoordinates)
+            for (var groupIndex = 0; groupIndex < descriptor.BurstGroups.Count; groupIndex++)
             {
-                for (var index = 0; index < particlesPerBurst; index++)
+                var burstGroup = descriptor.BurstGroups[groupIndex];
+                if (burstGroup.BurstCoordinates.Count == 0)
                 {
-                    var particleObject = new GameObject($"CubeBlastParticle_{coordinate}_{index}");
-                    particleObject.transform.SetParent(root, worldPositionStays: false);
-                    var renderer = particleObject.AddComponent<SpriteRenderer>();
-                    renderer.sprite = sprite;
-                    renderer.color = Color.white;
-                    renderer.sortingOrder = 9;
+                    continue;
+                }
 
-                    var burstSeed = BuildSeed(coordinate, index);
-                    var startOffset = BuildOffset(Hash01(burstSeed), spawnRadius);
-                    var travelOffset = BuildOffset(Hash01(burstSeed + 1), travelDistance);
-                    var center = boardView.GetCellCenterWorld(coordinate);
-                    center.z = boardView.transform.position.z + effectZ;
-                    travelOffset.y += upwardBias * (0.75f + Hash01(burstSeed + 2) * 0.5f);
+                var sprite = ResolveParticleSprite(burstGroup.CubeColor);
+                if (sprite is null)
+                {
+                    throw new InvalidOperationException($"Cube blast particles require a sprite for cube color '{burstGroup.CubeColor}'.");
+                }
 
-                    var sizeMultiplier = Mathf.Lerp(0.85f, 1.15f, Hash01(burstSeed + 3));
-                    var startScale = GetSpriteScale(sprite, boardView.CellSize * startSizeMultiplier * sizeMultiplier);
-                    var endScale = GetSpriteScale(sprite, boardView.CellSize * endSizeMultiplier * sizeMultiplier);
-                    var startRotation = Mathf.Lerp(-35f, 35f, Hash01(burstSeed + 4));
-                    var angularVelocity = Mathf.Lerp(-320f, 320f, Hash01(burstSeed + 5));
+                foreach (var coordinate in burstGroup.BurstCoordinates)
+                {
+                    for (var index = 0; index < particlesPerBurst; index++)
+                    {
+                        var particleObject = new GameObject($"CubeBlastParticle_{burstGroup.CubeColor}_{coordinate}_{index}");
+                        particleObject.transform.SetParent(root, worldPositionStays: false);
+                        var renderer = particleObject.AddComponent<SpriteRenderer>();
+                        renderer.sprite = sprite;
+                        renderer.color = Color.white;
+                        renderer.sortingOrder = 9;
 
-                    var startPosition = center + startOffset;
-                    var initialVelocity = travelOffset * Mathf.Lerp(3.8f, 5.2f, Hash01(burstSeed + 6));
-                    particleObject.transform.position = startPosition;
-                    particleObject.transform.rotation = Quaternion.Euler(0f, 0f, startRotation);
-                    particleObject.transform.localScale = startScale;
+                        var burstSeed = BuildSeed(coordinate, index);
+                        var startOffset = BuildOffset(Hash01(burstSeed), spawnRadius);
+                        var travelOffset = BuildOffset(Hash01(burstSeed + 1), travelDistance);
+                        var center = boardView.GetCellCenterWorld(coordinate);
+                        center.z = boardView.transform.position.z + effectZ;
+                        travelOffset.y += upwardBias * (0.75f + Hash01(burstSeed + 2) * 0.5f);
 
-                    activeParticles.Add(new ActiveParticle(
-                        particleObject,
-                        renderer,
-                        startPosition,
-                        initialVelocity,
-                        startScale,
-                        endScale,
-                        startRotation,
-                        angularVelocity,
-                        renderer.color));
+                        var sizeMultiplier = Mathf.Lerp(0.85f, 1.15f, Hash01(burstSeed + 3));
+                        var startScale = GetSpriteScale(sprite, boardView.CellSize * startSizeMultiplier * sizeMultiplier);
+                        var endScale = GetSpriteScale(sprite, boardView.CellSize * endSizeMultiplier * sizeMultiplier);
+                        var startRotation = Mathf.Lerp(-35f, 35f, Hash01(burstSeed + 4));
+                        var angularVelocity = Mathf.Lerp(-320f, 320f, Hash01(burstSeed + 5));
+
+                        var startPosition = center + startOffset;
+                        var initialVelocity = travelOffset * Mathf.Lerp(3.8f, 5.2f, Hash01(burstSeed + 6));
+                        particleObject.transform.position = startPosition;
+                        particleObject.transform.rotation = Quaternion.Euler(0f, 0f, startRotation);
+                        particleObject.transform.localScale = startScale;
+
+                        activeParticles.Add(new ActiveParticle(
+                            particleObject,
+                            renderer,
+                            startPosition,
+                            initialVelocity,
+                            startScale,
+                            endScale,
+                            startRotation,
+                            angularVelocity,
+                            renderer.color));
+                    }
                 }
             }
 

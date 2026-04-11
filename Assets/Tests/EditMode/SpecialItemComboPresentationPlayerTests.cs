@@ -122,6 +122,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(CountChildrenByPrefix(effectRoot, "ComboRocketSweep_"), Is.EqualTo(0));
             Assert.That(CountChildrenByPrefix(effectRoot, "ComboFlash_"), Is.EqualTo(9));
             Assert.That(CountChildrenByPrefix(effectRoot, "ComboTntPulse"), Is.EqualTo(1));
+            Assert.That(CountChildrenByPrefix(effectRoot, "ComboTntExplosion"), Is.EqualTo(1));
 
             player.Advance(player.Duration);
 
@@ -181,6 +182,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(CountChildrenByPrefix(effectRoot, "ComboRocketSweep_"), Is.EqualTo(6));
             Assert.That(CountChildrenByPrefix(effectRoot, "ComboFlash_"), Is.EqualTo(21));
             Assert.That(CountChildrenByPrefix(effectRoot, "ComboTntPulse"), Is.EqualTo(1));
+            Assert.That(CountChildrenByPrefix(effectRoot, "ComboTntExplosion"), Is.EqualTo(1));
             Assert.That(CountDescendantsByPrefix(effectRoot, "RocketParticleStar_"), Is.GreaterThan(0));
             Assert.That(CountDescendantsByPrefix(effectRoot, "RocketParticleSmoke_"), Is.GreaterThan(0));
 
@@ -213,7 +215,8 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(player, "verticalRocketPartBottomSprite", CreateSprite(19, 19, 19f));
             SetField(player, "rocketParticleStarSprite", CreateSprite(14, 14, 20f));
             SetField(player, "rocketParticleSmokeSprite", CreateSprite(20, 20, 20f));
-            SetField(player, "tntSprite", CreateSprite(24, 24, 24f));
+            SetField(player, "tntBurstSprite", CreateSprite(24, 24, 24f));
+            SetField(player, "tntDebrisSprite", CreateSprite(26, 24, 24f));
             SetField(player, "rocketRocketDuration", 0.22f);
             SetField(player, "tntRocketDuration", 0.24f);
             SetField(player, "tntTntDuration", 0.26f);

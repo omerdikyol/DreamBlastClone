@@ -1225,7 +1225,8 @@ MonoBehaviour:
   verticalRocketPartBottomSprite: {fileID: 21300000, guid: 312f67bd64397dc459ff6a71fb5cfa8e, type: 3}
   rocketParticleStarSprite: {fileID: 0}
   rocketParticleSmokeSprite: {fileID: 0}
-  tntSprite: {fileID: 21300000, guid: e5e1a721ed3eb8641b64b95a015fea5c, type: 3}
+  tntBurstSprite: {fileID: -5284336289360315941, guid: ba782e001686ba047bf81ea30d3d5c92, type: 3}
+  tntDebrisSprite: {fileID: 7673536227761511531, guid: e34f8f1583491a5468d0ed9d0d83547e, type: 3}
 --- !u!114 &1374160552
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1272,19 +1273,8 @@ MonoBehaviour:
   settleBlockingDuration: 0.06
   effectZ: -0.18
   pulseScaleMultiplier: 1.35
-  fieldParticleScaleMultiplier: 0.32
-  fieldParticleTravelDistance: 0.14
-  originSmokeCount: 6
-  originSmokeScaleMultiplier: 0.85
-  originSmokeTravelDistance: 0.45
-  fieldSmokeScaleMultiplier: 0.62
-  fieldSmokeTravelDistance: 0.22
-  radialDebrisCount: 10
-  radialDebrisScaleMultiplier: 0.42
-  radialDebrisTravelDistance: 0.9
   tntBurstSprite: {fileID: -5284336289360315941, guid: ba782e001686ba047bf81ea30d3d5c92, type: 3}
   tntDebrisSprite: {fileID: 7673536227761511531, guid: e34f8f1583491a5468d0ed9d0d83547e, type: 3}
-  tntSmokeSprite: {fileID: -4644287431084688493, guid: dcef564b9c744974380e7cf19b36df3a, type: 3}
 --- !u!114 &1374160554
 MonoBehaviour:
   m_ObjectHideFlags: 0

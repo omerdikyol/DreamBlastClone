@@ -50,54 +50,69 @@ namespace DreamBlastClone.Tests.EditMode
         public void TryPlaySpawnsColorMatchedParticlesAtBurstCoordinatesAndCleansUp()
         {
             var boardView = CreateBoardView();
-            var player = CreatePlayer(out var effectRoot, out var redSprite);
-            var descriptor = new CubeBlastParticleDescriptor(
-                CubeColor.Red,
-                new[]
+            var player = CreatePlayer(out var effectRoot, out var redSprite, out var blueSprite);
+            var descriptor = new CubeBlastParticleDescriptor(new CubeBlastBurstGroup[]
+            {
+                new(CubeColor.Red, new[]
                 {
                     new BoardCoordinate(0, 0),
                     new BoardCoordinate(1, 0)
-                });
+                }),
+                new(CubeColor.Blue, new[]
+                {
+                    new BoardCoordinate(0, 1)
+                })
+            });
 
             Assert.That(player.TryPlay(boardView, descriptor, destroyBelowWorldY: -2f), Is.True);
             Assert.That(player.IsPlaying, Is.True);
             Assert.That(player.Duration, Is.EqualTo(0.18f).Within(0.0001f));
-            Assert.That(effectRoot.childCount, Is.EqualTo(6));
+            Assert.That(effectRoot.childCount, Is.EqualTo(9));
 
             var firstCenter = boardView.GetCellCenterWorld(new BoardCoordinate(0, 0));
             var secondCenter = boardView.GetCellCenterWorld(new BoardCoordinate(1, 0));
+            var thirdCenter = boardView.GetCellCenterWorld(new BoardCoordinate(0, 1));
             var firstBurstCount = 0;
             var secondBurstCount = 0;
+            var thirdBurstCount = 0;
 
             for (var index = 0; index < effectRoot.childCount; index++)
             {
                 var particle = effectRoot.GetChild(index);
                 var renderer = particle.GetComponent<SpriteRenderer>();
 
-                Assert.That(renderer.sprite, Is.SameAs(redSprite));
                 Assert.That(renderer.color, Is.EqualTo(Color.white));
 
                 var distanceToFirst = Vector2.Distance(particle.position, firstCenter);
                 var distanceToSecond = Vector2.Distance(particle.position, secondCenter);
-                Assert.That(Mathf.Min(distanceToFirst, distanceToSecond), Is.LessThan(0.2f));
+                var distanceToThird = Vector2.Distance(particle.position, thirdCenter);
+                Assert.That(Mathf.Min(distanceToFirst, Mathf.Min(distanceToSecond, distanceToThird)), Is.LessThan(0.2f));
 
-                if (distanceToFirst <= distanceToSecond)
+                if (distanceToFirst <= distanceToSecond && distanceToFirst <= distanceToThird)
                 {
+                    Assert.That(renderer.sprite, Is.SameAs(redSprite));
                     firstBurstCount++;
+                }
+                else if (distanceToSecond <= distanceToThird)
+                {
+                    Assert.That(renderer.sprite, Is.SameAs(redSprite));
+                    secondBurstCount++;
                 }
                 else
                 {
-                    secondBurstCount++;
+                    Assert.That(renderer.sprite, Is.SameAs(blueSprite));
+                    thirdBurstCount++;
                 }
             }
 
             Assert.That(firstBurstCount, Is.EqualTo(3));
             Assert.That(secondBurstCount, Is.EqualTo(3));
+            Assert.That(thirdBurstCount, Is.EqualTo(3));
 
             player.Advance(0.1f);
 
             Assert.That(player.IsPlaying, Is.True);
-            Assert.That(effectRoot.childCount, Is.EqualTo(6));
+            Assert.That(effectRoot.childCount, Is.EqualTo(9));
 
             player.Advance(5f);
 
@@ -114,7 +129,7 @@ namespace DreamBlastClone.Tests.EditMode
             return boardView;
         }
 
-        private CubeBlastParticlePlayer CreatePlayer(out Transform effectRoot, out Sprite redSprite)
+        private CubeBlastParticlePlayer CreatePlayer(out Transform effectRoot, out Sprite redSprite, out Sprite blueSprite)
         {
             var host = CreateGameObject("CubeBlastParticlePlayer");
             effectRoot = CreateGameObject("EffectRoot").transform;
@@ -122,12 +137,13 @@ namespace DreamBlastClone.Tests.EditMode
 
             var player = host.AddComponent<CubeBlastParticlePlayer>();
             redSprite = CreateSprite(20, 16, 20f);
+            blueSprite = CreateSprite(22, 16, 22f);
             SetField(player, "effectRoot", effectRoot);
             SetField(player, "duration", 0.18f);
             SetField(player, "particlesPerBurst", 3);
             SetField(player, "redParticleSprite", redSprite);
             SetField(player, "greenParticleSprite", CreateSprite(21, 16, 21f));
-            SetField(player, "blueParticleSprite", CreateSprite(22, 16, 22f));
+            SetField(player, "blueParticleSprite", blueSprite);
             SetField(player, "yellowParticleSprite", CreateSprite(23, 16, 23f));
             return player;
         }

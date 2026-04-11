@@ -258,7 +258,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.True);
-            Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.True);
 
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
@@ -335,7 +335,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(session.RemainingMoves, Is.EqualTo(4));
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
-            Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.False);
@@ -380,7 +380,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(capturedTapResult.Tap.SpecialItem.Combo.IsComboActivated, Is.True);
             Assert.That(capturedTapResult.Tap.SpecialItem.Combo.RemovedItemCoordinates, Does.Contain(new BoardCoordinate(1, 0)));
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
-            Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
@@ -1225,7 +1225,8 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(effectPlayer, "horizontalRocketPartRightSprite", CreateSprite(19, 18, 19f));
             SetField(effectPlayer, "verticalRocketPartTopSprite", CreateSprite(18, 19, 18f));
             SetField(effectPlayer, "verticalRocketPartBottomSprite", CreateSprite(19, 19, 19f));
-            SetField(effectPlayer, "tntSprite", CreateSprite(26, 20, 20f));
+            SetField(effectPlayer, "tntBurstSprite", CreateSprite(26, 20, 20f));
+            SetField(effectPlayer, "tntDebrisSprite", CreateSprite(28, 22, 20f));
             SetField(effectPlayer, "rocketRocketDuration", 0.22f);
             SetField(effectPlayer, "tntRocketDuration", 0.24f);
             SetField(effectPlayer, "tntTntDuration", 0.26f);
