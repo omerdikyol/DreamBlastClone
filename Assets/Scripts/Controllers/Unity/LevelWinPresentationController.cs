@@ -37,10 +37,22 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private float continueHintExitOffsetY = -6f;
         [SerializeField] private float titleEnterOffsetY = 12f;
         [SerializeField] private float titleEnterScale = 0.94f;
+        [SerializeField] private float starEnterOffsetY = 32f;
+        [SerializeField] private float starExitOffsetY = 10f;
+        [SerializeField] private float starEnterRotationDegrees = -14f;
+        [SerializeField] private float starExitRotationDegrees = 10f;
         [SerializeField] private float starIdlePulseAmplitude = 0.035f;
         [SerializeField] private float starIdlePulseFrequency = 2.2f;
+        [SerializeField] private float starIdleBobAmplitude = 8f;
+        [SerializeField] private float starIdleBobFrequency = 1.15f;
+        [SerializeField] private float starIdleTiltAmplitude = 4f;
+        [SerializeField] private float starIdleTiltFrequency = 1.05f;
         [SerializeField] private float titleIdlePulseAmplitude = 0.01f;
         [SerializeField] private float titleIdlePulseFrequency = 1.35f;
+        [SerializeField] private float titleIdleBobAmplitude = 4f;
+        [SerializeField] private float titleIdleBobFrequency = 0.82f;
+        [SerializeField] private float titleIdleTiltAmplitude = 1.2f;
+        [SerializeField] private float titleIdleTiltFrequency = 0.78f;
         [SerializeField] private float overlayEnterAlphaMultiplier = 0.76f;
 
         private WinPresentationState state;
@@ -48,10 +60,13 @@ namespace DreamBlastClone.Controllers.Unity
         private float continueHintElapsedSeconds;
         private Vector2 contentBaseAnchoredPosition;
         private Vector2 continueHintBaseAnchoredPosition;
+        private Vector2 starBaseAnchoredPosition;
         private Vector2 titleBaseAnchoredPosition;
         private Vector3 contentBaseScale;
         private Vector3 starBaseScale;
         private Vector3 titleBaseScale;
+        private Quaternion starBaseRotation;
+        private Quaternion titleBaseRotation;
         private Color overlayBaseColor;
         private bool hasCachedVisualDefaults;
 
@@ -269,12 +284,15 @@ namespace DreamBlastClone.Controllers.Unity
                 rootAlpha: 0f,
                 contentYOffset: contentEnterOffsetY,
                 contentScaleMultiplier: contentEnterScale,
+                starYOffset: starEnterOffsetY,
                 starScaleMultiplier: starEnterStartScale,
+                starRotationDegrees: starEnterRotationDegrees,
                 hintAlpha: 0f,
                 hintYOffset: continueHintEnterOffsetY,
                 titleAlpha: 0f,
                 titleYOffset: titleEnterOffsetY,
                 titleScaleMultiplier: titleEnterScale,
+                titleRotationDegrees: -3f,
                 overlayAlphaMultiplier: overlayEnterAlphaMultiplier);
 
             if (enterDurationSeconds <= 0f)
@@ -291,12 +309,15 @@ namespace DreamBlastClone.Controllers.Unity
                 rootAlpha: 1f,
                 contentYOffset: 0f,
                 contentScaleMultiplier: 1f,
+                starYOffset: EvaluateIdleStarBob(),
                 starScaleMultiplier: EvaluateIdleStarPulse(),
+                starRotationDegrees: EvaluateIdleStarTilt(),
                 hintAlpha: 0f,
                 hintYOffset: continueHintEnterOffsetY,
                 titleAlpha: 1f,
-                titleYOffset: 0f,
+                titleYOffset: EvaluateIdleTitleBob(),
                 titleScaleMultiplier: EvaluateIdleTitlePulse(),
+                titleRotationDegrees: EvaluateIdleTitleTilt(),
                 overlayAlphaMultiplier: 1f);
 
             if (minimumHoldSeconds <= 0f)
@@ -320,12 +341,15 @@ namespace DreamBlastClone.Controllers.Unity
                 rootAlpha: 1f,
                 contentYOffset: 0f,
                 contentScaleMultiplier: 1f,
+                starYOffset: EvaluateIdleStarBob(),
                 starScaleMultiplier: EvaluateIdleStarPulse(),
+                starRotationDegrees: EvaluateIdleStarTilt(),
                 hintAlpha: 0f,
                 hintYOffset: continueHintEnterOffsetY,
                 titleAlpha: 1f,
-                titleYOffset: 0f,
+                titleYOffset: EvaluateIdleTitleBob(),
                 titleScaleMultiplier: EvaluateIdleTitlePulse(),
+                titleRotationDegrees: EvaluateIdleTitleTilt(),
                 overlayAlphaMultiplier: 1f);
         }
 
@@ -380,11 +404,14 @@ namespace DreamBlastClone.Controllers.Unity
             {
                 titleBaseAnchoredPosition = titleTransform.anchoredPosition;
                 titleBaseScale = titleTransform.localScale;
+                titleBaseRotation = titleTransform.localRotation;
             }
 
             if (starTransform != null)
             {
+                starBaseAnchoredPosition = starTransform.anchoredPosition;
                 starBaseScale = starTransform.localScale;
+                starBaseRotation = starTransform.localRotation;
             }
 
             if (continueHintTransform != null)
@@ -406,12 +433,15 @@ namespace DreamBlastClone.Controllers.Unity
                 rootAlpha: 0f,
                 contentYOffset: contentEnterOffsetY,
                 contentScaleMultiplier: contentEnterScale,
+                starYOffset: starEnterOffsetY,
                 starScaleMultiplier: starEnterStartScale,
+                starRotationDegrees: starEnterRotationDegrees,
                 hintAlpha: 0f,
                 hintYOffset: continueHintEnterOffsetY,
                 titleAlpha: 0f,
                 titleYOffset: titleEnterOffsetY,
                 titleScaleMultiplier: titleEnterScale,
+                titleRotationDegrees: -3f,
                 overlayAlphaMultiplier: overlayEnterAlphaMultiplier);
             SetContinueHintVisible(false);
 
@@ -425,12 +455,15 @@ namespace DreamBlastClone.Controllers.Unity
             float rootAlpha,
             float contentYOffset,
             float contentScaleMultiplier,
+            float starYOffset,
             float starScaleMultiplier,
+            float starRotationDegrees,
             float hintAlpha,
             float hintYOffset,
             float titleAlpha,
             float titleYOffset,
             float titleScaleMultiplier,
+            float titleRotationDegrees,
             float overlayAlphaMultiplier)
         {
             if (presentationCanvasGroup != null)
@@ -448,13 +481,16 @@ namespace DreamBlastClone.Controllers.Unity
 
             if (starTransform != null)
             {
+                starTransform.anchoredPosition = starBaseAnchoredPosition + Vector2.up * starYOffset;
                 starTransform.localScale = starBaseScale * starScaleMultiplier;
+                starTransform.localRotation = starBaseRotation * Quaternion.Euler(0f, 0f, starRotationDegrees);
             }
 
             if (titleTransform != null)
             {
                 titleTransform.anchoredPosition = titleBaseAnchoredPosition + Vector2.up * titleYOffset;
                 titleTransform.localScale = titleBaseScale * titleScaleMultiplier;
+                titleTransform.localRotation = titleBaseRotation * Quaternion.Euler(0f, 0f, titleRotationDegrees);
             }
 
             if (titleCanvasGroup != null)
@@ -498,12 +534,15 @@ namespace DreamBlastClone.Controllers.Unity
                 rootAlpha: overlayProgress,
                 contentYOffset: Mathf.LerpUnclamped(contentEnterOffsetY, 0f, contentProgress),
                 contentScaleMultiplier: Mathf.LerpUnclamped(contentEnterScale, 1f, contentProgress),
+                starYOffset: Mathf.LerpUnclamped(starEnterOffsetY, 0f, starProgress),
                 starScaleMultiplier: Mathf.LerpUnclamped(starEnterStartScale, 1f, starProgress),
+                starRotationDegrees: Mathf.LerpUnclamped(starEnterRotationDegrees, 0f, starProgress),
                 hintAlpha: 0f,
                 hintYOffset: continueHintEnterOffsetY,
                 titleAlpha: titleProgress,
                 titleYOffset: Mathf.LerpUnclamped(titleEnterOffsetY, 0f, titleProgress),
                 titleScaleMultiplier: Mathf.LerpUnclamped(titleEnterScale, 1f, titleProgress),
+                titleRotationDegrees: Mathf.LerpUnclamped(-3f, 0f, titleProgress),
                 overlayAlphaMultiplier: Mathf.Lerp(overlayEnterAlphaMultiplier, 1f, overlayProgress));
 
             if (progress >= 1f)
@@ -518,12 +557,15 @@ namespace DreamBlastClone.Controllers.Unity
                 rootAlpha: 1f,
                 contentYOffset: 0f,
                 contentScaleMultiplier: 1f,
+                starYOffset: EvaluateIdleStarBob(),
                 starScaleMultiplier: EvaluateIdleStarPulse(),
+                starRotationDegrees: EvaluateIdleStarTilt(),
                 hintAlpha: 0f,
                 hintYOffset: continueHintEnterOffsetY,
                 titleAlpha: 1f,
-                titleYOffset: 0f,
+                titleYOffset: EvaluateIdleTitleBob(),
                 titleScaleMultiplier: EvaluateIdleTitlePulse(),
+                titleRotationDegrees: EvaluateIdleTitleTilt(),
                 overlayAlphaMultiplier: 1f);
 
             if (stateElapsedSeconds >= minimumHoldSeconds)
@@ -542,12 +584,15 @@ namespace DreamBlastClone.Controllers.Unity
                 rootAlpha: 1f,
                 contentYOffset: 0f,
                 contentScaleMultiplier: 1f,
+                starYOffset: EvaluateIdleStarBob(),
                 starScaleMultiplier: EvaluateIdleStarPulse(),
+                starRotationDegrees: EvaluateIdleStarTilt(),
                 hintAlpha: EaseOutCubic(hintProgress),
                 hintYOffset: Mathf.Lerp(continueHintEnterOffsetY, 0f, EaseOutCubic(hintProgress)),
                 titleAlpha: 1f,
-                titleYOffset: 0f,
+                titleYOffset: EvaluateIdleTitleBob(),
                 titleScaleMultiplier: EvaluateIdleTitlePulse(),
+                titleRotationDegrees: EvaluateIdleTitleTilt(),
                 overlayAlphaMultiplier: 1f);
         }
 
@@ -563,12 +608,15 @@ namespace DreamBlastClone.Controllers.Unity
                 rootAlpha: 1f - overlayProgress,
                 contentYOffset: Mathf.LerpUnclamped(0f, contentExitOffsetY, contentProgress),
                 contentScaleMultiplier: Mathf.LerpUnclamped(1f, contentExitScale, contentProgress),
+                starYOffset: Mathf.LerpUnclamped(EvaluateIdleStarBob(), starExitOffsetY, contentProgress),
                 starScaleMultiplier: Mathf.LerpUnclamped(EvaluateIdleStarPulse(), starExitEndScale, contentProgress),
+                starRotationDegrees: Mathf.LerpUnclamped(EvaluateIdleStarTilt(), starExitRotationDegrees, contentProgress),
                 hintAlpha: 1f - overlayProgress,
                 hintYOffset: Mathf.LerpUnclamped(0f, continueHintExitOffsetY, contentProgress),
                 titleAlpha: 1f - overlayProgress,
-                titleYOffset: Mathf.LerpUnclamped(0f, titleEnterOffsetY * 0.45f, contentProgress),
+                titleYOffset: Mathf.LerpUnclamped(EvaluateIdleTitleBob(), titleEnterOffsetY * 0.45f, contentProgress),
                 titleScaleMultiplier: Mathf.LerpUnclamped(EvaluateIdleTitlePulse(), titleEnterScale, contentProgress),
+                titleRotationDegrees: Mathf.LerpUnclamped(EvaluateIdleTitleTilt(), -2f, contentProgress),
                 overlayAlphaMultiplier: Mathf.Lerp(1f, overlayEnterAlphaMultiplier, overlayProgress));
 
             if (progress >= 1f)
@@ -606,6 +654,26 @@ namespace DreamBlastClone.Controllers.Unity
             return 1f + Mathf.Sin(stateElapsedSeconds * starIdlePulseFrequency * Mathf.PI * 2f) * starIdlePulseAmplitude;
         }
 
+        private float EvaluateIdleStarBob()
+        {
+            if (starIdleBobAmplitude <= 0f || starIdleBobFrequency <= 0f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Sin((stateElapsedSeconds + 0.08f) * starIdleBobFrequency * Mathf.PI * 2f) * starIdleBobAmplitude;
+        }
+
+        private float EvaluateIdleStarTilt()
+        {
+            if (starIdleTiltAmplitude <= 0f || starIdleTiltFrequency <= 0f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Sin((stateElapsedSeconds + 0.11f) * starIdleTiltFrequency * Mathf.PI * 2f) * starIdleTiltAmplitude;
+        }
+
         private float EvaluateIdleTitlePulse()
         {
             if (titleIdlePulseAmplitude <= 0f || titleIdlePulseFrequency <= 0f)
@@ -614,6 +682,26 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             return 1f + Mathf.Sin(stateElapsedSeconds * titleIdlePulseFrequency * Mathf.PI * 2f) * titleIdlePulseAmplitude;
+        }
+
+        private float EvaluateIdleTitleBob()
+        {
+            if (titleIdleBobAmplitude <= 0f || titleIdleBobFrequency <= 0f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Sin((stateElapsedSeconds + 0.19f) * titleIdleBobFrequency * Mathf.PI * 2f) * titleIdleBobAmplitude;
+        }
+
+        private float EvaluateIdleTitleTilt()
+        {
+            if (titleIdleTiltAmplitude <= 0f || titleIdleTiltFrequency <= 0f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Sin((stateElapsedSeconds + 0.26f) * titleIdleTiltFrequency * Mathf.PI * 2f) * titleIdleTiltAmplitude;
         }
 
         private static float EaseOutCubic(float progress)

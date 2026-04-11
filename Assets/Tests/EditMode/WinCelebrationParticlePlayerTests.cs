@@ -95,6 +95,70 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(effectRoot.childCount, Is.EqualTo(0));
         }
 
+        [Test]
+        public void TryPlayUsesStarImageColorForParticles()
+        {
+            var rootObject = CreateGameObject("WinPresentationRoot");
+            var rootRect = rootObject.AddComponent<RectTransform>();
+            var effectRoot = CreateGameObject("WinCelebrationParticles").AddComponent<RectTransform>();
+            effectRoot.SetParent(rootRect, false);
+            var anchor = CreateGameObject("WinStar").AddComponent<RectTransform>();
+            anchor.SetParent(rootRect, false);
+            var starImage = anchor.gameObject.AddComponent<Image>();
+            starImage.color = new Color(1f, 0.82f, 0.28f, 1f);
+
+            var player = rootObject.AddComponent<WinCelebrationParticlePlayer>();
+            SetField(player, "effectRoot", effectRoot);
+            SetField(player, "particleSprite", CreateSprite(64, 64, 64f));
+            SetField(player, "initialBurstCount", 3);
+            SetField(player, "ambientBurstCount", 0);
+            SetField(player, "particleLifetime", 0.4f);
+
+            Assert.That(player.TryPlay(anchor), Is.True);
+            Assert.That(effectRoot.childCount, Is.EqualTo(3));
+
+            for (var index = 0; index < effectRoot.childCount; index++)
+            {
+                var particleImage = effectRoot.GetChild(index).GetComponent<Image>();
+                Assert.That(particleImage.color.r, Is.EqualTo(starImage.color.r).Within(0.001f));
+                Assert.That(particleImage.color.g, Is.EqualTo(starImage.color.g).Within(0.001f));
+                Assert.That(particleImage.color.b, Is.EqualTo(starImage.color.b).Within(0.001f));
+            }
+        }
+
+        [Test]
+        public void TryPlayPrefersStarSpriteForParticlesWhenAvailable()
+        {
+            var rootObject = CreateGameObject("WinPresentationRoot");
+            var rootRect = rootObject.AddComponent<RectTransform>();
+            var effectRoot = CreateGameObject("WinCelebrationParticles").AddComponent<RectTransform>();
+            effectRoot.SetParent(rootRect, false);
+            var anchor = CreateGameObject("WinStar").AddComponent<RectTransform>();
+            anchor.SetParent(rootRect, false);
+
+            var fallbackSprite = CreateSprite(32, 32, 32f);
+            var starSprite = CreateSprite(64, 64, 64f);
+            var starImage = anchor.gameObject.AddComponent<Image>();
+            starImage.sprite = starSprite;
+            starImage.color = new Color(1f, 0.82f, 0.28f, 1f);
+
+            var player = rootObject.AddComponent<WinCelebrationParticlePlayer>();
+            SetField(player, "effectRoot", effectRoot);
+            SetField(player, "particleSprite", fallbackSprite);
+            SetField(player, "initialBurstCount", 2);
+            SetField(player, "ambientBurstCount", 0);
+            SetField(player, "particleLifetime", 0.4f);
+
+            Assert.That(player.TryPlay(anchor), Is.True);
+            Assert.That(effectRoot.childCount, Is.EqualTo(2));
+
+            for (var index = 0; index < effectRoot.childCount; index++)
+            {
+                var particleImage = effectRoot.GetChild(index).GetComponent<Image>();
+                Assert.That(particleImage.sprite, Is.EqualTo(starSprite));
+            }
+        }
+
         private GameObject CreateGameObject(string name)
         {
             var gameObject = new GameObject(name);

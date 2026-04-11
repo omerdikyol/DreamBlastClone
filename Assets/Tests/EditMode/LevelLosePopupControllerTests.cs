@@ -183,6 +183,23 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void ShowLosePopupAppliesRandomConfiguredTitleAndSubtitle()
+        {
+            var setup = CreatePopupController();
+            var titles = new[] { "So close!", "Keep going!" };
+            var subtitles = new[] { "Try a new path.", "You can beat this one." };
+            SetField(setup.PopupController, "loseTitles", titles);
+            SetField(setup.PopupController, "loseSubtitles", subtitles);
+
+            InvokeMethod(setup.PopupController, "Awake");
+            InvokeMethod(setup.PopupController, "OnEnable");
+            InvokeHandleTapProcessed(setup.PopupController, LevelState.Lose);
+
+            Assert.That(titles, Does.Contain(setup.TitleLabel.text));
+            Assert.That(subtitles, Does.Contain(setup.SubtitleLabel.text));
+        }
+
+        [Test]
         public void ReenableResetsLosePopupVisualState()
         {
             var setup = CreatePopupController();
@@ -220,6 +237,12 @@ namespace DreamBlastClone.Tests.EditMode
 
             var titleRoot = CreateGameObject("LoseLabel").AddComponent<RectTransform>();
             titleRoot.SetParent(contentRoot, false);
+            var titleLabel = titleRoot.gameObject.AddComponent<Text>();
+            titleLabel.text = "Oh no!";
+            var subtitleRoot = CreateGameObject("LoseSubtitle").AddComponent<RectTransform>();
+            subtitleRoot.SetParent(contentRoot, false);
+            var subtitleLabel = subtitleRoot.gameObject.AddComponent<Text>();
+            subtitleLabel.text = "Try again.";
 
             var closeButton = CreateButton("CloseButton");
             closeButton.transform.SetParent(contentRoot, false);
@@ -238,6 +261,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(popupController, "contentCanvasGroup", contentCanvasGroup);
             SetField(popupController, "contentRoot", contentRoot);
             SetField(popupController, "titleTransform", titleRoot);
+            SetField(popupController, "subtitleTransform", subtitleRoot);
             SetField(popupController, "enterDurationSeconds", 0.2f);
             SetField(popupController, "exitDurationSeconds", 0.16f);
             SetField(popupController, "contentEnterOffsetY", 28f);
@@ -253,6 +277,8 @@ namespace DreamBlastClone.Tests.EditMode
                 flowController,
                 popupRoot,
                 popupCanvasGroup,
+                titleLabel,
+                subtitleLabel,
                 closeButton,
                 tryAgainButton,
                 mainMenuButton);
@@ -305,6 +331,8 @@ namespace DreamBlastClone.Tests.EditMode
                 TestLevelSceneFlowController flowController,
                 GameObject popupRoot,
                 CanvasGroup popupCanvasGroup,
+                Text titleLabel,
+                Text subtitleLabel,
                 Button closeButton,
                 Button tryAgainButton,
                 Button mainMenuButton)
@@ -314,6 +342,8 @@ namespace DreamBlastClone.Tests.EditMode
                 FlowController = flowController;
                 PopupRoot = popupRoot;
                 PopupCanvasGroup = popupCanvasGroup;
+                TitleLabel = titleLabel;
+                SubtitleLabel = subtitleLabel;
                 CloseButton = closeButton;
                 TryAgainButton = tryAgainButton;
                 MainMenuButton = mainMenuButton;
@@ -328,6 +358,10 @@ namespace DreamBlastClone.Tests.EditMode
             public GameObject PopupRoot { get; }
 
             public CanvasGroup PopupCanvasGroup { get; }
+
+            public Text TitleLabel { get; }
+
+            public Text SubtitleLabel { get; }
 
             public Button CloseButton { get; }
 

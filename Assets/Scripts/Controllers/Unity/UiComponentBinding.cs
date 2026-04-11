@@ -46,5 +46,18 @@ namespace DreamBlastClone.Controllers.Unity
                     break;
             }
         }
+
+        public static void SetEnabled(Component target, bool isEnabled)
+        {
+            switch (target)
+            {
+                case Behaviour behaviour:
+                    behaviour.enabled = isEnabled;
+                    break;
+                case Renderer renderer:
+                    renderer.enabled = isEnabled;
+                    break;
+            }
+        }
     }
 }

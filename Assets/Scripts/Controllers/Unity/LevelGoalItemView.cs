@@ -9,8 +9,9 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private Component iconTarget;
         [SerializeField] private Component titleLabel;
         [SerializeField] private Component countLabel;
+        [SerializeField] private Component completedCountTarget;
+        [SerializeField] private Sprite completedCountSprite;
         [SerializeField] private Color activeColor = Color.white;
-        [SerializeField] private Color completedColor = new Color(1f, 1f, 1f, 0.5f);
 
         public void Bind(LevelGoalProgress goalProgress, Sprite icon, string title)
         {
@@ -21,12 +22,17 @@ namespace DreamBlastClone.Controllers.Unity
 
             UiComponentBinding.SetSprite(iconTarget, icon);
             UiComponentBinding.SetText(titleLabel, title);
-            UiComponentBinding.SetText(countLabel, goalProgress.RemainingCount.ToString("00"));
+            var showCompletedCheck = goalProgress.IsCompleted && completedCountTarget is not null && completedCountSprite is not null;
+            UiComponentBinding.SetText(countLabel, showCompletedCheck ? string.Empty : goalProgress.RemainingCount.ToString("00"));
+            UiComponentBinding.SetSprite(completedCountTarget, completedCountSprite);
 
-            var color = goalProgress.IsCompleted ? completedColor : activeColor;
-            UiComponentBinding.SetColor(iconTarget, color);
-            UiComponentBinding.SetColor(titleLabel, color);
-            UiComponentBinding.SetColor(countLabel, color);
+            UiComponentBinding.SetEnabled(countLabel, !showCompletedCheck);
+            UiComponentBinding.SetEnabled(completedCountTarget, showCompletedCheck);
+
+            UiComponentBinding.SetColor(iconTarget, activeColor);
+            UiComponentBinding.SetColor(titleLabel, activeColor);
+            UiComponentBinding.SetColor(countLabel, activeColor);
+            UiComponentBinding.SetColor(completedCountTarget, activeColor);
         }
     }
 }

@@ -666,6 +666,7 @@ RectTransform:
   m_Children:
   - {fileID: 1659734511}
   - {fileID: 1754224031}
+  - {fileID: 1754224041}
   m_Father: {fileID: 755320357}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -688,8 +689,9 @@ MonoBehaviour:
   iconTarget: {fileID: 1659734512}
   titleLabel: {fileID: 0}
   countLabel: {fileID: 1754224032}
+  completedCountTarget: {fileID: 1754224042}
+  completedCountSprite: {fileID: 8096300645454206010, guid: 334e59f29a244ba4cb6b01539cf34fc7, type: 3}
   activeColor: {r: 1, g: 1, b: 1, a: 1}
-  completedColor: {r: 1, g: 1, b: 1, a: 0.5}
 --- !u!1 &755320353
 GameObject:
   m_ObjectHideFlags: 0
@@ -1808,6 +1810,81 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1754224030}
   m_CullTransparentMesh: 1
+--- !u!1 &1754224040
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1754224041}
+  - component: {fileID: 1754224043}
+  - component: {fileID: 1754224042}
+  m_Layer: 5
+  m_Name: GoalCheck
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1754224041
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1754224040}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 735411716}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 1, y: 0}
+  m_AnchorMax: {x: 1, y: 0}
+  m_AnchoredPosition: {x: -1, y: 3}
+  m_SizeDelta: {x: 26, y: 26}
+  m_Pivot: {x: 1, y: 0}
+--- !u!114 &1754224042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1754224040}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 8096300645454206010, guid: 334e59f29a244ba4cb6b01539cf34fc7, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 1
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &1754224043
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1754224040}
+  m_CullTransparentMesh: 1
 --- !u!1 &1800000000
 GameObject:
   m_ObjectHideFlags: 0
@@ -2269,7 +2346,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -363085424406757488, guid: b282f325ccf8f97459ab3e00a574b961, type: 3}
+  m_Sprite: {fileID: -2306148863814198951, guid: f7ef47306a1cff84890f6b54e2ec884e, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -3128,17 +3205,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.WinCelebrationParticlePlayer
   effectRoot: {fileID: 1810000061}
   particleSprite: {fileID: -1100984736764964828, guid: c50e1f8f8e4fc1a4e8cd36e6641a8e26, type: 3}
-  initialBurstCount: 30
-  ambientBurstCount: 5
-  ambientSpawnInterval: 0.06
-  particleLifetime: 1.25
-  initialSpawnRadius: 118
-  ambientSpawnRadius: 142
-  travelDistance: 112
-  driftUpward: 30
-  initialStartSize: 68
-  ambientStartSize: 34
-  endSize: 18
+  initialBurstCount: 14
+  ambientBurstCount: 3
+  ambientSpawnInterval: 0.12
+  particleLifetime: 1.05
+  initialSpawnRadius: 90
+  ambientSpawnRadius: 126
+  travelDistance: 68
+  driftUpward: 18
+  initialStartSize: 34
+  ambientStartSize: 18
+  endSize: 10
   primaryColor: {r: 1, g: 0.93, b: 0.63, a: 0.92}
   secondaryColor: {r: 1, g: 1, b: 1, a: 0.68}
 --- !u!1 &1810000010

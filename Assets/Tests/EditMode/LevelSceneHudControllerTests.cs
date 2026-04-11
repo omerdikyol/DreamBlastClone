@@ -68,9 +68,10 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(goalItems, Has.Length.EqualTo(3));
             Assert.That(GetCountText(goalItems[0]), Is.EqualTo("01"));
             Assert.That(GetCountText(goalItems[1]), Is.EqualTo("01"));
-            Assert.That(GetCountText(goalItems[2]), Is.EqualTo("00"));
+            Assert.That(GetCountText(goalItems[2]), Is.EqualTo(string.Empty));
             Assert.That(GetTitleText(goalItems[2]), Is.EqualTo("Chalices"));
-            Assert.That(goalItems[2].Find("Count").GetComponent<Text>().color.a, Is.EqualTo(0.5f).Within(0.01f));
+            Assert.That(goalItems[2].Find("Icon").GetComponent<Image>().color.a, Is.EqualTo(1f).Within(0.01f));
+            Assert.That(GetCheckImage(goalItems[2]).enabled, Is.True);
 
             InvokeMethod(controller, "OnDisable");
         }
@@ -104,7 +105,9 @@ namespace DreamBlastClone.Tests.EditMode
             InvokeMethod(controller, "HandleTapProcessed", tapResult);
 
             Assert.That(moveLabel.text, Is.EqualTo("02"));
-            Assert.That(GetCountText(GetActiveGoalItems(goalContainer).Single()), Is.EqualTo("00"));
+            var completedGoalItem = GetActiveGoalItems(goalContainer).Single();
+            Assert.That(GetCountText(completedGoalItem), Is.EqualTo(string.Empty));
+            Assert.That(GetCheckImage(completedGoalItem).enabled, Is.True);
 
             InvokeMethod(controller, "OnDisable");
         }
@@ -383,6 +386,10 @@ namespace DreamBlastClone.Tests.EditMode
             createdObjects.Add(count);
             var countRect = count.GetComponent<RectTransform>();
             countRect.SetParent(root.transform, false);
+            var countCheck = new GameObject("CountCheck", typeof(RectTransform), typeof(Image));
+            createdObjects.Add(countCheck);
+            var countCheckRect = countCheck.GetComponent<RectTransform>();
+            countCheckRect.SetParent(root.transform, false);
 
             var title = new GameObject("Title", typeof(RectTransform), typeof(Text));
             createdObjects.Add(title);
@@ -391,6 +398,8 @@ namespace DreamBlastClone.Tests.EditMode
 
             var countText = count.GetComponent<Text>();
             countText.text = "00";
+            var countCheckImage = countCheck.GetComponent<Image>();
+            countCheckImage.enabled = false;
             var titleText = title.GetComponent<Text>();
             titleText.text = string.Empty;
 
@@ -398,8 +407,9 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(goalItemView, "iconTarget", icon.GetComponent<Image>());
             SetField(goalItemView, "titleLabel", titleText);
             SetField(goalItemView, "countLabel", countText);
+            SetField(goalItemView, "completedCountTarget", countCheckImage);
+            SetField(goalItemView, "completedCountSprite", CreateSprite());
             SetField(goalItemView, "activeColor", Color.white);
-            SetField(goalItemView, "completedColor", new Color(1f, 1f, 1f, 0.5f));
             return rect;
         }
 
@@ -445,6 +455,11 @@ namespace DreamBlastClone.Tests.EditMode
         private static string GetCountText(RectTransform goalItem)
         {
             return goalItem.Find("Count").GetComponent<Text>().text;
+        }
+
+        private static Image GetCheckImage(RectTransform goalItem)
+        {
+            return goalItem.Find("CountCheck").GetComponent<Image>();
         }
 
         private static string GetTitleText(RectTransform goalItem)

@@ -1,3 +1,4 @@
+using System.Reflection;
 using DreamBlastClone.Controllers;
 using DreamBlastClone.Systems;
 using UnityEngine;
@@ -54,6 +55,20 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private float subtitleIdleFloatFrequency = 0.95f;
         [SerializeField] private float subtitleIdleDriftAmplitude = 6f;
         [SerializeField] private float subtitleIdleDriftFrequency = 0.62f;
+        [SerializeField] private string[] loseTitles =
+        {
+            "Oh no!",
+            "Almost there!",
+            "That was close!",
+            "Not this time!"
+        };
+        [SerializeField] private string[] loseSubtitles =
+        {
+            "Give it another shot and clear the board.",
+            "A new try might be all you need.",
+            "One more round and this level is yours.",
+            "Reset and line up a stronger blast."
+        };
 
         private bool hasShownLosePopup;
         private LosePopupState state;
@@ -195,6 +210,7 @@ namespace DreamBlastClone.Controllers.Unity
             hasShownLosePopup = true;
             popupRoot.transform.SetAsLastSibling();
             popupRoot.SetActive(true);
+            ApplyRandomLoseCopy();
             inputBridge.SetInputSuppressed(true);
             BeginEntering();
             return true;
@@ -673,6 +689,70 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             return null;
+        }
+
+        private void ApplyRandomLoseCopy()
+        {
+            ApplyTextToTransform(titleTransform, GetRandomEntry(loseTitles, ReadTextFromTransform(titleTransform), "Oh no!"));
+            ApplyTextToTransform(subtitleTransform, GetRandomEntry(loseSubtitles, ReadTextFromTransform(subtitleTransform), "Give it another shot and clear the board."));
+        }
+
+        private static string GetRandomEntry(string[] options, string currentValue, string fallback)
+        {
+            if (options != null && options.Length > 0)
+            {
+                return options[Random.Range(0, options.Length)];
+            }
+
+            if (!string.IsNullOrWhiteSpace(currentValue))
+            {
+                return currentValue;
+            }
+
+            return fallback;
+        }
+
+        private static string ReadTextFromTransform(RectTransform transform)
+        {
+            var textComponent = FindTextComponent(transform);
+            if (textComponent == null)
+            {
+                return null;
+            }
+
+            var textProperty = textComponent.GetType().GetProperty("text", BindingFlags.Instance | BindingFlags.Public);
+            return textProperty?.GetValue(textComponent) as string;
+        }
+
+        private static void ApplyTextToTransform(RectTransform transform, string value)
+        {
+            var textComponent = FindTextComponent(transform);
+            if (textComponent == null)
+            {
+                return;
+            }
+
+            var textProperty = textComponent.GetType().GetProperty("text", BindingFlags.Instance | BindingFlags.Public);
+            if (textProperty is not null && textProperty.CanWrite)
+            {
+                textProperty.SetValue(textComponent, value);
+            }
+        }
+
+        private static Component FindTextComponent(RectTransform transform)
+        {
+            if (transform == null)
+            {
+                return null;
+            }
+
+            var legacyText = transform.GetComponent<Text>();
+            if (legacyText != null)
+            {
+                return legacyText;
+            }
+
+            return transform.GetComponent("TextMeshProUGUI");
         }
 
         private static float EaseOutCubic(float progress)

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -28,6 +27,9 @@ namespace DreamBlastClone.Views
         private bool isPlaying;
         private float ambientElapsedSeconds;
         private int spawnSequence;
+        private Color runtimePrimaryColor;
+        private Color runtimeSecondaryColor;
+        private Sprite runtimeParticleSprite;
 
         public bool IsPlaying => isPlaying;
 
@@ -35,15 +37,16 @@ namespace DreamBlastClone.Views
         {
             Stop();
 
-            if (starAnchor == null || particleSprite == null || initialBurstCount <= 0 || particleLifetime <= 0f)
+            if (starAnchor == null || initialBurstCount <= 0 || particleLifetime <= 0f)
             {
                 return false;
             }
 
             currentAnchor = starAnchor;
             effectRoot = EnsureEffectRoot();
+            ResolveParticleVisuals(starAnchor);
 
-            if (effectRoot == null)
+            if (effectRoot == null || runtimeParticleSprite == null)
             {
                 currentAnchor = null;
                 return false;
@@ -138,22 +141,29 @@ namespace DreamBlastClone.Views
             {
                 var particleIndex = spawnSequence++;
                 var seed = BuildSeed(particleIndex, ambient);
-                var startRadius = Mathf.Lerp(6f, 18f, Hash01(seed + 3));
-                var spawnOffset = BuildOffset(seed, startRadius);
-                var orbitOffset = BuildOffset(seed + 37, spawnRadius);
-                var outwardOffset = BuildOffset(seed + 53, travelDistance * Mathf.Lerp(0.35f, 1f, Hash01(seed + 59)));
-                var endOffset = orbitOffset + outwardOffset * 0.45f;
-                endOffset.y += driftUpward * Mathf.Lerp(0.45f, 1f, Hash01(seed + 71));
+                var direction = BuildStarDirection(seed, particleIndex, ambient);
+                var perpendicular = new Vector2(-direction.y, direction.x);
+                var anchorRadius = GetAnchorRadius();
+                var startDistance = Mathf.Lerp(anchorRadius * 0.2f, anchorRadius * 0.48f, Hash01(seed + 3));
+                var travelDistanceScale = Mathf.Lerp(0.42f, 1f, Hash01(seed + 59));
+                var tangentialOffset = perpendicular * Mathf.Lerp(-anchorRadius * 0.12f, anchorRadius * 0.12f, Hash01(seed + 37));
+                var driftOffset = perpendicular * Mathf.Lerp(-spawnRadius * 0.18f, spawnRadius * 0.18f, Hash01(seed + 41));
+                var startOffset = direction * startDistance + tangentialOffset * 0.35f;
+                var endDistance = anchorRadius + spawnRadius * Mathf.Lerp(0.35f, 0.95f, Hash01(seed + 47));
+                var endOffset = direction * endDistance + driftOffset;
+                endOffset += direction * (travelDistance * travelDistanceScale * 0.35f);
+                endOffset.y += driftUpward * Mathf.Lerp(0.4f, 1f, Hash01(seed + 71));
 
-                var color = ambient || index % 3 != 0 ? secondaryColor : primaryColor;
-                var sizeMultiplier = Mathf.Lerp(0.88f, 1.3f, Hash01(seed + 11));
+                var color = ambient || index % 3 != 0 ? runtimeSecondaryColor : runtimePrimaryColor;
+                var sizeMultiplier = Mathf.Lerp(ambient ? 0.58f : 0.72f, ambient ? 0.95f : 1.18f, Hash01(seed + 11));
                 var particleRoot = CreateParticleRoot(particleIndex, ambient);
                 var rectTransform = particleRoot.GetComponent<RectTransform>();
                 var image = particleRoot.GetComponent<Image>();
-                var startPosition = center + spawnOffset;
+                var startPosition = center + startOffset;
                 var endPosition = center + endOffset;
-                var startRotation = Mathf.Lerp(-32f, 32f, Hash01(seed + 19));
-                var endRotation = startRotation + Mathf.Lerp(-110f, 110f, Hash01(seed + 23));
+                var baseRotation = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
+                var startRotation = baseRotation + Mathf.Lerp(-12f, 12f, Hash01(seed + 19));
+                var endRotation = startRotation + Mathf.Lerp(-24f, 24f, Hash01(seed + 23));
                 var startSizeVector = Vector2.one * startSize * sizeMultiplier;
                 var endSizeVector = Vector2.one * Mathf.Lerp(endSize * 0.9f, endSize * 1.45f, Hash01(seed + 29));
 
@@ -201,6 +211,29 @@ namespace DreamBlastClone.Views
             return effectRoot;
         }
 
+        private void ResolveParticleVisuals(RectTransform starAnchor)
+        {
+            runtimePrimaryColor = primaryColor;
+            runtimeSecondaryColor = secondaryColor;
+            runtimeParticleSprite = particleSprite;
+
+            if (starAnchor == null)
+            {
+                return;
+            }
+
+            var starImage = starAnchor.GetComponent<Image>();
+            if (starImage == null)
+            {
+                return;
+            }
+
+            var starColor = starImage.color;
+            runtimeParticleSprite = starImage.sprite != null ? starImage.sprite : runtimeParticleSprite;
+            runtimePrimaryColor = new Color(starColor.r, starColor.g, starColor.b, primaryColor.a);
+            runtimeSecondaryColor = new Color(starColor.r, starColor.g, starColor.b, secondaryColor.a);
+        }
+
         private Vector2 GetAnchorCenterInRootSpace()
         {
             var worldCenter = currentAnchor.TransformPoint(currentAnchor.rect.center);
@@ -222,7 +255,7 @@ namespace DreamBlastClone.Views
             rectTransform.localScale = Vector3.one;
 
             var image = root.GetComponent<Image>();
-            image.sprite = particleSprite;
+            image.sprite = runtimeParticleSprite;
             image.preserveAspect = true;
             image.raycastTarget = false;
             return root;
@@ -233,13 +266,36 @@ namespace DreamBlastClone.Views
             return index * 73856093 ^ (ambient ? 19349663 : 83492791);
         }
 
-        private static Vector2 BuildOffset(int seed, float radius)
+        private Vector2 BuildStarDirection(int seed, int particleIndex, bool ambient)
         {
-            var angle = Hash01(seed) * Mathf.PI * 2f;
-            var radialScale = Mathf.Lerp(0.32f, 1f, Hash01(seed + 1));
-            return new Vector2(
-                Mathf.Cos(angle) * radius * radialScale,
-                Mathf.Sin(angle) * radius * radialScale);
+            var spokeIndex = particleIndex % 5;
+            var angle = (90f - spokeIndex * 72f) * Mathf.Deg2Rad;
+            var direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            var spreadDegrees = ambient ? 16f : 10f;
+            var offsetAngle = Mathf.Lerp(-spreadDegrees, spreadDegrees, Hash01(seed + 1)) * Mathf.Deg2Rad;
+            var cos = Mathf.Cos(offsetAngle);
+            var sin = Mathf.Sin(offsetAngle);
+            var rotated = new Vector2(
+                direction.x * cos - direction.y * sin,
+                direction.x * sin + direction.y * cos);
+            return rotated.normalized;
+        }
+
+        private float GetAnchorRadius()
+        {
+            if (currentAnchor == null)
+            {
+                return 36f;
+            }
+
+            var size = currentAnchor.rect.size;
+            var minDimension = Mathf.Min(Mathf.Abs(size.x), Mathf.Abs(size.y));
+            if (minDimension <= 0f)
+            {
+                return 36f;
+            }
+
+            return minDimension * 0.28f;
         }
 
         private static float Hash01(int seed)
