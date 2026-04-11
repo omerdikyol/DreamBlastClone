@@ -217,6 +217,30 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(Vector3.Distance(visual.localScale, Vector3.one), Is.LessThan(0.02f));
         }
 
+        [Test]
+        public void TryPlayLandingReboundsSlightlyAboveDestinationBeforeSettling()
+        {
+            var finalBoard = new BoardModel(1, 3);
+            finalBoard.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Blue));
+
+            var boardView = CreateConfiguredBoardView();
+            var player = CreatePlayer(out var effectRoot);
+            var descriptor = new BoardSettleMotionDescriptor(
+                new[]
+                {
+                    new ItemSettleMove(new BoardCoordinate(0, 2), new BoardCoordinate(0, 0))
+                },
+                System.Array.Empty<RefillSpawnMotion>());
+
+            Assert.That(player.TryPlay(boardView, finalBoard, descriptor), Is.True);
+
+            player.Advance(0.165f);
+
+            var visual = effectRoot.GetChild(0);
+            var destination = boardView.GetCellCenterWorld(new BoardCoordinate(0, 0));
+            Assert.That(visual.position.y, Is.GreaterThan(destination.y));
+        }
+
         private BoardView CreateConfiguredBoardView()
         {
             var host = CreateGameObject("BoardViewHost");
@@ -254,11 +278,14 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(player, "distanceForLongFallSeconds", 7f);
             SetField(player, "minimumDuration", 0.12f);
             SetField(player, "gravityCascadeDelayStep", 0.03f);
-            SetField(player, "shortLandingDurationSeconds", 0.055f);
-            SetField(player, "longLandingDurationSeconds", 0.08f);
-            SetField(player, "landingDipCells", 0.065f);
-            SetField(player, "landingScaleX", 1.04f);
-            SetField(player, "landingScaleY", 0.95f);
+            SetField(player, "shortLandingDurationSeconds", 0.085f);
+            SetField(player, "longLandingDurationSeconds", 0.12f);
+            SetField(player, "landingDipCells", 0.12f);
+            SetField(player, "landingReboundCells", 0.12f);
+            SetField(player, "landingScaleX", 1.12f);
+            SetField(player, "landingScaleY", 0.88f);
+            SetField(player, "reboundScaleX", 0.91f);
+            SetField(player, "reboundScaleY", 1.1f);
             SetField(player, "effectZ", 0f);
             return player;
         }

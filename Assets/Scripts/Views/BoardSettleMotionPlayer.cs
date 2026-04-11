@@ -16,11 +16,14 @@ namespace DreamBlastClone.Views
         [SerializeField] private float minimumDuration = 0.12f;
         [FormerlySerializedAs("columnLandingStep")]
         [SerializeField] private float gravityCascadeDelayStep = 0.03f;
-        [SerializeField] private float shortLandingDurationSeconds = 0.055f;
-        [SerializeField] private float longLandingDurationSeconds = 0.08f;
-        [SerializeField] private float landingDipCells = 0.065f;
-        [SerializeField] private float landingScaleX = 1.04f;
-        [SerializeField] private float landingScaleY = 0.95f;
+        [SerializeField] private float shortLandingDurationSeconds = 0.085f;
+        [SerializeField] private float longLandingDurationSeconds = 0.12f;
+        [SerializeField] private float landingDipCells = 0.12f;
+        [SerializeField] private float landingReboundCells = 0.12f;
+        [SerializeField] private float landingScaleX = 1.12f;
+        [SerializeField] private float landingScaleY = 0.88f;
+        [SerializeField] private float reboundScaleX = 0.91f;
+        [SerializeField] private float reboundScaleY = 1.1f;
         [SerializeField] private float effectZ = -0.12f;
 
         private readonly List<ActiveMotionVisual> activeVisuals = new List<ActiveMotionVisual>();
@@ -155,6 +158,7 @@ namespace DreamBlastClone.Views
         {
             var maxCompletionTime = 0f;
             var dipWorld = Mathf.Max(0f, landingDipCells * Mathf.Max(0f, cellSize));
+            var reboundWorld = Mathf.Max(0f, landingReboundCells * Mathf.Max(0f, cellSize));
 
             for (var index = 0; index < activeVisuals.Count; index++)
             {
@@ -166,13 +170,15 @@ namespace DreamBlastClone.Views
                 var travelDuration = Mathf.Lerp(shortFallDurationSeconds, longFallDurationSeconds, durationProgress);
                 var landingDuration = Mathf.Lerp(shortLandingDurationSeconds, longLandingDurationSeconds, durationProgress);
                 var landingStartWorldPosition = visual.EndWorldPosition + Vector3.down * dipWorld;
+                var reboundWorldPosition = visual.EndWorldPosition + Vector3.up * reboundWorld;
 
                 activeVisuals[index] = visual.WithTiming(
                     cellDistance,
                     travelDuration,
                     0f,
                     landingDuration,
-                    landingStartWorldPosition);
+                    landingStartWorldPosition,
+                    reboundWorldPosition);
 
                 maxCompletionTime = Mathf.Max(maxCompletionTime, travelDuration + landingDuration);
             }
@@ -228,7 +234,8 @@ namespace DreamBlastClone.Views
                         visual.TravelDuration,
                         startDelay,
                         visual.LandingDuration,
-                        visual.LandingStartWorldPosition);
+                        visual.LandingStartWorldPosition,
+                        visual.LandingReboundWorldPosition);
 
                     previousCompletionTime = targetCompletionTime;
                     maxCompletionTime = Mathf.Max(maxCompletionTime, targetCompletionTime);
@@ -274,14 +281,29 @@ namespace DreamBlastClone.Views
                     ? Mathf.Clamp01(landingElapsed / visual.LandingDuration)
                     : 1f;
 
+                if (landingProgress < 0.5f)
+                {
+                    var reboundProgress = EaseOutCubic(Mathf.Clamp01(landingProgress / 0.5f));
+                    target.position = Vector3.Lerp(
+                        visual.LandingStartWorldPosition,
+                        visual.LandingReboundWorldPosition,
+                        reboundProgress);
+                    target.localScale = Vector3.Lerp(
+                        GetLandingScale(visual.BaseLocalScale),
+                        GetReboundScale(visual.BaseLocalScale),
+                        reboundProgress);
+                    continue;
+                }
+
+                var settleProgress = EaseOutCubic(Mathf.Clamp01((landingProgress - 0.5f) / 0.5f));
                 target.position = Vector3.Lerp(
-                    visual.LandingStartWorldPosition,
+                    visual.LandingReboundWorldPosition,
                     visual.EndWorldPosition,
-                    EaseOutCubic(landingProgress));
+                    settleProgress);
                 target.localScale = Vector3.Lerp(
-                    GetLandingScale(visual.BaseLocalScale),
+                    GetReboundScale(visual.BaseLocalScale),
                     visual.BaseLocalScale,
-                    EaseOutCubic(landingProgress));
+                    settleProgress);
             }
         }
 
@@ -310,6 +332,14 @@ namespace DreamBlastClone.Views
                 baseLocalScale.z);
         }
 
+        private Vector3 GetReboundScale(Vector3 baseLocalScale)
+        {
+            return new Vector3(
+                baseLocalScale.x * reboundScaleX,
+                baseLocalScale.y * reboundScaleY,
+                baseLocalScale.z);
+        }
+
         private static float EaseInQuad(float progress)
         {
             return progress * progress;
@@ -334,7 +364,8 @@ namespace DreamBlastClone.Views
                 float travelDuration = 0f,
                 float startDelay = 0f,
                 float landingDuration = 0f,
-                Vector3 landingStartWorldPosition = default)
+                Vector3 landingStartWorldPosition = default,
+                Vector3 landingReboundWorldPosition = default)
             {
                 Root = root;
                 StartWorldPosition = startWorldPosition;
@@ -348,6 +379,7 @@ namespace DreamBlastClone.Views
                 StartDelay = startDelay;
                 LandingDuration = landingDuration;
                 LandingStartWorldPosition = landingStartWorldPosition == default ? endWorldPosition : landingStartWorldPosition;
+                LandingReboundWorldPosition = landingReboundWorldPosition == default ? endWorldPosition : landingReboundWorldPosition;
             }
 
             public GameObject Root { get; }
@@ -374,12 +406,15 @@ namespace DreamBlastClone.Views
 
             public Vector3 LandingStartWorldPosition { get; }
 
+            public Vector3 LandingReboundWorldPosition { get; }
+
             public ActiveMotionVisual WithTiming(
                 float cellDistance,
                 float travelDuration,
                 float startDelay,
                 float landingDuration,
-                Vector3 landingStartWorldPosition)
+                Vector3 landingStartWorldPosition,
+                Vector3 landingReboundWorldPosition)
             {
                 return new ActiveMotionVisual(
                     Root,
@@ -393,7 +428,8 @@ namespace DreamBlastClone.Views
                     travelDuration,
                     startDelay,
                     landingDuration,
-                    landingStartWorldPosition);
+                    landingStartWorldPosition,
+                    landingReboundWorldPosition);
             }
         }
     }

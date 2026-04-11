@@ -1080,11 +1080,14 @@ MonoBehaviour:
   distanceForLongFallSeconds: 7
   minimumDuration: 0.12
   gravityCascadeDelayStep: 0.03
-  shortLandingDurationSeconds: 0.055
-  longLandingDurationSeconds: 0.08
-  landingDipCells: 0.065
-  landingScaleX: 1.04
-  landingScaleY: 0.95
+  shortLandingDurationSeconds: 0.085
+  longLandingDurationSeconds: 0.12
+  landingDipCells: 0.12
+  landingReboundCells: 0.12
+  landingScaleX: 1.12
+  landingScaleY: 0.88
+  reboundScaleX: 0.91
+  reboundScaleY: 1.1
   effectZ: -0.12
 --- !u!114 &1374160548
 MonoBehaviour:
