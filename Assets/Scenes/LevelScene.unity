@@ -904,6 +904,7 @@ GameObject:
   - component: {fileID: 1374160554}
   - component: {fileID: 1374160555}
   - component: {fileID: 1374160556}
+  - component: {fileID: 1374160557}
   m_Layer: 0
   m_Name: LevelSceneRuntime
   m_TagString: Untagged
@@ -969,6 +970,7 @@ MonoBehaviour:
   inputCamera: {fileID: 519420031}
   normalCubePreviewDuration: 0.12
   destructionFeedbackPlayer: {fileID: 1374160546}
+  tapAnticipationPlayer: {fileID: 1374160557}
   cubeBlastParticlePlayer: {fileID: 1374160552}
   vaseParticlePlayer: {fileID: 1374160554}
   stoneParticlePlayer: {fileID: 1374160555}
@@ -1313,6 +1315,27 @@ MonoBehaviour:
   - {fileID: 8656253850458309695, guid: b599efed73b60e244813205941d7466d, type: 3}
   - {fileID: -6503174540981057365, guid: 69db8de5f68caa748a155c18cc2127e4, type: 3}
   - {fileID: -4290281367078989091, guid: 7d0b057466d81b849b140884fdba7aec, type: 3}
+--- !u!114 &1374160557
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1374160538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c2ccfc9e5e144c4a3d0cf7793e93db5, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.TapAnticipationPlayer
+  effectRoot: {fileID: 0}
+  duration: 0.1
+  effectZ: -0.22
+  cubeScaleMultiplier: 1.12
+  rocketScaleMultiplier: 1.16
+  tntScaleMultiplier: 1.18
+  rocketRotationDegrees: 6
+  tntSquashAmount: 0.08
+  invalidShakeDistance: 0.06
 --- !u!1 &1517054704
 GameObject:
   m_ObjectHideFlags: 0

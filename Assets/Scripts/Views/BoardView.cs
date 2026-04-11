@@ -49,7 +49,7 @@ namespace DreamBlastClone.Views
 
         public float CellSize => cellSize;
 
-        public void Render(BoardModel board)
+        public void Render(BoardModel board, bool startItemIdleLoops = true)
         {
             if (board is null)
             {
@@ -65,7 +65,7 @@ namespace DreamBlastClone.Views
             Clear();
             UpdateGridBackground(board);
             RenderObstacles(board);
-            RenderItems(board);
+            RenderItems(board, startItemIdleLoops);
         }
 
         public void Clear()
@@ -197,7 +197,7 @@ namespace DreamBlastClone.Views
             return instance;
         }
 
-        private void RenderItems(BoardModel board)
+        private void RenderItems(BoardModel board, bool startItemIdleLoops)
         {
             var cubeVisualStates = BuildCubeVisualStates(board);
 
@@ -214,9 +214,9 @@ namespace DreamBlastClone.Views
                 instance.transform.localPosition = GetCellCenter(cell.Coordinate, itemZ);
                 ApplyItemAppearance(instance, cell.Item, cell.Coordinate, cubeVisualStates);
                 instance.transform.localScale = GetVisualScale(instance.transform, new Vector2(cellSize, cellSize));
-                if (instance.TryGetComponent<BoardItemIdleLoopView>(out var idleLoop))
+                if (startItemIdleLoops && instance.TryGetComponent<BoardItemIdleLoopView>(out var idleLoop))
                 {
-                    idleLoop.Play();
+                    idleLoop.PlayAtGlobalPhase(GetIdlePhaseOffset(cell.Coordinate));
                 }
 
                 spawnedVisuals.Add(instance);
@@ -264,6 +264,12 @@ namespace DreamBlastClone.Views
         private Transform ResolveItemRoot()
         {
             return itemVisualRoot is not null ? itemVisualRoot : transform;
+        }
+
+        private static float GetIdlePhaseOffset(BoardCoordinate coordinate)
+        {
+            var hash = coordinate.X * 73856093 ^ coordinate.Y * 19349663;
+            return Mathf.Abs(hash % 1000) / 1000f;
         }
 
         private Transform ResolveObstacleRoot()

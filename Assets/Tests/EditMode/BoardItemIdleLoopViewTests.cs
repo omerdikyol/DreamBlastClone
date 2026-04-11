@@ -29,6 +29,17 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void PlayAtGlobalPhaseDoesNotWaitAtBasePose()
+        {
+            var idleLoop = CreateIdleLoop();
+
+            idleLoop.PlayAtGlobalPhase(0.5f);
+
+            Assert.That(idleLoop.IsPlaying, Is.True);
+            Assert.That(host.transform.localScale, Is.Not.EqualTo(Vector3.one));
+        }
+
+        [Test]
         public void StopAndResetRestoresCapturedTransform()
         {
             var idleLoop = CreateIdleLoop();

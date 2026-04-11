@@ -19,6 +19,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private Camera inputCamera;
         [SerializeField] private float normalCubePreviewDuration = 0.12f;
         [SerializeField] private BoardDestructionFeedbackPlayer destructionFeedbackPlayer;
+        [SerializeField] private TapAnticipationPlayer tapAnticipationPlayer;
         [SerializeField] private CubeBlastParticlePlayer cubeBlastParticlePlayer;
         [SerializeField] private VaseParticlePlayer vaseParticlePlayer;
         [SerializeField] private StoneParticlePlayer stoneParticlePlayer;
@@ -33,6 +34,7 @@ namespace DreamBlastClone.Controllers.Unity
         private readonly NormalCubeTapPreviewBoardBuilder previewBoardBuilder = new NormalCubeTapPreviewBoardBuilder();
         private readonly SpecialItemTapPreviewBoardBuilder specialItemPreviewBoardBuilder = new SpecialItemTapPreviewBoardBuilder();
         private readonly BoardDestructionFeedbackDescriptorBuilder destructionFeedbackDescriptorBuilder = new BoardDestructionFeedbackDescriptorBuilder();
+        private readonly TapAnticipationDescriptorBuilder tapAnticipationDescriptorBuilder = new TapAnticipationDescriptorBuilder();
         private readonly CubeBlastParticleDescriptorBuilder cubeBlastParticleDescriptorBuilder = new CubeBlastParticleDescriptorBuilder();
         private readonly VaseParticleDescriptorBuilder vaseParticleDescriptorBuilder = new VaseParticleDescriptorBuilder();
         private readonly StoneParticleDescriptorBuilder stoneParticleDescriptorBuilder = new StoneParticleDescriptorBuilder();
@@ -152,7 +154,17 @@ namespace DreamBlastClone.Controllers.Unity
             var previewBoard = BuildPreviewBoard(preTapBoard, tapResult.Tap);
             if (previewBoard is null)
             {
-                boardView.Render(finalBoard);
+                if (tapResult.Tap.IsValidTap)
+                {
+                    boardView.Render(finalBoard, startItemIdleLoops: false);
+                }
+
+                if (TryStartTapAnticipation(preTapBoard, resolvedCoordinate, tapResult.Tap, out var invalidTapDuration))
+                {
+                    pendingFinalBoard = finalBoard;
+                    remainingPreviewSeconds = invalidTapDuration;
+                }
+
                 return;
             }
 
@@ -167,6 +179,11 @@ namespace DreamBlastClone.Controllers.Unity
             if (TryStartDestructionFeedback(preTapBoard, tapResult.Tap, out var destructionDuration))
             {
                 presentationDuration = Math.Max(presentationDuration, destructionDuration);
+            }
+
+            if (TryStartTapAnticipation(preTapBoard, resolvedCoordinate, tapResult.Tap, out var anticipationDuration))
+            {
+                presentationDuration = Math.Max(presentationDuration, anticipationDuration);
             }
 
             TryStartCubeBlastParticles(tapResult.Tap);
@@ -225,6 +242,11 @@ namespace DreamBlastClone.Controllers.Unity
             if (settleMotionPlayer is not null)
             {
                 settleMotionPlayer.Advance(deltaTime);
+            }
+
+            if (tapAnticipationPlayer is not null)
+            {
+                tapAnticipationPlayer.Advance(deltaTime);
             }
 
             if (cubeBlastParticlePlayer is not null)
@@ -300,6 +322,7 @@ namespace DreamBlastClone.Controllers.Unity
         private void ClearPendingPreview()
         {
             destructionFeedbackPlayer?.Stop();
+            tapAnticipationPlayer?.Stop();
             cubeBlastParticlePlayer?.Stop();
             vaseParticlePlayer?.Stop();
             stoneParticlePlayer?.Stop();
@@ -328,7 +351,7 @@ namespace DreamBlastClone.Controllers.Unity
                 return false;
             }
 
-            boardView.Render(pendingSettleStartBoard);
+            boardView.Render(pendingSettleStartBoard, startItemIdleLoops: false);
 
             if (!settleMotionPlayer.TryPlay(boardView, pendingFinalBoard, pendingSettleMotionDescriptor))
             {
@@ -418,6 +441,29 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             duration = destructionFeedbackPlayer.Duration;
+            return true;
+        }
+
+        private bool TryStartTapAnticipation(
+            BoardModel preTapBoard,
+            BoardCoordinate resolvedCoordinate,
+            BoardTapDispatchResult tap,
+            out float duration)
+        {
+            duration = 0f;
+
+            if (boardView is null || tapAnticipationPlayer is null)
+            {
+                return false;
+            }
+
+            var descriptor = tapAnticipationDescriptorBuilder.Build(resolvedCoordinate, tap);
+            if (!tapAnticipationPlayer.TryPlay(boardView, preTapBoard, descriptor))
+            {
+                return false;
+            }
+
+            duration = tapAnticipationPlayer.Duration;
             return true;
         }
 

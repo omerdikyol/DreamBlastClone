@@ -137,6 +137,30 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void TryHandleScreenTapStartsSmallFeedbackForInvalidInBoardTap()
+        {
+            var board = new BoardModel(2, 2);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            var session = new LevelSession(board, 3, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(0.5f, 0.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(session.RemainingMoves, Is.EqualTo(3));
+            Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
+
+            AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
+
+            Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.False);
+        }
+
+        [Test]
         public void TryHandleScreenTapForwardsValidNormalTapIntoSessionAndRerendersBoard()
         {
             var board = new BoardModel(3, 3);
@@ -157,6 +181,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetItemRoot(boardView).childCount, Is.EqualTo(0));
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.False);
@@ -165,6 +190,7 @@ namespace DreamBlastClone.Tests.EditMode
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
 
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
@@ -200,6 +226,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(capturedResult.Tap.RouteType, Is.EqualTo(TapRouteType.NormalCube));
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
         }
@@ -230,6 +257,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(capturedTapResult.Tap.SpecialItem.Activation.RemovedItemCoordinates, Does.Contain(new BoardCoordinate(2, 1)));
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.True);
 
@@ -271,6 +299,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(session.RemainingMoves, Is.EqualTo(4));
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
@@ -307,6 +336,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetRemainingPreviewSeconds(bridge), Is.GreaterThan(0f));
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetComboPresentationPlayer(bridge).IsPlaying, Is.False);
@@ -351,6 +381,7 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(capturedTapResult.Tap.SpecialItem.Combo.RemovedItemCoordinates, Does.Contain(new BoardCoordinate(1, 0)));
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetCubeBlastParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
         }
@@ -373,6 +404,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.False);
 
@@ -873,6 +905,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(bridge, "sessionHost", host);
             SetField(bridge, "inputCamera", camera);
             SetField(bridge, "destructionFeedbackPlayer", CreateDestructionFeedbackPlayer());
+            SetField(bridge, "tapAnticipationPlayer", CreateTapAnticipationPlayer());
             SetField(bridge, "cubeBlastParticlePlayer", CreateCubeBlastParticlePlayer());
             SetField(bridge, "vaseParticlePlayer", CreateVaseParticlePlayer());
             SetField(bridge, "stoneParticlePlayer", CreateStoneParticlePlayer());
@@ -943,6 +976,11 @@ namespace DreamBlastClone.Tests.EditMode
         private BoardDestructionFeedbackPlayer GetDestructionFeedbackPlayer(BoardInputSessionBridge bridge)
         {
             return (BoardDestructionFeedbackPlayer)GetField(bridge, "destructionFeedbackPlayer");
+        }
+
+        private TapAnticipationPlayer GetTapAnticipationPlayer(BoardInputSessionBridge bridge)
+        {
+            return (TapAnticipationPlayer)GetField(bridge, "tapAnticipationPlayer");
         }
 
         private CubeBlastParticlePlayer GetCubeBlastParticlePlayer(BoardInputSessionBridge bridge)
@@ -1047,6 +1085,14 @@ namespace DreamBlastClone.Tests.EditMode
             var host = CreateGameObject("DestructionFeedbackPlayer");
             var effectPlayer = host.AddComponent<BoardDestructionFeedbackPlayer>();
             SetField(effectPlayer, "duration", 0.14f);
+            return effectPlayer;
+        }
+
+        private TapAnticipationPlayer CreateTapAnticipationPlayer()
+        {
+            var host = CreateGameObject("TapAnticipationPlayer");
+            var effectPlayer = host.AddComponent<TapAnticipationPlayer>();
+            SetField(effectPlayer, "duration", 0.1f);
             return effectPlayer;
         }
 

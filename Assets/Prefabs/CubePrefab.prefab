@@ -132,7 +132,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.BoardItemIdleLoopView
   idleLoopStyle: 0
   durationSeconds: 2.2
-  scaleAmplitude: 0.024
-  verticalAmplitude: 0.012
+  scaleAmplitude: 0.02
+  verticalAmplitude: 0.01
   rotationAmplitudeDegrees: 0
   phaseOffsetSeconds: 0.9

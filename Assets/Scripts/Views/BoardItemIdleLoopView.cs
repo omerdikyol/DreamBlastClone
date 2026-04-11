@@ -29,6 +29,15 @@ namespace DreamBlastClone.Views
 
         public void Play()
         {
+            var phaseOffset = phaseOffsetSeconds > 0f
+                ? Random.Range(0f, phaseOffsetSeconds)
+                : 0f;
+
+            PlayAtGlobalPhase(phaseOffset);
+        }
+
+        public void PlayAtGlobalPhase(float phaseOffset)
+        {
             PresentationTweenBootstrap.EnsureInitialized();
 
             StopAndReset();
@@ -38,9 +47,7 @@ namespace DreamBlastClone.Views
                 .SetUpdate(UpdateType.Normal, isIndependentUpdate: false)
                 .SetLink(gameObject, LinkBehaviour.KillOnDestroy);
 
-            var phase = phaseOffsetSeconds > 0f
-                ? Random.Range(0f, phaseOffsetSeconds)
-                : 0f;
+            var phase = Mathf.Repeat(Time.time + Mathf.Max(0f, phaseOffset), Mathf.Max(0.05f, durationSeconds));
             idleTween.Goto(phase, andPlay: true);
         }
 
