@@ -47,6 +47,7 @@ namespace DreamBlastClone.Views
         private readonly List<GameObject> spawnedVisuals = new List<GameObject>();
         private readonly CubeGroupDetector cubeGroupDetector = new CubeGroupDetector();
         private readonly Dictionary<BoardCoordinate, ChaliceBoxPresentationState> chalicePresentationStates = new Dictionary<BoardCoordinate, ChaliceBoxPresentationState>();
+        private readonly Dictionary<BoardCoordinate, RenderedCubeAppearance> previousCubeAppearances = new Dictionary<BoardCoordinate, RenderedCubeAppearance>();
         private readonly System.Random chalicePresentationRandom = new System.Random();
         private static Sprite runtimeBoardClipMaskSprite;
 
@@ -65,7 +66,7 @@ namespace DreamBlastClone.Views
                 boardCenter.x - board.Width * cellSize * 0.5f,
                 boardCenter.y - board.Height * cellSize * 0.5f);
 
-            Clear();
+            ClearSpawnedVisuals();
             UpdateGridBackground(board);
             UpdateBoardClipMask(board);
             RenderObstacles(board);
@@ -73,6 +74,12 @@ namespace DreamBlastClone.Views
         }
 
         public void Clear()
+        {
+            ClearSpawnedVisuals();
+            previousCubeAppearances.Clear();
+        }
+
+        private void ClearSpawnedVisuals()
         {
             for (var index = spawnedVisuals.Count - 1; index >= 0; index--)
             {
@@ -228,6 +235,7 @@ namespace DreamBlastClone.Views
         private void RenderItems(BoardModel board, bool startItemIdleLoops)
         {
             var cubeVisualStates = BuildCubeVisualStates(board);
+            var currentCubeAppearances = new Dictionary<BoardCoordinate, RenderedCubeAppearance>();
 
             foreach (var cell in board.GetAllCells())
             {
@@ -240,14 +248,34 @@ namespace DreamBlastClone.Views
                 var instance = Instantiate(prefab, ResolveItemRoot(), worldPositionStays: false);
                 instance.name = $"{prefab.name}_{cell.Coordinate}";
                 instance.transform.localPosition = GetCellCenter(cell.Coordinate, itemZ);
+                var cubeVisualState = cell.Item is CubeItemModel
+                    ? ResolveCubeVisualState(cell.Coordinate, cubeVisualStates)
+                    : CubeVisualState.Default;
                 ApplyItemAppearance(instance, cell.Item, cell.Coordinate, cubeVisualStates);
                 instance.transform.localScale = GetVisualScale(instance.transform, new Vector2(cellSize, cellSize));
-                if (startItemIdleLoops && instance.TryGetComponent<BoardItemIdleLoopView>(out var idleLoop))
+
+                if (cell.Item is CubeItemModel cube && instance.TryGetComponent<CubeItemView>(out var cubeItemView))
+                {
+                    var shouldAnimateTransition = ShouldAnimateCubeVisualTransition(cell, cubeVisualState);
+                    currentCubeAppearances[cell.Coordinate] = new RenderedCubeAppearance(cube.Color, cubeVisualState);
+                    cubeItemView.PlayVisualStateTransition(
+                        shouldAnimateTransition ? cubeVisualState : CubeVisualState.Default,
+                        instance.TryGetComponent<BoardItemIdleLoopView>(out var cubeIdleLoop) ? cubeIdleLoop : null,
+                        GetIdlePhaseOffset(cell.Coordinate),
+                        startItemIdleLoops);
+                }
+                else if (startItemIdleLoops && instance.TryGetComponent<BoardItemIdleLoopView>(out var idleLoop))
                 {
                     idleLoop.PlayAtGlobalPhase(GetIdlePhaseOffset(cell.Coordinate));
                 }
 
                 spawnedVisuals.Add(instance);
+            }
+
+            previousCubeAppearances.Clear();
+            foreach (var pair in currentCubeAppearances)
+            {
+                previousCubeAppearances[pair.Key] = pair.Value;
             }
         }
 
@@ -456,6 +484,19 @@ namespace DreamBlastClone.Views
             }
 
             return CubeVisualState.Default;
+        }
+
+        private bool ShouldAnimateCubeVisualTransition(CellModel cell, CubeVisualState visualState)
+        {
+            if (cell.Item is not CubeItemModel cube
+                || visualState == CubeVisualState.Default)
+            {
+                return false;
+            }
+
+            return !previousCubeAppearances.TryGetValue(cell.Coordinate, out var previousAppearance)
+                || previousAppearance.Color != cube.Color
+                || previousAppearance.State != visualState;
         }
 
         private static GameObject RequirePrefab(GameObject prefab, string fieldName)
@@ -776,6 +817,19 @@ namespace DreamBlastClone.Views
             public int[] RemovalOrder { get; }
 
             public int LastRemainingChalices { get; set; }
+        }
+
+        private readonly struct RenderedCubeAppearance
+        {
+            public RenderedCubeAppearance(CubeColor color, CubeVisualState state)
+            {
+                Color = color;
+                State = state;
+            }
+
+            public CubeColor Color { get; }
+
+            public CubeVisualState State { get; }
         }
 
         private readonly struct ChaliceBoxVisualState

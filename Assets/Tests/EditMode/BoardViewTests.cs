@@ -446,6 +446,67 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void RenderUsesRocketEligibleSpriteForGroupsOfFour()
+        {
+            var board = new BoardModel(4, 1);
+            var boardView = CreateConfiguredBoardView();
+            var cubePrefab = (GameObject)GetField(boardView, "cubePrefab");
+            var cubeView = cubePrefab.GetComponent<CubeItemView>();
+
+            for (var x = 0; x < 4; x++)
+            {
+                board.PlaceItem(new BoardCoordinate(x, 0), new CubeItemModel(CubeColor.Green));
+            }
+
+            boardView.Render(board);
+
+            var cubeRenderer = FindChildByPrefix(GetItemRoot(boardView), "CubePrefab_(0,0)").GetComponent<SpriteRenderer>();
+            Assert.That(cubeRenderer.sprite, Is.SameAs(GetField(cubeView, "greenRocketSprite")));
+            Assert.That(cubeRenderer.color, Is.EqualTo(Color.white));
+        }
+
+        [Test]
+        public void RenderUsesTntEligibleSpriteForGroupsOfSix()
+        {
+            var board = new BoardModel(6, 1);
+            var boardView = CreateConfiguredBoardView();
+            var cubePrefab = (GameObject)GetField(boardView, "cubePrefab");
+            var cubeView = cubePrefab.GetComponent<CubeItemView>();
+
+            for (var x = 0; x < 6; x++)
+            {
+                board.PlaceItem(new BoardCoordinate(x, 0), new CubeItemModel(CubeColor.Green));
+            }
+
+            boardView.Render(board);
+
+            var cubeRenderer = FindChildByPrefix(GetItemRoot(boardView), "CubePrefab_(0,0)").GetComponent<SpriteRenderer>();
+            Assert.That(cubeRenderer.sprite, Is.SameAs(GetField(cubeView, "greenTntSprite")));
+            Assert.That(cubeRenderer.color, Is.EqualTo(Color.white));
+        }
+
+        [Test]
+        public void RenderCachesEligibleCubeAppearanceSoSameStateDoesNotRetriggerTransition()
+        {
+            var board = new BoardModel(4, 1);
+            var boardView = CreateConfiguredBoardView();
+
+            for (var x = 0; x < 4; x++)
+            {
+                board.PlaceItem(new BoardCoordinate(x, 0), new CubeItemModel(CubeColor.Green));
+            }
+
+            boardView.Render(board);
+
+            var cell = board.GetCell(new BoardCoordinate(0, 0));
+            var shouldAnimate = (bool)typeof(BoardView)
+                .GetMethod("ShouldAnimateCubeVisualTransition", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(boardView, new object[] { cell, CubeVisualState.RocketEligible });
+
+            Assert.That(shouldAnimate, Is.False);
+        }
+
+        [Test]
         public void RenderCubeWithoutCubeItemViewThrows()
         {
             var board = new BoardModel(1, 1);
