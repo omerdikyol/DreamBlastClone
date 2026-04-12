@@ -13,6 +13,8 @@ namespace DreamBlastClone.Controllers.Unity
         [FormerlySerializedAs("startButtonIdleLoop")]
         [SerializeField] private UIButtonFeedbackView startButtonFeedback;
         [SerializeField] private GameAudioController audioController;
+        [SerializeField] private Transform audioSettingsCanvasRoot;
+        [SerializeField] private AudioSettingsPopupController audioSettingsPopupPrefab;
         [SerializeField] private Component levelLabel;
         [SerializeField] private string levelSceneName = "LevelScene";
 
@@ -25,6 +27,7 @@ namespace DreamBlastClone.Controllers.Unity
         private void Awake()
         {
             ResolveAudioController();
+            EnsureAudioSettingsPopup();
             RefreshCurrentLevel();
             RefreshUi();
         }
@@ -37,6 +40,7 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             ResolveAudioController();
+            EnsureAudioSettingsPopup();
             EnsureStartButtonClickSoundPlayer();
             RefreshCurrentLevel();
             RefreshUi();
@@ -151,6 +155,21 @@ namespace DreamBlastClone.Controllers.Unity
         private void ResolveAudioController()
         {
             audioController ??= GetComponent<GameAudioController>() ?? gameObject.AddComponent<GameAudioController>();
+        }
+
+        private void EnsureAudioSettingsPopup()
+        {
+            var popupRoot = audioSettingsCanvasRoot != null
+                ? audioSettingsCanvasRoot
+                : startButton != null
+                    ? startButton.GetComponentInParent<Canvas>()?.transform
+                    : FindFirstObjectByType<Canvas>()?.transform;
+            if (popupRoot == null)
+            {
+                return;
+            }
+
+            AudioSettingsPopupController.EnsureInstance(popupRoot, audioController, prefab: audioSettingsPopupPrefab);
         }
 
         private void EnsureStartButtonClickSoundPlayer()

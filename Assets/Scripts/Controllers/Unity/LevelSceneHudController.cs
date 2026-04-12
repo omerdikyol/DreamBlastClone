@@ -12,6 +12,8 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private LevelSessionHost sessionHost;
         [SerializeField] private BoardInputSessionBridge inputBridge;
         [SerializeField] private GameAudioController audioController;
+        [SerializeField] private Transform audioSettingsCanvasRoot;
+        [SerializeField] private AudioSettingsPopupController audioSettingsPopupPrefab;
         [SerializeField] private Component moveCountLabel;
         [SerializeField] private RectTransform goalItemTemplate;
         [SerializeField] private Transform goalItemsContainer;
@@ -41,6 +43,7 @@ namespace DreamBlastClone.Controllers.Unity
         private void Start()
         {
             ResolveAudioController();
+            EnsureAudioSettingsPopup();
             RefreshHud();
         }
 
@@ -153,6 +156,23 @@ namespace DreamBlastClone.Controllers.Unity
         private void ResolveAudioController()
         {
             audioController ??= GetComponent<GameAudioController>() ?? gameObject.AddComponent<GameAudioController>();
+        }
+
+        private void EnsureAudioSettingsPopup()
+        {
+            var popupRoot = audioSettingsCanvasRoot != null
+                ? audioSettingsCanvasRoot
+                : goalItemTemplate != null
+                    ? goalItemTemplate.GetComponentInParent<Canvas>()?.transform
+                    : moveCountLabel != null
+                        ? moveCountLabel.GetComponentInParent<Canvas>()?.transform
+                        : FindFirstObjectByType<Canvas>()?.transform;
+            if (popupRoot == null)
+            {
+                return;
+            }
+
+            AudioSettingsPopupController.EnsureInstance(popupRoot, audioController, inputBridge, audioSettingsPopupPrefab);
         }
 
         private void LayoutGoalItems(int goalCount)

@@ -16,11 +16,18 @@ namespace DreamBlastClone.Controllers.Unity
         private readonly List<SfxVoiceState> sfxVoices = new List<SfxVoiceState>();
         private readonly Dictionary<GameSfxCue, float> nextAllowedPlayTimes = new Dictionary<GameSfxCue, float>();
         private readonly List<PendingSfxRequest> pendingSfxRequests = new List<PendingSfxRequest>();
+        private readonly AudioSettingsStore audioSettingsStore = new AudioSettingsStore();
         private AudioSource musicSource;
         private bool isInitialized;
         private float musicVolumeMultiplier = 1f;
+        private float musicUserVolume = 1f;
+        private float sfxUserVolume = 1f;
 
         public GameMusicCue? CurrentMusicCue { get; private set; }
+
+        public float MusicUserVolume => musicUserVolume;
+
+        public float SfxUserVolume => sfxUserVolume;
 
         protected virtual void Awake()
         {
@@ -73,6 +80,20 @@ namespace DreamBlastClone.Controllers.Unity
             ApplyMusicVolume();
         }
 
+        public virtual void SetMusicUserVolume(float value)
+        {
+            musicUserVolume = Mathf.Clamp01(value);
+            audioSettingsStore.SetMusicVolume(musicUserVolume);
+            ApplyMusicVolume();
+        }
+
+        public virtual void SetSfxUserVolume(float value)
+        {
+            sfxUserVolume = Mathf.Clamp01(value);
+            audioSettingsStore.SetSfxVolume(sfxUserVolume);
+            ApplyActiveSfxVolumes();
+        }
+
         public virtual bool PlaySfx(GameSfxCue cue)
         {
             return PlaySfx(cue, 1f, bypassCooldown: false, bypassVoiceLimit: false);
@@ -111,7 +132,8 @@ namespace DreamBlastClone.Controllers.Unity
 
             voice.Source.clip = clip;
             voice.Source.loop = false;
-            voice.Source.volume = Mathf.Clamp01(sfxVolume * GetVolumeMultiplier(cue) * Mathf.Max(0f, volumeMultiplier));
+            voice.VolumeMultiplier = Mathf.Max(0f, volumeMultiplier);
+            ApplyVoiceVolume(voice);
             voice.Source.playOnAwake = false;
             voice.Source.Play();
 
@@ -149,6 +171,9 @@ namespace DreamBlastClone.Controllers.Unity
             {
                 return;
             }
+
+            musicUserVolume = audioSettingsStore.GetMusicVolume();
+            sfxUserVolume = audioSettingsStore.GetSfxVolume();
 
             musicSource = GetOrCreateSource("MusicAudioSource");
             if (musicSource != null)
@@ -288,6 +313,33 @@ namespace DreamBlastClone.Controllers.Unity
             }
         }
 
+        private void ApplyActiveSfxVolumes()
+        {
+            for (var index = 0; index < sfxVoices.Count; index++)
+            {
+                if (!sfxVoices[index].IsBusy)
+                {
+                    continue;
+                }
+
+                ApplyVoiceVolume(sfxVoices[index]);
+            }
+        }
+
+        private void ApplyVoiceVolume(SfxVoiceState voice)
+        {
+            if (voice?.Source == null)
+            {
+                return;
+            }
+
+            voice.Source.volume = Mathf.Clamp01(
+                sfxVolume
+                * sfxUserVolume
+                * GetVolumeMultiplier(voice.Cue)
+                * Mathf.Max(0f, voice.VolumeMultiplier));
+        }
+
         private void ApplyMusicVolume()
         {
             if (musicSource == null)
@@ -295,7 +347,7 @@ namespace DreamBlastClone.Controllers.Unity
                 return;
             }
 
-            musicSource.volume = Mathf.Clamp01(musicVolume) * musicVolumeMultiplier;
+            musicSource.volume = Mathf.Clamp01(musicVolume) * musicUserVolume * musicVolumeMultiplier;
         }
 
         private sealed class SfxVoiceState
@@ -312,12 +364,15 @@ namespace DreamBlastClone.Controllers.Unity
 
             public float BusyUntil { get; set; }
 
+            public float VolumeMultiplier { get; set; }
+
             public bool IsBusy => BusyUntil > 0f;
 
             public void Clear()
             {
                 Cue = default;
                 BusyUntil = 0f;
+                VolumeMultiplier = 1f;
             }
         }
 

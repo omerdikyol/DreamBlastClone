@@ -10,11 +10,13 @@ namespace DreamBlastClone.Controllers.Unity
 
         private void OnEnable()
         {
-            if (!TryResolveDependencies())
+            targetButton ??= GetComponent<Button>();
+            if (targetButton == null)
             {
                 return;
             }
 
+            targetButton.onClick.RemoveListener(HandleButtonClicked);
             targetButton.onClick.AddListener(HandleButtonClicked);
         }
 
@@ -26,15 +28,14 @@ namespace DreamBlastClone.Controllers.Unity
             }
         }
 
-        private bool TryResolveDependencies()
+        private void ResolveAudioController()
         {
-            targetButton ??= GetComponent<Button>();
             audioController ??= GetComponentInParent<GameAudioController>() ?? FindFirstObjectByType<GameAudioController>();
-            return targetButton != null && audioController != null;
         }
 
         private void HandleButtonClicked()
         {
+            ResolveAudioController();
             audioController?.PlaySfx(GameSfxCue.MenuButtonClick);
         }
     }
