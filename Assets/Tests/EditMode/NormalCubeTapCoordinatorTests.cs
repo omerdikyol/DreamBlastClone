@@ -232,6 +232,31 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(board.GetCell(stoneCoordinate).Obstacle, Is.Not.Null);
         }
 
+        [Test]
+        public void ValidBlastFillsReachableStoneCavityBeforeRefill()
+        {
+            var board = new BoardModel(3, 3);
+            var stoneCoordinate = new BoardCoordinate(1, 1);
+            var movingCube = new CubeItemModel(CubeColor.Blue);
+            var blockingCube = new CubeItemModel(CubeColor.Green);
+
+            board.PlaceObstacle(stoneCoordinate, new StoneObstacleModel());
+            board.PlaceItem(new BoardCoordinate(0, 0), blockingCube);
+            board.PlaceItem(new BoardCoordinate(0, 1), movingCube);
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(2, 0), new CubeItemModel(CubeColor.Red));
+
+            var result = coordinator.Resolve(board, new BoardCoordinate(1, 0), new FakeRefillCubeColorResolver());
+
+            Assert.That(result.IsValidTap, Is.True);
+            Assert.That(result.Gravity.Moves, Is.EqualTo(new[]
+            {
+                new ItemFallMove(new BoardCoordinate(0, 1), new BoardCoordinate(1, 0))
+            }));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.SameAs(movingCube));
+            Assert.That(board.GetCell(stoneCoordinate).Obstacle, Is.TypeOf<StoneObstacleModel>());
+        }
+
         private static void AssertInvalidResult(NormalCubeTapPipelineResult result)
         {
             Assert.That(result.IsValidTap, Is.False);

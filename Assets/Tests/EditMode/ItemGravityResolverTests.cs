@@ -112,6 +112,98 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void StoneAllowsReachableCavityToFillLaterally()
+        {
+            var board = new BoardModel(3, 3);
+            var blocker = new StoneObstacleModel();
+            var baseCube = new CubeItemModel(CubeColor.Red);
+            var settlingCube = new CubeItemModel(CubeColor.Blue);
+
+            board.PlaceObstacle(new BoardCoordinate(1, 1), blocker);
+            board.PlaceItem(new BoardCoordinate(0, 0), baseCube);
+            board.PlaceItem(new BoardCoordinate(0, 1), settlingCube);
+
+            var result = resolver.Resolve(board);
+
+            Assert.That(result.Moves, Is.EqualTo(new[]
+            {
+                new ItemFallMove(new BoardCoordinate(0, 1), new BoardCoordinate(1, 0))
+            }));
+            Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Item, Is.SameAs(baseCube));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.SameAs(settlingCube));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 1)).Obstacle, Is.SameAs(blocker));
+        }
+
+        [Test]
+        public void ChaliceBoxAllowsReachableCavitiesUnderItsFootprintToFillLaterally()
+        {
+            var board = new BoardModel(4, 4);
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 1), remainingDoorDurability: 2);
+            var leftBaseCube = new CubeItemModel(CubeColor.Red);
+            var leftSettlingCube = new CubeItemModel(CubeColor.Blue);
+            var rightBaseCube = new CubeItemModel(CubeColor.Green);
+            var rightSettlingCube = new CubeItemModel(CubeColor.Yellow);
+
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+            board.PlaceItem(new BoardCoordinate(0, 0), leftBaseCube);
+            board.PlaceItem(new BoardCoordinate(0, 1), leftSettlingCube);
+            board.PlaceItem(new BoardCoordinate(3, 0), rightBaseCube);
+            board.PlaceItem(new BoardCoordinate(3, 1), rightSettlingCube);
+
+            var result = resolver.Resolve(board);
+
+            Assert.That(result.Moves, Is.EqualTo(new[]
+            {
+                new ItemFallMove(new BoardCoordinate(0, 1), new BoardCoordinate(1, 0)),
+                new ItemFallMove(new BoardCoordinate(3, 1), new BoardCoordinate(2, 0))
+            }));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.SameAs(leftSettlingCube));
+            Assert.That(board.GetCell(new BoardCoordinate(2, 0)).Item, Is.SameAs(rightSettlingCube));
+            Assert.That(board.GetCell(chaliceBox.Anchor).Obstacle, Is.SameAs(chaliceBox));
+            Assert.That(board.GetCell(chaliceBox.Anchor.Offset(1, 1)).Obstacle, Is.SameAs(chaliceBox));
+        }
+
+        [Test]
+        public void UnreachableCavityUnderRigidBlockerRemainsEmpty()
+        {
+            var board = new BoardModel(3, 3);
+            var blocker = new StoneObstacleModel();
+            var topCube = new CubeItemModel(CubeColor.Green);
+
+            board.PlaceObstacle(new BoardCoordinate(1, 1), blocker);
+            board.PlaceItem(new BoardCoordinate(1, 2), topCube);
+
+            var result = resolver.Resolve(board);
+
+            Assert.That(result.Moves, Is.EqualTo(new[]
+            {
+                new ItemFallMove(new BoardCoordinate(1, 2), new BoardCoordinate(0, 0))
+            }));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.Null);
+            Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Item, Is.SameAs(topCube));
+        }
+
+        [Test]
+        public void VaseDoesNotTriggerRigidBlockerLateralSettling()
+        {
+            var board = new BoardModel(3, 3);
+            var vase = new VaseObstacleModel();
+            var baseCube = new CubeItemModel(CubeColor.Red);
+            var settlingCube = new CubeItemModel(CubeColor.Blue);
+
+            board.PlaceObstacle(new BoardCoordinate(1, 1), vase);
+            board.PlaceItem(new BoardCoordinate(0, 0), baseCube);
+            board.PlaceItem(new BoardCoordinate(0, 1), settlingCube);
+
+            var result = resolver.Resolve(board);
+
+            Assert.That(result.HasAnyMovement, Is.False);
+            Assert.That(board.GetCell(new BoardCoordinate(0, 1)).Item, Is.SameAs(settlingCube));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.Null);
+            Assert.That(board.GetCell(new BoardCoordinate(1, 1)).Obstacle, Is.SameAs(vase));
+        }
+
+        [Test]
         public void SingleRowBoardProducesNoMovement()
         {
             var board = new BoardModel(3, 1);

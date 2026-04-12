@@ -334,6 +334,33 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(board.GetCell(new BoardCoordinate(4, 6)).Item, Is.TypeOf<CubeItemModel>());
         }
 
+        [Test]
+        public void ValidSpecialTapFillsReachableChaliceBoxCavityBeforeRefill()
+        {
+            var board = new BoardModel(4, 4);
+            var tap = new BoardCoordinate(1, 0);
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 1), remainingDoorDurability: 2);
+            var blockingCube = new CubeItemModel(CubeColor.Red);
+            var movingCube = new CubeItemModel(CubeColor.Blue);
+
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+            board.PlaceItem(new BoardCoordinate(0, 0), blockingCube);
+            board.PlaceItem(new BoardCoordinate(0, 1), movingCube);
+            board.PlaceItem(tap, new RocketItemModel(RocketOrientation.Vertical));
+
+            var result = coordinator.Resolve(board, tap, new FakeRefillCubeColorResolver());
+
+            Assert.That(result.IsValidTap, Is.True);
+            Assert.That(result.Activation.IsValidActivation, Is.True);
+            Assert.That(result.Gravity.Moves, Is.EqualTo(new[]
+            {
+                new ItemFallMove(new BoardCoordinate(0, 1), new BoardCoordinate(1, 0))
+            }));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.SameAs(movingCube));
+            Assert.That(chaliceBox.RemainingDoorDurability, Is.EqualTo(1));
+            Assert.That(board.GetCell(chaliceBox.Anchor).Obstacle, Is.SameAs(chaliceBox));
+        }
+
         private static void AssertInvalidResult(SpecialItemTapPipelineResult result)
         {
             Assert.That(result.IsValidTap, Is.False);

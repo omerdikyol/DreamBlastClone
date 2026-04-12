@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using DreamBlastClone.Core;
 using DreamBlastClone.Grid;
+using DreamBlastClone.Items;
+using DreamBlastClone.Obstacles;
 
 namespace DreamBlastClone.Systems
 {
@@ -14,47 +16,150 @@ namespace DreamBlastClone.Systems
                 throw new ArgumentNullException(nameof(board));
             }
 
-            var moves = new List<ItemFallMove>();
-
-            for (var x = 0; x < board.Width; x++)
+            var initialPositions = new Dictionary<ItemModel, BoardCoordinate>();
+            foreach (var cell in board.GetAllCells())
             {
-                var nextLandingY = 0;
+                if (cell.HasItem)
+                {
+                    initialPositions[cell.Item] = cell.Coordinate;
+                }
+            }
+
+            var movedAnyItem = false;
+            var movedThisPass = true;
+
+            while (movedThisPass)
+            {
+                movedThisPass = false;
 
                 for (var y = 0; y < board.Height; y++)
                 {
-                    var sourceCoordinate = new BoardCoordinate(x, y);
-                    var sourceCell = board.GetCell(sourceCoordinate);
-
-                    if (sourceCell.HasObstacle)
+                    for (var x = 0; x < board.Width; x++)
                     {
-                        // Obstacles occupy their cells, so falling items can only settle above the highest blocker seen so far.
-                        nextLandingY = Math.Max(nextLandingY, y + 1);
+                        var sourceCoordinate = new BoardCoordinate(x, y);
+                        var sourceCell = board.GetCell(sourceCoordinate);
+                        if (!sourceCell.HasItem || !TryResolveStepDestination(board, sourceCoordinate, out var destinationCoordinate))
+                        {
+                            continue;
+                        }
+
+                        var item = sourceCell.Item;
+                        board.ClearItem(sourceCoordinate);
+                        board.PlaceItem(destinationCoordinate, item);
+                        movedThisPass = true;
+                        movedAnyItem = true;
                     }
-
-                    if (!sourceCell.HasItem)
-                    {
-                        continue;
-                    }
-
-                    if (y == nextLandingY)
-                    {
-                        nextLandingY++;
-                        continue;
-                    }
-
-                    var item = sourceCell.Item;
-                    var destinationCoordinate = new BoardCoordinate(x, nextLandingY);
-
-                    board.PlaceItem(destinationCoordinate, item);
-                    board.ClearItem(sourceCoordinate);
-                    moves.Add(new ItemFallMove(sourceCoordinate, destinationCoordinate));
-                    nextLandingY++;
                 }
             }
+
+            if (!movedAnyItem)
+            {
+                return ItemGravityResolutionResult.Empty();
+            }
+
+            var moves = new List<ItemFallMove>();
+            foreach (var pair in initialPositions)
+            {
+                var finalCoordinate = FindItemCoordinate(board, pair.Key);
+                if (finalCoordinate == pair.Value)
+                {
+                    continue;
+                }
+
+                moves.Add(new ItemFallMove(pair.Value, finalCoordinate));
+            }
+
+            moves.Sort(static (left, right) =>
+            {
+                var xComparison = left.From.X.CompareTo(right.From.X);
+                return xComparison != 0
+                    ? xComparison
+                    : left.From.Y.CompareTo(right.From.Y);
+            });
 
             return moves.Count == 0
                 ? ItemGravityResolutionResult.Empty()
                 : new ItemGravityResolutionResult(moves);
+        }
+
+        private static bool TryResolveStepDestination(BoardModel board, BoardCoordinate sourceCoordinate, out BoardCoordinate destinationCoordinate)
+        {
+            var down = sourceCoordinate.Offset(0, -1);
+            if (IsOpenLandingCell(board, down))
+            {
+                destinationCoordinate = down;
+                return true;
+            }
+
+            var downLeft = sourceCoordinate.Offset(-1, -1);
+            if (CanSlipAroundRigidBlocker(board, sourceCoordinate, horizontalDirection: -1, downLeft))
+            {
+                destinationCoordinate = downLeft;
+                return true;
+            }
+
+            var downRight = sourceCoordinate.Offset(1, -1);
+            if (CanSlipAroundRigidBlocker(board, sourceCoordinate, horizontalDirection: 1, downRight))
+            {
+                destinationCoordinate = downRight;
+                return true;
+            }
+
+            destinationCoordinate = default;
+            return false;
+        }
+
+        private static bool CanSlipAroundRigidBlocker(
+            BoardModel board,
+            BoardCoordinate sourceCoordinate,
+            int horizontalDirection,
+            BoardCoordinate targetCoordinate)
+        {
+            if (!IsOpenLandingCell(board, targetCoordinate))
+            {
+                return false;
+            }
+
+            var belowCoordinate = sourceCoordinate.Offset(0, -1);
+            if (ContainsRigidBlocker(board, belowCoordinate))
+            {
+                return true;
+            }
+
+            var sideCoordinate = sourceCoordinate.Offset(horizontalDirection, 0);
+            return ContainsRigidBlocker(board, sideCoordinate);
+        }
+
+        private static bool IsOpenLandingCell(BoardModel board, BoardCoordinate coordinate)
+        {
+            return board.TryGetCell(coordinate, out var cell)
+                && !cell.HasItem
+                && !cell.HasObstacle;
+        }
+
+        private static bool ContainsRigidBlocker(BoardModel board, BoardCoordinate coordinate)
+        {
+            return board.TryGetCell(coordinate, out var cell)
+                && cell.HasObstacle
+                && IsRigidBlocker(cell.Obstacle);
+        }
+
+        private static bool IsRigidBlocker(ObstacleModel obstacle)
+        {
+            return obstacle is StoneObstacleModel or ChaliceBoxObstacleModel;
+        }
+
+        private static BoardCoordinate FindItemCoordinate(BoardModel board, ItemModel item)
+        {
+            foreach (var cell in board.GetAllCells())
+            {
+                if (ReferenceEquals(cell.Item, item))
+                {
+                    return cell.Coordinate;
+                }
+            }
+
+            throw new InvalidOperationException("Gravity lost track of an item while resolving settle.");
         }
     }
 }
