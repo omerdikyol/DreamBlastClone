@@ -307,23 +307,13 @@ namespace DreamBlastClone.Controllers.Unity
             topBarVisuals.Add(BuildTopBarState(goalTextTransform, topBarRevealDelaySeconds + topBarElementStaggerSeconds * 3f, isBackground: false));
 
             var goalRoots = new List<RectTransform>();
-            for (var index = 0; index < canvasRoot.childCount; index++)
+            var goalItemViews = canvasRoot.GetComponentsInChildren<LevelGoalItemView>(includeInactive: true);
+            for (var index = 0; index < goalItemViews.Length; index++)
             {
-                var child = canvasRoot.GetChild(index);
-                if (child is not RectTransform rectTransform)
-                {
-                    continue;
-                }
-
-                var childObject = child.gameObject;
-                if (childObject == backgroundRoot
-                    || childObject == winPresentationRoot
-                    || childObject == losePopupRoot
-                    || childObject == topBarBackground.gameObject
-                    || childObject == moveTextTransform.gameObject
-                    || childObject == moveNumberTransform.gameObject
-                    || childObject == goalTextTransform.gameObject
-                    || !childObject.name.StartsWith("Goal", StringComparison.Ordinal))
+                var goalItemView = goalItemViews[index];
+                if (goalItemView == null
+                    || !goalItemView.gameObject.activeInHierarchy
+                    || goalItemView.transform is not RectTransform rectTransform)
                 {
                     continue;
                 }
@@ -434,12 +424,13 @@ namespace DreamBlastClone.Controllers.Unity
 
         private RectTransform FindCanvasChild(string name)
         {
-            for (var index = 0; index < canvasRoot.childCount; index++)
+            var children = canvasRoot.GetComponentsInChildren<RectTransform>(includeInactive: true);
+            for (var index = 0; index < children.Length; index++)
             {
-                var child = canvasRoot.GetChild(index);
-                if (string.Equals(child.name, name, StringComparison.Ordinal))
+                var child = children[index];
+                if (child != canvasRoot && string.Equals(child.name, name, StringComparison.Ordinal))
                 {
-                    return child as RectTransform;
+                    return child;
                 }
             }
 

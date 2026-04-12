@@ -148,7 +148,11 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
-  m_Children: []
+  m_Children:
+  - {fileID: 2106949272}
+  - {fileID: 159883208}
+  - {fileID: 593086823}
+  - {fileID: 735411716}
   m_Father: {fileID: 755320357}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
@@ -170,7 +174,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -299,11 +303,11 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 755320357}
+  m_Father: {fileID: 103395043}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 1}
-  m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 302, y: -74}
+  m_AnchorMin: {x: 1, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -238, y: -104}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &159883209
@@ -484,20 +488,6 @@ Camera:
   m_OcclusionCulling: 0
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!114 &519420033
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 519420028}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b1f528c8b4244949136fdbff2716e3d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: DreamBlastClone.Controllers.Unity::DreamBlastClone.Controllers.Unity.ReferenceWidthOrthographicCamera
-  referenceResolution: {x: 1080, y: 1920}
-  referenceOrthographicSize: 5
 --- !u!4 &519420032
 Transform:
   m_ObjectHideFlags: 0
@@ -513,6 +503,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &519420033
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b1f528c8b4244949136fdbff2716e3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DreamBlastClone.Controllers.Unity::DreamBlastClone.Controllers.Unity.ReferenceWidthOrthographicCamera
+  referenceResolution: {x: 1080, y: 1920}
+  referenceOrthographicSize: 5
 --- !u!1 &593086822
 GameObject:
   m_ObjectHideFlags: 0
@@ -543,11 +547,11 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 755320357}
+  m_Father: {fileID: 103395043}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 1}
-  m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 303.2, y: -248.4}
+  m_AnchorMin: {x: 1, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -238, y: -278.4}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &593086824
@@ -682,11 +686,11 @@ RectTransform:
   - {fileID: 1659734511}
   - {fileID: 1754224031}
   - {fileID: 1754224041}
-  m_Father: {fileID: 755320357}
+  m_Father: {fileID: 103395043}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 1}
-  m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -303.1, y: -246.4}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 236.9, y: -276.4}
   m_SizeDelta: {x: 84, y: 84}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &735411717
@@ -805,10 +809,6 @@ RectTransform:
   m_Children:
   - {fileID: 117355018}
   - {fileID: 103395043}
-  - {fileID: 2106949272}
-  - {fileID: 159883208}
-  - {fileID: 593086823}
-  - {fileID: 735411716}
   - {fileID: 1810000001}
   - {fileID: 1800000001}
   m_Father: {fileID: 0}
@@ -1034,7 +1034,7 @@ MonoBehaviour:
   inputBridge: {fileID: 1374160542}
   moveCountLabel: {fileID: 593086824}
   goalItemTemplate: {fileID: 735411716}
-  goalItemsContainer: {fileID: 755320357}
+  goalItemsContainer: {fileID: 103395043}
   multiGoalLayoutSize: 56
   stoneGoalIcon: {fileID: 21300000, guid: 62cec442f5b015344bc9860a87acd897, type: 3}
   vaseGoalIcon: {fileID: 21300000, guid: 6261ba4588be4d649876b2e7aab336ba, type: 3}
@@ -3863,11 +3863,11 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 755320357}
+  m_Father: {fileID: 103395043}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 1}
-  m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -304.5, y: -77}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 235.5, y: -107}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2106949273
