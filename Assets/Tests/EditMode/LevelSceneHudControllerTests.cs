@@ -120,6 +120,42 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void GoalCompletionAudioPlaysOnIncompleteToCompleteTransitionOnly()
+        {
+            var board = new BoardModel(2, 2);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(new BoardCoordinate(0, 1), new StoneObstacleModel());
+
+            var session = new LevelSession(
+                board,
+                remainingMoves: 3,
+                new FixedRefillCubeColorResolver(),
+                new[]
+                {
+                    new LevelGoalDefinition(LevelGoalType.Stone, 1)
+                });
+
+            var controller = CreateConfiguredHudController(session, out _, out _, out _);
+            var audioController = (TestRecordingGameAudioController)GetField(controller, "audioController");
+
+            InvokeMethod(controller, "OnEnable");
+            InvokeMethod(controller, "Start");
+
+            Assert.That(audioController.PlayedSfx, Is.Empty);
+
+            var tapResult = session.ProcessTap(new BoardCoordinate(0, 0));
+            InvokeMethod(controller, "HandleTapProcessed", tapResult);
+            Assert.That(audioController.PlayedSfx, Is.EqualTo(new[] { GameSfxCue.GoalCompletion }));
+
+            var invalidTap = session.ProcessTap(new BoardCoordinate(0, 0));
+            InvokeMethod(controller, "HandleTapProcessed", invalidTap);
+            Assert.That(audioController.PlayedSfx, Is.EqualTo(new[] { GameSfxCue.GoalCompletion }));
+
+            InvokeMethod(controller, "OnDisable");
+        }
+
+        [Test]
         public void RefreshHudShowsRemainingChalicesInsteadOfBoxCount()
         {
             var board = new BoardModel(2, 2);
@@ -348,6 +384,7 @@ namespace DreamBlastClone.Tests.EditMode
             var host = runtime.AddComponent<LevelSessionHost>();
             host.SetSession(session);
             var bridge = runtime.AddComponent<BoardInputSessionBridge>();
+            var audioController = runtime.AddComponent<TestRecordingGameAudioController>();
             var controller = runtime.AddComponent<LevelSceneHudController>();
 
             moveLabel = CreateText("MoveLabel");
@@ -356,6 +393,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             SetField(controller, "sessionHost", host);
             SetField(controller, "inputBridge", bridge);
+            SetField(controller, "audioController", audioController);
             SetField(controller, "moveCountLabel", moveLabel);
             SetField(controller, "goalItemTemplate", goalTemplate);
             SetField(controller, "goalItemsContainer", goalContainer);
@@ -530,6 +568,12 @@ namespace DreamBlastClone.Tests.EditMode
         {
             var field = FindField(target.GetType(), fieldName);
             field.SetValue(target, value);
+        }
+
+        private static object GetField(object target, string fieldName)
+        {
+            var field = FindField(target.GetType(), fieldName);
+            return field.GetValue(target);
         }
 
         private static FieldInfo FindField(Type type, string fieldName)

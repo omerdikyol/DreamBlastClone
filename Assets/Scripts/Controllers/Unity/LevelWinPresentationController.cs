@@ -11,6 +11,7 @@ namespace DreamBlastClone.Controllers.Unity
     {
         [SerializeField] private BoardInputSessionBridge inputBridge;
         [SerializeField] private LevelSceneFlowController flowController;
+        [SerializeField] private GameAudioController audioController;
         [SerializeField] private GameObject presentationRoot;
         [SerializeField] private GameObject continueHintRoot;
         [SerializeField] private CanvasGroup presentationCanvasGroup;
@@ -54,6 +55,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private float titleIdleTiltAmplitude = 1.2f;
         [SerializeField] private float titleIdleTiltFrequency = 0.78f;
         [SerializeField] private float overlayEnterAlphaMultiplier = 0.76f;
+        [SerializeField] private float presentationMusicVolumeMultiplier = 0.08f;
 
         private WinPresentationState state;
         private float stateElapsedSeconds;
@@ -105,6 +107,7 @@ namespace DreamBlastClone.Controllers.Unity
         private void OnDisable()
         {
             winCelebrationParticlePlayer?.Stop();
+            audioController?.SetMusicVolumeMultiplier(1f);
 
             if (inputBridge != null)
             {
@@ -187,6 +190,7 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             state = WinPresentationState.Completing;
+            audioController?.SetMusicVolumeMultiplier(1f);
             flowController.CompleteWinAndReturnToMainScene();
         }
 
@@ -200,6 +204,9 @@ namespace DreamBlastClone.Controllers.Unity
             presentationRoot.transform.SetAsLastSibling();
             presentationRoot.SetActive(true);
             inputBridge.SetInputSuppressed(true);
+            audioController?.SetMusicVolumeMultiplier(presentationMusicVolumeMultiplier);
+            audioController?.PlaySfx(GameSfxCue.PopupOpen);
+            audioController?.PlaySfx(GameSfxCue.WinSting);
             BeginEntering();
             winCelebrationParticlePlayer?.TryPlay(starTransform);
             return true;
@@ -227,6 +234,7 @@ namespace DreamBlastClone.Controllers.Unity
 
             inputBridge = targetInputBridge;
             flowController = targetFlowController;
+            audioController ??= GetComponent<GameAudioController>() ?? gameObject.AddComponent<GameAudioController>();
             presentationCanvasGroup ??= presentationRoot.GetComponent<CanvasGroup>();
             continueHintCanvasGroup ??= continueHintRoot != null ? continueHintRoot.GetComponent<CanvasGroup>() : null;
             winCelebrationParticlePlayer ??= presentationRoot.GetComponent<WinCelebrationParticlePlayer>();
@@ -362,6 +370,7 @@ namespace DreamBlastClone.Controllers.Unity
 
             state = WinPresentationState.Exiting;
             stateElapsedSeconds = 0f;
+            audioController?.PlaySfx(GameSfxCue.PopupClose);
 
             if (exitDurationSeconds <= 0f)
             {

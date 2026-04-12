@@ -55,6 +55,18 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void LoseShowPlaysPopupOpenAndLoseSting()
+        {
+            var setup = CreatePopupController();
+
+            InvokeMethod(setup.PopupController, "Awake");
+            InvokeMethod(setup.PopupController, "OnEnable");
+            InvokeHandleTapProcessed(setup.PopupController, LevelState.Lose);
+
+            Assert.That(setup.AudioController.PlayedSfx, Is.EqualTo(new[] { GameSfxCue.PopupOpen, GameSfxCue.LoseSting }));
+        }
+
+        [Test]
         public void ContinueAndWinDoNotShowLosePopup()
         {
             var setup = CreatePopupController();
@@ -168,6 +180,21 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void ClosingPopupPlaysPopupClose()
+        {
+            var setup = CreatePopupController();
+
+            InvokeMethod(setup.PopupController, "Awake");
+            InvokeMethod(setup.PopupController, "OnEnable");
+            InvokeHandleTapProcessed(setup.PopupController, LevelState.Lose);
+            setup.AudioController.PlayedSfx.Clear();
+            AdvanceLosePresentation(setup.PopupController, 0.2f);
+            setup.MainMenuButton.onClick.Invoke();
+
+            Assert.That(setup.AudioController.PlayedSfx, Does.Contain(GameSfxCue.PopupClose));
+        }
+
+        [Test]
         public void RepeatedLoseNotificationsDoNotReopenOrDuplicateActions()
         {
             var setup = CreatePopupController();
@@ -239,6 +266,7 @@ namespace DreamBlastClone.Tests.EditMode
             var runtime = CreateGameObject("LevelSceneRuntime");
             var inputBridge = runtime.AddComponent<BoardInputSessionBridge>();
             var flowController = runtime.AddComponent<TestLevelSceneFlowController>();
+            var audioController = runtime.AddComponent<TestRecordingGameAudioController>();
             var popupController = runtime.AddComponent<LevelLosePopupController>();
             var popupRoot = CreateGameObject("LosePopupRoot");
             var popupCanvas = popupRoot.AddComponent<Canvas>();
@@ -270,6 +298,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             SetField(popupController, "inputBridge", inputBridge);
             SetField(popupController, "flowController", flowController);
+            SetField(popupController, "audioController", audioController);
             SetField(popupController, "popupRoot", popupRoot);
             SetField(popupController, "closeButton", closeButton);
             SetField(popupController, "tryAgainButton", tryAgainButton);
@@ -292,6 +321,7 @@ namespace DreamBlastClone.Tests.EditMode
                 popupController,
                 inputBridge,
                 flowController,
+                audioController,
                 popupRoot,
                 popupCanvasGroup,
                 contentCanvasGroup,
@@ -347,6 +377,7 @@ namespace DreamBlastClone.Tests.EditMode
                 LevelLosePopupController popupController,
                 BoardInputSessionBridge inputBridge,
                 TestLevelSceneFlowController flowController,
+                TestRecordingGameAudioController audioController,
                 GameObject popupRoot,
                 CanvasGroup popupCanvasGroup,
                 CanvasGroup contentCanvasGroup,
@@ -359,6 +390,7 @@ namespace DreamBlastClone.Tests.EditMode
                 PopupController = popupController;
                 InputBridge = inputBridge;
                 FlowController = flowController;
+                AudioController = audioController;
                 PopupRoot = popupRoot;
                 PopupCanvasGroup = popupCanvasGroup;
                 ContentCanvasGroup = contentCanvasGroup;
@@ -374,6 +406,8 @@ namespace DreamBlastClone.Tests.EditMode
             public BoardInputSessionBridge InputBridge { get; }
 
             public TestLevelSceneFlowController FlowController { get; }
+
+            public TestRecordingGameAudioController AudioController { get; }
 
             public GameObject PopupRoot { get; }
 

@@ -11,6 +11,7 @@ namespace DreamBlastClone.Controllers.Unity
     {
         [SerializeField] private BoardInputSessionBridge inputBridge;
         [SerializeField] private LevelSceneFlowController flowController;
+        [SerializeField] private GameAudioController audioController;
         [SerializeField] private GameObject popupRoot;
         [SerializeField] private Button closeButton;
         [SerializeField] private Button tryAgainButton;
@@ -55,6 +56,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private float subtitleIdleFloatFrequency = 0.95f;
         [SerializeField] private float subtitleIdleDriftAmplitude = 6f;
         [SerializeField] private float subtitleIdleDriftFrequency = 0.62f;
+        [SerializeField] private float popupMusicVolumeMultiplier = 0.08f;
         [SerializeField] private string[] loseTitles =
         {
             "Oh no!",
@@ -130,6 +132,8 @@ namespace DreamBlastClone.Controllers.Unity
                 inputBridge.TapProcessed -= HandleTapProcessed;
                 inputBridge.SetInputSuppressed(false);
             }
+
+            audioController?.SetMusicVolumeMultiplier(1f);
 
             if (closeButton is not null)
             {
@@ -212,6 +216,9 @@ namespace DreamBlastClone.Controllers.Unity
             popupRoot.SetActive(true);
             ApplyRandomLoseCopy();
             inputBridge.SetInputSuppressed(true);
+            audioController?.SetMusicVolumeMultiplier(popupMusicVolumeMultiplier);
+            audioController?.PlaySfx(GameSfxCue.PopupOpen);
+            audioController?.PlaySfx(GameSfxCue.LoseSting);
             BeginEntering();
             return true;
         }
@@ -289,6 +296,7 @@ namespace DreamBlastClone.Controllers.Unity
             pendingAction = action;
             stateElapsedSeconds = 0f;
             SetActionButtonsInteractable(false);
+            audioController?.PlaySfx(GameSfxCue.PopupClose);
 
             if (exitDurationSeconds <= 0f)
             {
@@ -367,6 +375,7 @@ namespace DreamBlastClone.Controllers.Unity
             var action = pendingAction;
             pendingAction = PendingAction.None;
             inputBridge.SetInputSuppressed(false);
+            audioController?.SetMusicVolumeMultiplier(1f);
             ResetPopup();
 
             switch (action)
@@ -551,6 +560,7 @@ namespace DreamBlastClone.Controllers.Unity
 
             inputBridge = targetInputBridge;
             flowController = targetFlowController;
+            audioController ??= GetComponent<GameAudioController>() ?? gameObject.AddComponent<GameAudioController>();
             closeButton ??= FindButton("CloseButton");
             tryAgainButton ??= FindButton("TryAgainButton");
             mainMenuButton ??= FindButton("MainMenuButton");
@@ -572,6 +582,9 @@ namespace DreamBlastClone.Controllers.Unity
             closeButtonFeedback = ResolveButtonFeedback(closeButton, closeButtonFeedback);
             tryAgainButtonFeedback = ResolveButtonFeedback(tryAgainButton, tryAgainButtonFeedback);
             mainMenuButtonFeedback = ResolveButtonFeedback(mainMenuButton, mainMenuButtonFeedback);
+            EnsureButtonClickSoundPlayer(closeButton);
+            EnsureButtonClickSoundPlayer(tryAgainButton);
+            EnsureButtonClickSoundPlayer(mainMenuButton);
 
             if (closeButton is null
                 || tryAgainButton is null
@@ -869,6 +882,16 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             return button.GetComponent<UIButtonFeedbackView>() ?? button.gameObject.AddComponent<UIButtonFeedbackView>();
+        }
+
+        private static void EnsureButtonClickSoundPlayer(Button button)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            _ = button.GetComponent<UIButtonClickSoundPlayer>() ?? button.gameObject.AddComponent<UIButtonClickSoundPlayer>();
         }
 
         private void StopButtonFeedbacks()

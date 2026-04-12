@@ -59,6 +59,18 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void WinStartPlaysPopupOpenAndWinSting()
+        {
+            var setup = CreateController();
+
+            InvokeMethod(setup.Controller, "Awake");
+            InvokeMethod(setup.Controller, "OnEnable");
+            InvokeHandleTapProcessed(setup.Controller, LevelState.Win);
+
+            Assert.That(setup.AudioController.PlayedSfx, Is.EqualTo(new[] { GameSfxCue.PopupOpen, GameSfxCue.WinSting }));
+        }
+
+        [Test]
         public void ContinueAndLoseDoNotShowWinPresentation()
         {
             var setup = CreateController();
@@ -152,6 +164,22 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(setup.FlowController.LoadedSceneName, Is.EqualTo("MainScene"));
             Assert.That(store.GetCurrentLevel(), Is.EqualTo(2));
+        }
+
+        [Test]
+        public void ContinueExitPlaysPopupClose()
+        {
+            var setup = CreateController();
+
+            InvokeMethod(setup.Controller, "Awake");
+            InvokeMethod(setup.Controller, "OnEnable");
+            InvokeHandleTapProcessed(setup.Controller, LevelState.Win);
+            setup.AudioController.PlayedSfx.Clear();
+            AdvanceWinPresentation(setup.Controller, 0.28f);
+            AdvanceWinPresentation(setup.Controller, 1.21f);
+            InvokeHandleContinuePressed(setup.Controller);
+
+            Assert.That(setup.AudioController.PlayedSfx, Does.Contain(GameSfxCue.PopupClose));
         }
 
         [Test]
@@ -249,6 +277,7 @@ namespace DreamBlastClone.Tests.EditMode
             var runtime = CreateGameObject("LevelSceneRuntime");
             var inputBridge = runtime.AddComponent<BoardInputSessionBridge>();
             var flowController = runtime.AddComponent<TestLevelSceneFlowController>();
+            var audioController = runtime.AddComponent<TestRecordingGameAudioController>();
             var controller = runtime.AddComponent<LevelWinPresentationController>();
             var presentationRoot = CreateGameObject("WinPresentationRoot");
             var presentationCanvasGroup = presentationRoot.AddComponent<CanvasGroup>();
@@ -294,6 +323,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(flowController, "levelCatalog", catalog);
             SetField(controller, "inputBridge", inputBridge);
             SetField(controller, "flowController", flowController);
+            SetField(controller, "audioController", audioController);
             SetField(controller, "presentationRoot", presentationRoot);
             SetField(controller, "continueHintRoot", continueHintRoot.gameObject);
             SetField(controller, "presentationCanvasGroup", presentationCanvasGroup);
@@ -311,7 +341,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(controller, "starIdlePulseFrequency", 2f);
             SetField(controller, "overlayEnterAlphaMultiplier", 0.76f);
 
-            return new ControllerSetup(controller, inputBridge, flowController, presentationRoot, continueHintRoot.gameObject, starRoot, winParticlePlayer);
+            return new ControllerSetup(controller, inputBridge, flowController, audioController, presentationRoot, continueHintRoot.gameObject, starRoot, winParticlePlayer);
         }
 
         private GameObject CreateGameObject(string name)
@@ -387,6 +417,7 @@ namespace DreamBlastClone.Tests.EditMode
                 LevelWinPresentationController controller,
                 BoardInputSessionBridge inputBridge,
                 TestLevelSceneFlowController flowController,
+                TestRecordingGameAudioController audioController,
                 GameObject presentationRoot,
                 GameObject continueHintRoot,
                 RectTransform starRoot,
@@ -395,6 +426,7 @@ namespace DreamBlastClone.Tests.EditMode
                 Controller = controller;
                 InputBridge = inputBridge;
                 FlowController = flowController;
+                AudioController = audioController;
                 PresentationRoot = presentationRoot;
                 ContinueHintRoot = continueHintRoot;
                 StarRoot = starRoot;
@@ -406,6 +438,8 @@ namespace DreamBlastClone.Tests.EditMode
             public BoardInputSessionBridge InputBridge { get; }
 
             public TestLevelSceneFlowController FlowController { get; }
+
+            public TestRecordingGameAudioController AudioController { get; }
 
             public GameObject PresentationRoot { get; }
 

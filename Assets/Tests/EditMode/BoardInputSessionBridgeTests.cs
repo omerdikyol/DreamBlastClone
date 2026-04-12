@@ -158,6 +158,78 @@ namespace DreamBlastClone.Tests.EditMode
             AdvancePendingPreview(bridge, GetRemainingPreviewSeconds(bridge));
 
             Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetAudioController(bridge).PlayedSfx, Is.Empty);
+        }
+
+        [Test]
+        public void ValidNormalCubeTapPlaysCubeBlastSound()
+        {
+            var board = new BoardModel(2, 1);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            var session = new LevelSession(board, 3, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(0.5f, 0.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(GetAudioController(bridge).PlayedSfx, Does.Contain(GameSfxCue.CubeBlast));
+        }
+
+        [Test]
+        public void SingleRocketTapPlaysRocketActivationSound()
+        {
+            var board = new BoardModel(3, 3);
+            board.PlaceItem(new BoardCoordinate(1, 1), new RocketItemModel(RocketOrientation.Horizontal));
+            var session = new LevelSession(board, 3, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(1.5f, 1.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
+
+            Assert.That(GetAudioController(bridge).PlayedSfx, Does.Contain(GameSfxCue.RocketActivation));
+        }
+
+        [Test]
+        public void SingleTntTapPlaysTntActivationSound()
+        {
+            var board = new BoardModel(3, 3);
+            board.PlaceItem(new BoardCoordinate(1, 1), new TntItemModel());
+            var session = new LevelSession(board, 3, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(1.5f, 1.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
+
+            Assert.That(GetAudioController(bridge).PlayedSfx, Does.Contain(GameSfxCue.TntActivation));
+        }
+
+        [Test]
+        public void ObstacleTapPlaysMappedObstacleSounds()
+        {
+            var board = new BoardModel(3, 2);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(new BoardCoordinate(0, 1), new VaseObstacleModel(remainingDurability: 2));
+            var session = new LevelSession(board, 3, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(0.5f, 0.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(GetAudioController(bridge).PlayedSfx, Does.Contain(GameSfxCue.VaseHit));
         }
 
         [Test]
@@ -351,6 +423,70 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(GetComboPresentationPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.True);
+        }
+
+        [Test]
+        public void RocketRocketComboPlaysTwoRocketSounds()
+        {
+            var board = new BoardModel(3, 3);
+            board.PlaceItem(new BoardCoordinate(1, 1), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(1, 2), new RocketItemModel(RocketOrientation.Vertical));
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(1.5f, 1.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
+
+            Assert.That(GetAudioController(bridge).PlayedSfx.FindAll(cue => cue == GameSfxCue.RocketActivation).Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TntTntComboPlaysTwoTntSounds()
+        {
+            var board = new BoardModel(3, 3);
+            board.PlaceItem(new BoardCoordinate(1, 1), new TntItemModel());
+            board.PlaceItem(new BoardCoordinate(1, 2), new TntItemModel());
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(1.5f, 1.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
+
+            Assert.That(GetAudioController(bridge).PlayedSfx.FindAll(cue => cue == GameSfxCue.TntActivation).Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TntRocketComboPlaysThreeRocketSoundsAndOneTntSound()
+        {
+            var board = new BoardModel(3, 3);
+            board.PlaceItem(new BoardCoordinate(1, 1), new TntItemModel());
+            board.PlaceItem(new BoardCoordinate(1, 2), new RocketItemModel(RocketOrientation.Vertical));
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(1.5f, 1.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
+
+            Assert.That(GetAudioController(bridge).PlayedSfx.FindAll(cue => cue == GameSfxCue.RocketActivation).Count, Is.EqualTo(3));
+            Assert.That(GetAudioController(bridge).PlayedSfx.FindAll(cue => cue == GameSfxCue.TntActivation).Count, Is.EqualTo(1));
         }
 
         [Test]
@@ -912,9 +1048,11 @@ namespace DreamBlastClone.Tests.EditMode
 
             var bridgeObject = CreateGameObject("Bridge");
             var bridge = bridgeObject.AddComponent<BoardInputSessionBridge>();
+            var audioController = bridgeObject.AddComponent<TestRecordingGameAudioController>();
             SetField(bridge, "boardView", boardView);
             SetField(bridge, "sessionHost", host);
             SetField(bridge, "inputCamera", camera);
+            SetField(bridge, "audioController", audioController);
             SetField(bridge, "destructionFeedbackPlayer", CreateDestructionFeedbackPlayer());
             SetField(bridge, "tapAnticipationPlayer", CreateTapAnticipationPlayer());
             SetField(bridge, "cubeBlastParticlePlayer", CreateCubeBlastParticlePlayer());
@@ -969,6 +1107,11 @@ namespace DreamBlastClone.Tests.EditMode
         private BoardView GetBoardView(BoardInputSessionBridge bridge)
         {
             return (BoardView)GetField(bridge, "boardView");
+        }
+
+        private TestRecordingGameAudioController GetAudioController(BoardInputSessionBridge bridge)
+        {
+            return (TestRecordingGameAudioController)GetField(bridge, "audioController");
         }
 
         private Camera GetCamera(BoardInputSessionBridge bridge)

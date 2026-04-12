@@ -12,6 +12,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private Button startButton;
         [FormerlySerializedAs("startButtonIdleLoop")]
         [SerializeField] private UIButtonFeedbackView startButtonFeedback;
+        [SerializeField] private GameAudioController audioController;
         [SerializeField] private Component levelLabel;
         [SerializeField] private string levelSceneName = "LevelScene";
 
@@ -23,6 +24,7 @@ namespace DreamBlastClone.Controllers.Unity
 
         private void Awake()
         {
+            ResolveAudioController();
             RefreshCurrentLevel();
             RefreshUi();
         }
@@ -34,8 +36,11 @@ namespace DreamBlastClone.Controllers.Unity
                 startButton.onClick.AddListener(HandleStartButtonClicked);
             }
 
+            ResolveAudioController();
+            EnsureStartButtonClickSoundPlayer();
             RefreshCurrentLevel();
             RefreshUi();
+            audioController?.PlayMusic(GameMusicCue.MainMenu);
         }
 
         private void OnDisable()
@@ -141,6 +146,21 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             startButtonFeedback.StopAndReset();
+        }
+
+        private void ResolveAudioController()
+        {
+            audioController ??= GetComponent<GameAudioController>() ?? gameObject.AddComponent<GameAudioController>();
+        }
+
+        private void EnsureStartButtonClickSoundPlayer()
+        {
+            if (startButton == null)
+            {
+                return;
+            }
+
+            _ = startButton.GetComponent<UIButtonClickSoundPlayer>() ?? startButton.gameObject.AddComponent<UIButtonClickSoundPlayer>();
         }
 
         private void SetLabelText(string value)

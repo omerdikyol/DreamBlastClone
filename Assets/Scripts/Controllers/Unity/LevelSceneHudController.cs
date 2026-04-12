@@ -11,6 +11,7 @@ namespace DreamBlastClone.Controllers.Unity
     {
         [SerializeField] private LevelSessionHost sessionHost;
         [SerializeField] private BoardInputSessionBridge inputBridge;
+        [SerializeField] private GameAudioController audioController;
         [SerializeField] private Component moveCountLabel;
         [SerializeField] private RectTransform goalItemTemplate;
         [SerializeField] private Transform goalItemsContainer;
@@ -21,6 +22,8 @@ namespace DreamBlastClone.Controllers.Unity
 
         private readonly LevelGoalProgressEvaluator goalProgressEvaluator = new LevelGoalProgressEvaluator();
         private readonly List<LevelGoalItemView> spawnedGoalItems = new List<LevelGoalItemView>();
+        private readonly List<bool> displayedGoalCompletionStates = new List<bool>();
+        private bool hasInitializedGoalState;
 
         private void OnEnable()
         {
@@ -37,6 +40,7 @@ namespace DreamBlastClone.Controllers.Unity
 
         private void Start()
         {
+            ResolveAudioController();
             RefreshHud();
         }
 
@@ -94,8 +98,21 @@ namespace DreamBlastClone.Controllers.Unity
             for (var index = 0; index < goalProgress.Count; index++)
             {
                 var progress = goalProgress[index];
+                var wasCompleted = index < displayedGoalCompletionStates.Count && displayedGoalCompletionStates[index];
                 spawnedGoalItems[index].Bind(progress, ResolveGoalIcon(progress.GoalType), ResolveGoalTitle(progress.GoalType));
+
+                if (hasInitializedGoalState && !wasCompleted && progress.IsCompleted)
+                {
+                    audioController?.PlaySfx(GameSfxCue.GoalCompletion);
+                }
+
+                if (index < displayedGoalCompletionStates.Count)
+                {
+                    displayedGoalCompletionStates[index] = progress.IsCompleted;
+                }
             }
+
+            hasInitializedGoalState = true;
         }
 
         private void EnsureGoalItems(int goalCount)
@@ -121,6 +138,21 @@ namespace DreamBlastClone.Controllers.Unity
             {
                 spawnedGoalItems[index].gameObject.SetActive(index < goalCount);
             }
+
+            while (displayedGoalCompletionStates.Count < goalCount)
+            {
+                displayedGoalCompletionStates.Add(false);
+            }
+
+            if (displayedGoalCompletionStates.Count > goalCount)
+            {
+                displayedGoalCompletionStates.RemoveRange(goalCount, displayedGoalCompletionStates.Count - goalCount);
+            }
+        }
+
+        private void ResolveAudioController()
+        {
+            audioController ??= GetComponent<GameAudioController>() ?? gameObject.AddComponent<GameAudioController>();
         }
 
         private void LayoutGoalItems(int goalCount)

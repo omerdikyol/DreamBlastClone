@@ -17,6 +17,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private BoardView boardView;
         [SerializeField] private LevelSessionHost sessionHost;
         [SerializeField] private Camera inputCamera;
+        [SerializeField] private GameAudioController audioController;
         [SerializeField] private float normalCubePreviewDuration = 0.12f;
         [SerializeField] private BoardDestructionFeedbackPlayer destructionFeedbackPlayer;
         [SerializeField] private TapAnticipationPlayer tapAnticipationPlayer;
@@ -49,6 +50,8 @@ namespace DreamBlastClone.Controllers.Unity
         private static readonly bool EnableTapDebugLogging = false;
         private const float CubeTapSnapRadiusFactor = 1.1f;
         private const float CubeTapStickinessFactor = 0.35f;
+        private const float ComboRocketDelaySeconds = 0.08f;
+        private const float ComboTntDelaySeconds = 0.1f;
         private BoardModel pendingFinalBoard;
         private BoardModel pendingSettleStartBoard;
         private BoardSettleMotionDescriptor pendingSettleMotionDescriptor;
@@ -63,6 +66,8 @@ namespace DreamBlastClone.Controllers.Unity
 
         private void Start()
         {
+            ResolveAudioController();
+            audioController?.PlayMusic(GameMusicCue.Gameplay);
             RenderCurrentBoard();
         }
 
@@ -186,6 +191,7 @@ namespace DreamBlastClone.Controllers.Unity
                 : null;
 
             boardView.Render(previewBoard);
+            TryPlayGameplaySfx(preTapBoard, tapResult.Tap);
 
             var presentationDuration = 0f;
             if (TryStartDestructionFeedback(preTapBoard, tapResult.Tap, out var destructionDuration))
@@ -414,6 +420,7 @@ namespace DreamBlastClone.Controllers.Unity
                 return false;
             }
 
+            PlayComboPresentationSfx(descriptor.ComboType);
             remainingPreviewSeconds = comboPresentationPlayer.Duration;
             return true;
         }
@@ -435,6 +442,7 @@ namespace DreamBlastClone.Controllers.Unity
                 return false;
             }
 
+            audioController?.PlaySfx(GameSfxCue.TntActivation);
             // Use the short settle-blocking window, not the full particle lifetime.
             // Particles keep advancing via AdvancePendingPreview during settle.
             remainingPreviewSeconds = singleTntEffectPlayer.SettleBlockingDuration;
@@ -527,6 +535,7 @@ namespace DreamBlastClone.Controllers.Unity
                 return false;
             }
 
+            audioController?.PlaySfx(GameSfxCue.RocketActivation);
             duration = singleRocketEffectPlayer.Duration;
             return true;
         }
@@ -617,6 +626,128 @@ namespace DreamBlastClone.Controllers.Unity
 
             var descriptor = chaliceBoxParticleDescriptorBuilder.Build(preTapBoard, tap);
             return chaliceBoxTweenFeedbackPlayer.TryPlay(boardView, preTapBoard, descriptor);
+        }
+
+        private void ResolveAudioController()
+        {
+            audioController ??= GetComponent<GameAudioController>() ?? gameObject.AddComponent<GameAudioController>();
+        }
+
+        private void PlayComboPresentationSfx(SpecialItemComboType comboType)
+        {
+            if (audioController is null)
+            {
+                return;
+            }
+
+            switch (comboType)
+            {
+                case SpecialItemComboType.RocketRocket:
+                    audioController.PlaySfx(GameSfxCue.RocketActivation, 1.2f, bypassCooldown: true, bypassVoiceLimit: true);
+                    audioController.PlaySfxDelayed(GameSfxCue.RocketActivation, ComboRocketDelaySeconds, 1.2f, bypassCooldown: true, bypassVoiceLimit: true);
+                    break;
+                case SpecialItemComboType.TntTnt:
+                    audioController.PlaySfx(GameSfxCue.TntActivation, 1.3f, bypassCooldown: true, bypassVoiceLimit: true);
+                    audioController.PlaySfxDelayed(GameSfxCue.TntActivation, ComboTntDelaySeconds, 1.3f, bypassCooldown: true, bypassVoiceLimit: true);
+                    break;
+                case SpecialItemComboType.TntRocket:
+                    audioController.PlaySfx(GameSfxCue.TntActivation, 1.45f, bypassCooldown: true, bypassVoiceLimit: true);
+                    audioController.PlaySfx(GameSfxCue.RocketActivation, 1.15f, bypassCooldown: true, bypassVoiceLimit: true);
+                    audioController.PlaySfxDelayed(GameSfxCue.RocketActivation, ComboRocketDelaySeconds, 1.15f, bypassCooldown: true, bypassVoiceLimit: true);
+                    audioController.PlaySfxDelayed(GameSfxCue.RocketActivation, ComboRocketDelaySeconds * 2f, 1.15f, bypassCooldown: true, bypassVoiceLimit: true);
+                    break;
+            }
+        }
+
+        private void TryPlayGameplaySfx(BoardModel preTapBoard, BoardTapDispatchResult tap)
+        {
+            if (audioController is null || preTapBoard is null || !tap.IsValidTap)
+            {
+                return;
+            }
+
+            if (tap.RouteType == TapRouteType.NormalCube && tap.NormalCube.IsValidTap)
+            {
+                audioController.PlaySfx(GameSfxCue.CubeBlast);
+            }
+
+            TryPlayVaseSfx(preTapBoard, tap);
+            TryPlayStoneSfx(preTapBoard, tap);
+            TryPlayChaliceBoxSfx(preTapBoard, tap);
+        }
+
+        private void TryPlayVaseSfx(BoardModel preTapBoard, BoardTapDispatchResult tap)
+        {
+            var descriptor = vaseParticleDescriptorBuilder.Build(preTapBoard, tap);
+            if (!descriptor.HasAnyParticles)
+            {
+                return;
+            }
+
+            var hasRemoval = false;
+            for (var index = 0; index < descriptor.Events.Count; index++)
+            {
+                if (descriptor.Events[index].IsRemoval)
+                {
+                    hasRemoval = true;
+                    break;
+                }
+            }
+
+            audioController.PlaySfx(hasRemoval ? GameSfxCue.VaseDestroy : GameSfxCue.VaseHit);
+        }
+
+        private void TryPlayStoneSfx(BoardModel preTapBoard, BoardTapDispatchResult tap)
+        {
+            var descriptor = stoneParticleDescriptorBuilder.Build(preTapBoard, tap);
+            if (descriptor.HasAnyParticles)
+            {
+                audioController.PlaySfx(GameSfxCue.StoneDestroy);
+            }
+        }
+
+        private void TryPlayChaliceBoxSfx(BoardModel preTapBoard, BoardTapDispatchResult tap)
+        {
+            var descriptor = chaliceBoxParticleDescriptorBuilder.Build(preTapBoard, tap);
+            if (!descriptor.HasAnyParticles)
+            {
+                return;
+            }
+
+            var shouldPlayDoorBreak = false;
+            var shouldPlayDoorHit = false;
+            var shouldPlayChaliceCollect = false;
+
+            for (var index = 0; index < descriptor.Events.Count; index++)
+            {
+                switch (descriptor.Events[index].EventType)
+                {
+                    case ChaliceBoxParticleEventType.DoorBreak:
+                        shouldPlayDoorBreak = true;
+                        break;
+                    case ChaliceBoxParticleEventType.DoorDamage:
+                        shouldPlayDoorHit = true;
+                        break;
+                    case ChaliceBoxParticleEventType.ChaliceDamage:
+                    case ChaliceBoxParticleEventType.ChaliceComplete:
+                        shouldPlayChaliceCollect = true;
+                        break;
+                }
+            }
+
+            if (shouldPlayDoorBreak)
+            {
+                audioController.PlaySfx(GameSfxCue.ChaliceDoorBreak);
+            }
+            else if (shouldPlayDoorHit)
+            {
+                audioController.PlaySfx(GameSfxCue.ChaliceDoorHit);
+            }
+
+            if (shouldPlayChaliceCollect)
+            {
+                audioController.PlaySfx(GameSfxCue.ChaliceCollect);
+            }
         }
 
         private SpecialItemComboPresentationDescriptor BuildComboPresentationDescriptor(BoardTapDispatchResult tap)
