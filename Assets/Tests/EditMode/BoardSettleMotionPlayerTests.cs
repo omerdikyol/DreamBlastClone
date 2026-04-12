@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using DreamBlastClone.Core;
 using DreamBlastClone.Grid;
 using DreamBlastClone.Items;
+using DreamBlastClone.Obstacles;
 using DreamBlastClone.Views;
 using NUnit.Framework;
 using UnityEngine;
@@ -71,6 +72,32 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(effectRoot.childCount, Is.EqualTo(2));
             Assert.That(Vector3.Distance(effectRoot.GetChild(0).position, boardView.GetCellCenterWorld(new BoardCoordinate(0, 2))), Is.LessThan(0.0001f));
             Assert.That(Vector3.Distance(effectRoot.GetChild(1).position, boardView.GetCellCenterWorld(new BoardCoordinate(1, 4))), Is.LessThan(0.0001f));
+
+            player.Advance(player.Duration);
+
+            Assert.That(player.IsPlaying, Is.False);
+            Assert.That(effectRoot.childCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TryPlayCreatesTransientObstacleMotionVisualAtItsStartPosition()
+        {
+            var finalBoard = new BoardModel(1, 3);
+            finalBoard.PlaceObstacle(new BoardCoordinate(0, 0), new VaseObstacleModel());
+
+            var boardView = CreateConfiguredBoardView();
+            var player = CreatePlayer(out var effectRoot);
+            var descriptor = new BoardSettleMotionDescriptor(
+                System.Array.Empty<ItemSettleMove>(),
+                System.Array.Empty<RefillSpawnMotion>(),
+                new[]
+                {
+                    new ObstacleSettleMove(new BoardCoordinate(0, 2), new BoardCoordinate(0, 0))
+                });
+
+            Assert.That(player.TryPlay(boardView, finalBoard, descriptor), Is.True);
+            Assert.That(effectRoot.childCount, Is.EqualTo(1));
+            Assert.That(Vector3.Distance(effectRoot.GetChild(0).position, boardView.GetCellCenterWorld(new BoardCoordinate(0, 2))), Is.LessThan(0.0001f));
 
             player.Advance(player.Duration);
 

@@ -78,6 +78,23 @@ namespace DreamBlastClone.Views
                     isRefillSpawn: false);
             }
 
+            foreach (var move in descriptor.ObstacleMoves)
+            {
+                var visual = boardView.CreateTransientObstacleVisual(
+                    finalBoard,
+                    new[] { move.To },
+                    root,
+                    effectZ);
+                boardView.ApplyBoardClipMask(finalBoard, visual);
+                Register(
+                    visual,
+                    GetWorldPosition(boardView, move.From),
+                    GetWorldPosition(boardView, move.To),
+                    move.To.X,
+                    move.To.Y,
+                    isRefillSpawn: false);
+            }
+
             foreach (var spawn in descriptor.RefillSpawns)
             {
                 var visual = boardView.CreateTransientCubeVisual(finalBoard, spawn.To, spawn.Color, root, effectZ);

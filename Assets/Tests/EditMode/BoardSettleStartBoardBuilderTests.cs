@@ -60,6 +60,29 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(settleStartChaliceBox.RemainingDoorDurability, Is.EqualTo(0));
         }
 
+        [Test]
+        public void BuildClearsMovedVaseSourceCellsFromSettleStartBoard()
+        {
+            var board = new BoardModel(3, 3);
+            var tap = new BoardCoordinate(0, 0);
+            var vaseCoordinate = new BoardCoordinate(2, 1);
+
+            board.PlaceItem(tap, new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(vaseCoordinate, new VaseObstacleModel(remainingDurability: 2));
+
+            var preTapBoard = boardModelCloner.Clone(board);
+            var dispatchResult = dispatcher.Resolve(board, tap, new FixedRefillCubeColorResolver());
+            var previewBoard = previewBoardBuilder.Build(preTapBoard, dispatchResult.NormalCube);
+            var settleStartBoard = builder.Build(previewBoard, dispatchResult);
+
+            Assert.That(dispatchResult.NormalCube.Gravity.ObstacleMoves, Is.EqualTo(new[]
+            {
+                new ObstacleFallMove(vaseCoordinate, new BoardCoordinate(2, 0))
+            }));
+            Assert.That(settleStartBoard.GetCell(vaseCoordinate).Obstacle, Is.Null);
+        }
+
         private sealed class FixedRefillCubeColorResolver : IRefillCubeColorResolver
         {
             public CubeColor ResolveColor(BoardCoordinate coordinate)

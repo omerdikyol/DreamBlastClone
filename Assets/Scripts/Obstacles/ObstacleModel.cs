@@ -9,6 +9,8 @@ namespace DreamBlastClone.Obstacles
 
         public virtual int FootprintHeight => 1;
 
+        public virtual bool FallsWithGravity => false;
+
         protected static void ValidatePositive(string paramName, int value)
         {
             if (value <= 0)

@@ -36,6 +36,14 @@ namespace DreamBlastClone.Views
                 }
             }
 
+            foreach (var move in gravity.ObstacleMoves)
+            {
+                if (settleBoard.TryGetCell(move.From, out var cell) && cell.HasObstacle)
+                {
+                    settleBoard.ClearObstacle(move.From);
+                }
+            }
+
             return settleBoard;
         }
     }

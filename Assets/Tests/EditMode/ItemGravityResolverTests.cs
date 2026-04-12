@@ -112,6 +112,49 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void VaseFallsStraightDownIntoEmptyCells()
+        {
+            var board = new BoardModel(1, 4);
+            var vase = new VaseObstacleModel();
+
+            board.PlaceObstacle(new BoardCoordinate(0, 3), vase);
+
+            var result = resolver.Resolve(board);
+
+            Assert.That(result.Moves, Is.Empty);
+            Assert.That(result.ObstacleMoves, Is.EqualTo(new[]
+            {
+                new ObstacleFallMove(new BoardCoordinate(0, 3), new BoardCoordinate(0, 0))
+            }));
+            Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.SameAs(vase));
+            Assert.That(board.GetCell(new BoardCoordinate(0, 3)).Obstacle, Is.Null);
+        }
+
+        [Test]
+        public void VaseFallsBeforeItemsContinueSettlingIntoOpenedSpace()
+        {
+            var board = new BoardModel(1, 4);
+            var vase = new VaseObstacleModel();
+            var cube = new CubeItemModel(CubeColor.Blue);
+
+            board.PlaceObstacle(new BoardCoordinate(0, 2), vase);
+            board.PlaceItem(new BoardCoordinate(0, 3), cube);
+
+            var result = resolver.Resolve(board);
+
+            Assert.That(result.Moves, Is.EqualTo(new[]
+            {
+                new ItemFallMove(new BoardCoordinate(0, 3), new BoardCoordinate(0, 1))
+            }));
+            Assert.That(result.ObstacleMoves, Is.EqualTo(new[]
+            {
+                new ObstacleFallMove(new BoardCoordinate(0, 2), new BoardCoordinate(0, 0))
+            }));
+            Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.SameAs(vase));
+            Assert.That(board.GetCell(new BoardCoordinate(0, 1)).Item, Is.SameAs(cube));
+        }
+
+        [Test]
         public void StoneAllowsReachableCavityToFillLaterally()
         {
             var board = new BoardModel(3, 3);
@@ -184,6 +227,37 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void StoneStillDoesNotFall()
+        {
+            var board = new BoardModel(1, 3);
+            var stone = new StoneObstacleModel();
+
+            board.PlaceObstacle(new BoardCoordinate(0, 2), stone);
+
+            var result = resolver.Resolve(board);
+
+            Assert.That(result.HasAnyMovement, Is.False);
+            Assert.That(result.ObstacleMoves, Is.Empty);
+            Assert.That(board.GetCell(new BoardCoordinate(0, 2)).Obstacle, Is.SameAs(stone));
+        }
+
+        [Test]
+        public void ChaliceBoxStillDoesNotFall()
+        {
+            var board = new BoardModel(4, 4);
+            var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(1, 2), remainingDoorDurability: 2);
+
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+
+            var result = resolver.Resolve(board);
+
+            Assert.That(result.HasAnyMovement, Is.False);
+            Assert.That(result.ObstacleMoves, Is.Empty);
+            Assert.That(board.GetCell(chaliceBox.Anchor).Obstacle, Is.SameAs(chaliceBox));
+            Assert.That(board.GetCell(chaliceBox.Anchor.Offset(1, 1)).Obstacle, Is.SameAs(chaliceBox));
+        }
+
+        [Test]
         public void VaseDoesNotTriggerRigidBlockerLateralSettling()
         {
             var board = new BoardModel(3, 3);
@@ -197,10 +271,14 @@ namespace DreamBlastClone.Tests.EditMode
 
             var result = resolver.Resolve(board);
 
-            Assert.That(result.HasAnyMovement, Is.False);
+            Assert.That(result.Moves, Is.Empty);
+            Assert.That(result.ObstacleMoves, Is.EqualTo(new[]
+            {
+                new ObstacleFallMove(new BoardCoordinate(1, 1), new BoardCoordinate(1, 0))
+            }));
             Assert.That(board.GetCell(new BoardCoordinate(0, 1)).Item, Is.SameAs(settlingCube));
             Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.Null);
-            Assert.That(board.GetCell(new BoardCoordinate(1, 1)).Obstacle, Is.SameAs(vase));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Obstacle, Is.SameAs(vase));
         }
 
         [Test]

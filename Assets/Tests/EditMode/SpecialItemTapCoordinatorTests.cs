@@ -115,6 +115,10 @@ namespace DreamBlastClone.Tests.EditMode
                 new ItemFallMove(new BoardCoordinate(2, 2), new BoardCoordinate(2, 1)),
                 new ItemFallMove(new BoardCoordinate(3, 2), new BoardCoordinate(3, 1))
             }));
+            Assert.That(result.Gravity.ObstacleMoves, Is.EqualTo(new[]
+            {
+                new ObstacleFallMove(vaseCoordinate, new BoardCoordinate(3, 0))
+            }));
 
             Assert.That(result.Refill.Spawns, Is.EqualTo(new[]
             {
@@ -133,7 +137,8 @@ namespace DreamBlastClone.Tests.EditMode
             AssertCube(board, new BoardCoordinate(2, 2), CubeColor.Red);
             AssertCube(board, new BoardCoordinate(3, 1), CubeColor.Blue);
             AssertCube(board, new BoardCoordinate(3, 2), CubeColor.Green);
-            Assert.That(board.GetCell(vaseCoordinate).Obstacle, Is.SameAs(vase));
+            Assert.That(board.GetCell(new BoardCoordinate(3, 0)).Obstacle, Is.SameAs(vase));
+            Assert.That(board.GetCell(vaseCoordinate).Obstacle, Is.Null);
         }
 
         [Test]
@@ -240,6 +245,10 @@ namespace DreamBlastClone.Tests.EditMode
                 new ItemFallMove(new BoardCoordinate(0, 2), new BoardCoordinate(0, 1)),
                 new ItemFallMove(new BoardCoordinate(2, 2), new BoardCoordinate(2, 1))
             }));
+            Assert.That(result.Gravity.ObstacleMoves, Is.EqualTo(new[]
+            {
+                new ObstacleFallMove(vaseCoordinate, new BoardCoordinate(0, 0))
+            }));
             Assert.That(result.Refill.Spawns, Is.EqualTo(new[]
             {
                 new ItemSpawn(new BoardCoordinate(1, 0), CubeColor.Green),
@@ -248,7 +257,8 @@ namespace DreamBlastClone.Tests.EditMode
                 new ItemSpawn(new BoardCoordinate(1, 2), CubeColor.Yellow),
                 new ItemSpawn(new BoardCoordinate(2, 2), CubeColor.Red)
             }));
-            Assert.That(board.GetCell(vaseCoordinate).Obstacle, Is.SameAs(vase));
+            Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.SameAs(vase));
+            Assert.That(board.GetCell(vaseCoordinate).Obstacle, Is.Null);
         }
 
         [Test]

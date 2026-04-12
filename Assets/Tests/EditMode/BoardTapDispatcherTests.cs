@@ -170,6 +170,10 @@ namespace DreamBlastClone.Tests.EditMode
                 new ItemFallMove(new BoardCoordinate(2, 2), new BoardCoordinate(2, 1)),
                 new ItemFallMove(new BoardCoordinate(3, 2), new BoardCoordinate(3, 1))
             }));
+            Assert.That(result.SpecialItem.Gravity.ObstacleMoves, Is.EqualTo(new[]
+            {
+                new ObstacleFallMove(vaseCoordinate, new BoardCoordinate(3, 0))
+            }));
             Assert.That(result.SpecialItem.Refill.Spawns, Is.EqualTo(new[]
             {
                 new ItemSpawn(new BoardCoordinate(0, 2), CubeColor.Yellow),
@@ -261,6 +265,10 @@ namespace DreamBlastClone.Tests.EditMode
             {
                 new ItemFallMove(new BoardCoordinate(0, 2), new BoardCoordinate(0, 1)),
                 new ItemFallMove(new BoardCoordinate(2, 2), new BoardCoordinate(2, 1))
+            }));
+            Assert.That(result.SpecialItem.Gravity.ObstacleMoves, Is.EqualTo(new[]
+            {
+                new ObstacleFallMove(vaseCoordinate, new BoardCoordinate(0, 0))
             }));
             Assert.That(result.SpecialItem.Refill.Spawns, Is.EqualTo(new[]
             {

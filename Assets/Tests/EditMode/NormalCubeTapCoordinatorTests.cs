@@ -142,6 +142,38 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void SurvivingVaseFallsAfterBlastOpensSpaceBelow()
+        {
+            var board = new BoardModel(3, 3);
+            var tap = new BoardCoordinate(0, 0);
+            var vase = new VaseObstacleModel(remainingDurability: 2);
+
+            board.PlaceItem(tap, new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(2, 2), new CubeItemModel(CubeColor.Blue));
+            board.PlaceObstacle(new BoardCoordinate(2, 1), vase);
+
+            var result = coordinator.Resolve(board, tap, new FakeRefillCubeColorResolver());
+
+            Assert.That(result.IsValidTap, Is.True);
+            Assert.That(result.ObstacleDamage.Damages, Is.EqualTo(new[]
+            {
+                new ObstacleDamage(new BoardCoordinate(2, 1), 1)
+            }));
+            Assert.That(result.ObstacleDamage.RemovedCoordinates, Is.Empty);
+            Assert.That(result.Gravity.Moves, Is.EqualTo(new[]
+            {
+                new ItemFallMove(new BoardCoordinate(2, 2), new BoardCoordinate(2, 1))
+            }));
+            Assert.That(result.Gravity.ObstacleMoves, Is.EqualTo(new[]
+            {
+                new ObstacleFallMove(new BoardCoordinate(2, 1), new BoardCoordinate(2, 0))
+            }));
+            Assert.That(board.GetCell(new BoardCoordinate(2, 0)).Obstacle, Is.SameAs(vase));
+            Assert.That(board.GetCell(new BoardCoordinate(2, 1)).Item, Is.TypeOf<CubeItemModel>());
+        }
+
+        [Test]
         public void RocketCreatingBlastStillDamagesObstacleAdjacentToTappedCoordinate()
         {
             var board = new BoardModel(4, 3);

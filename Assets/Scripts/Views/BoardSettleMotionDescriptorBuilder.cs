@@ -41,8 +41,9 @@ namespace DreamBlastClone.Views
             }
 
             var gravityMoves = BuildGravityMoves(gravity);
+            var obstacleMoves = BuildObstacleMoves(gravity);
             var refillSpawns = BuildRefillSpawns(preSettleBoard, refill);
-            return new BoardSettleMotionDescriptor(gravityMoves, refillSpawns);
+            return new BoardSettleMotionDescriptor(gravityMoves, refillSpawns, obstacleMoves);
         }
 
         private static IReadOnlyList<ItemSettleMove> BuildGravityMoves(ItemGravityResolutionResult gravity)
@@ -52,6 +53,18 @@ namespace DreamBlastClone.Views
             foreach (var move in gravity.Moves)
             {
                 moves.Add(new ItemSettleMove(move.From, move.To));
+            }
+
+            return moves;
+        }
+
+        private static IReadOnlyList<ObstacleSettleMove> BuildObstacleMoves(ItemGravityResolutionResult gravity)
+        {
+            var moves = new List<ObstacleSettleMove>(gravity.ObstacleMoveCount);
+
+            foreach (var move in gravity.ObstacleMoves)
+            {
+                moves.Add(new ObstacleSettleMove(move.From, move.To));
             }
 
             return moves;

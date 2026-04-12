@@ -2,6 +2,7 @@ using System.Linq;
 using DreamBlastClone.Core;
 using DreamBlastClone.Grid;
 using DreamBlastClone.Items;
+using DreamBlastClone.Obstacles;
 using DreamBlastClone.Systems;
 using DreamBlastClone.Views;
 using NUnit.Framework;
@@ -37,6 +38,28 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void BuildMapsFallingVaseObstacleMoves()
+        {
+            var board = new BoardModel(3, 3);
+            var tap = new BoardCoordinate(0, 0);
+            var vaseCoordinate = new BoardCoordinate(2, 1);
+
+            board.PlaceItem(tap, new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(vaseCoordinate, new VaseObstacleModel(remainingDurability: 2));
+
+            var preTapBoard = boardModelCloner.Clone(board);
+            var dispatchResult = dispatcher.Resolve(board, tap, new FixedRefillCubeColorResolver());
+            var previewBoard = normalPreviewBoardBuilder.Build(preTapBoard, dispatchResult.NormalCube);
+            var descriptor = builder.Build(previewBoard, dispatchResult, board);
+
+            Assert.That(descriptor.ObstacleMoves, Is.EqualTo(new[]
+            {
+                new ObstacleSettleMove(vaseCoordinate, new BoardCoordinate(2, 0))
+            }));
+        }
+
+        [Test]
         public void BuildReturnsEmptyForInvalidTap()
         {
             var board = new BoardModel(2, 2);
@@ -44,6 +67,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(descriptor.HasAnyMotion, Is.False);
             Assert.That(descriptor.GravityMoves, Is.Empty);
+            Assert.That(descriptor.ObstacleMoves, Is.Empty);
             Assert.That(descriptor.RefillSpawns, Is.Empty);
         }
 

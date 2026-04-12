@@ -4,6 +4,8 @@ namespace DreamBlastClone.Obstacles
 {
     public sealed class VaseObstacleModel : ObstacleModel
     {
+        public override bool FallsWithGravity => true;
+
         public VaseObstacleModel(int remainingDurability = 2)
         {
             ValidatePositive(nameof(remainingDurability), remainingDurability);
