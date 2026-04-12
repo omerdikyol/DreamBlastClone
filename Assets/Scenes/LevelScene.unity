@@ -1555,6 +1555,9 @@ MonoBehaviour:
   itemVisualRoot: {fileID: 1517054706}
   obstacleVisualRoot: {fileID: 1517054706}
   boardCenter: {x: 0, y: -2.15}
+  useViewportAnchoredBoardCenter: 1
+  layoutCamera: {fileID: 519420031}
+  boardCenterViewport: {x: 0.5, y: 0.38}
   cellSize: 0.5
   itemZ: -0.1
   obstacleZ: 0

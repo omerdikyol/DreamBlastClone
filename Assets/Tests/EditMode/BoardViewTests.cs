@@ -16,6 +16,7 @@ namespace DreamBlastClone.Tests.EditMode
         private readonly List<GameObject> createdGameObjects = new List<GameObject>();
         private readonly List<Sprite> createdSprites = new List<Sprite>();
         private readonly List<Texture2D> createdTextures = new List<Texture2D>();
+        private readonly List<RenderTexture> createdRenderTextures = new List<RenderTexture>();
 
         [TearDown]
         public void TearDown()
@@ -39,6 +40,17 @@ namespace DreamBlastClone.Tests.EditMode
             }
 
             createdTextures.Clear();
+
+            for (var index = createdRenderTextures.Count - 1; index >= 0; index--)
+            {
+                if (createdRenderTextures[index] is not null)
+                {
+                    createdRenderTextures[index].Release();
+                    UnityEngine.Object.DestroyImmediate(createdRenderTextures[index]);
+                }
+            }
+
+            createdRenderTextures.Clear();
 
             for (var index = createdGameObjects.Count - 1; index >= 0; index--)
             {
@@ -765,6 +777,35 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(clipMask, Is.Not.Null);
             Assert.That(clipMask.transform.localPosition, Is.EqualTo(new Vector3(0f, 0f, -0.05f)));
             Assert.That(clipMask.transform.localScale, Is.EqualTo(new Vector3(3f, 2f, 1f)));
+        }
+
+        [Test]
+        public void RenderUsesViewportAnchoredBoardCenterWhenConfigured()
+        {
+            var board = new BoardModel(4, 4);
+            var boardView = CreateConfiguredBoardView(cellSize: 1f);
+            var cameraObject = CreateGameObject("LayoutCamera");
+            var camera = cameraObject.AddComponent<Camera>();
+            var renderTexture = new RenderTexture(1080, 1920, 16);
+            createdRenderTextures.Add(renderTexture);
+
+            camera.orthographic = true;
+            camera.orthographicSize = 5f;
+            camera.transform.position = new Vector3(0f, 0f, -10f);
+            camera.targetTexture = renderTexture;
+
+            SetField(boardView, "useViewportAnchoredBoardCenter", true);
+            SetField(boardView, "layoutCamera", camera);
+            SetField(boardView, "boardCenterViewport", new Vector2(0.5f, 0.44f));
+
+            boardView.Render(board);
+
+            var item = new CubeItemModel(CubeColor.Red);
+            board.PlaceItem(new BoardCoordinate(0, 0), item);
+            boardView.Render(board);
+
+            var itemVisual = FindChildByPrefix(GetItemRoot(boardView), "CubePrefab");
+            Assert.That(itemVisual.transform.localPosition, Is.EqualTo(new Vector3(-1.5f, -2.1f, -0.1f)).Within(0.0001f));
         }
 
         [Test]

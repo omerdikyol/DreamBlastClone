@@ -16,9 +16,12 @@ namespace DreamBlastClone.Views
         [SerializeField] private Transform obstacleVisualRoot;
 
         [Header("Layout")]
-        // Fixed world-space point that all board sizes are centered on.
-        // origin (bottom-left corner) is derived from this each Render() call.
         [SerializeField] private Vector2 boardCenter;
+        [SerializeField] private bool useViewportAnchoredBoardCenter;
+        [SerializeField] private Camera layoutCamera;
+        // Viewport anchoring keeps the board in a consistent screen-space band
+        // even when the orthographic camera size expands on taller/narrower devices.
+        [SerializeField] private Vector2 boardCenterViewport = new Vector2(0.5f, 0.44f);
         [SerializeField] private float cellSize = 1f;
         [SerializeField] private float itemZ = -0.1f;
         [SerializeField] private float obstacleZ = 0f;
@@ -60,11 +63,13 @@ namespace DreamBlastClone.Views
                 throw new ArgumentNullException(nameof(board));
             }
 
-            // Recompute bottom-left origin so the board stays centered on boardCenter
+            var resolvedBoardCenter = ResolveBoardCenter();
+
+            // Recompute bottom-left origin so the board stays centered on the resolved layout anchor
             // regardless of grid dimensions. All placement helpers read this field.
             origin = new Vector2(
-                boardCenter.x - board.Width * cellSize * 0.5f,
-                boardCenter.y - board.Height * cellSize * 0.5f);
+                resolvedBoardCenter.x - board.Width * cellSize * 0.5f,
+                resolvedBoardCenter.y - board.Height * cellSize * 0.5f);
 
             ClearSpawnedVisuals();
             UpdateGridBackground(board);
@@ -753,6 +758,27 @@ namespace DreamBlastClone.Views
             var safeWidth = nativeSize.x > 0f ? nativeSize.x : 1f;
             var safeHeight = nativeSize.y > 0f ? nativeSize.y : 1f;
             return new Vector3(targetSize.x / safeWidth, targetSize.y / safeHeight, 1f);
+        }
+
+        private Vector2 ResolveBoardCenter()
+        {
+            if (!useViewportAnchoredBoardCenter)
+            {
+                return boardCenter;
+            }
+
+            var targetCamera = layoutCamera != null ? layoutCamera : Camera.main;
+            if (targetCamera == null)
+            {
+                return boardCenter;
+            }
+
+            var boardPlaneDistance = Mathf.Abs(transform.position.z - targetCamera.transform.position.z);
+            var worldPoint = targetCamera.ViewportToWorldPoint(new Vector3(
+                boardCenterViewport.x,
+                boardCenterViewport.y,
+                boardPlaneDistance));
+            return transform.InverseTransformPoint(worldPoint);
         }
 
         private static Vector3 GetVisualScale(Transform visualRoot, Vector2 targetSize)
