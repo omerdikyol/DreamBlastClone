@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 8016032807320633382}
   - component: {fileID: 8870843009768699367}
   - component: {fileID: 6221900184467919543}
-  - component: {fileID: 4138698941322100101}
   m_Layer: 0
   m_Name: CubePrefab
   m_TagString: Untagged
@@ -118,21 +117,3 @@ MonoBehaviour:
   greenTntSprite: {fileID: 21300000, guid: 32c87d06d0d20994580a828a69d2604a, type: 3}
   blueTntSprite: {fileID: 21300000, guid: 6e105ee6835738d4b9bdcdb056e5af41, type: 3}
   yellowTntSprite: {fileID: 21300000, guid: 866f9ff9171e8d54d86ddfe6f96546c0, type: 3}
---- !u!114 &4138698941322100101
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5005002260436004955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2da615f72804446f91e24498f75a2662, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: DreamBlastClone.Views::DreamBlastClone.Views.BoardItemIdleLoopView
-  idleLoopStyle: 0
-  durationSeconds: 2.2
-  scaleAmplitude: 0.02
-  verticalAmplitude: 0.01
-  rotationAmplitudeDegrees: 0
-  phaseOffsetSeconds: 0.9
