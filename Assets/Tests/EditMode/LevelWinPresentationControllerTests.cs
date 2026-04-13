@@ -68,6 +68,7 @@ namespace DreamBlastClone.Tests.EditMode
             InvokeHandleTapProcessed(setup.Controller, LevelState.Win);
 
             Assert.That(setup.AudioController.PlayedSfx, Is.EqualTo(new[] { GameSfxCue.PopupOpen, GameSfxCue.WinSting }));
+            Assert.That(setup.HapticsController.PlayedCues, Is.EqualTo(new[] { GameHapticCue.Light, GameHapticCue.Heavy }));
         }
 
         [Test]
@@ -180,6 +181,7 @@ namespace DreamBlastClone.Tests.EditMode
             InvokeHandleContinuePressed(setup.Controller);
 
             Assert.That(setup.AudioController.PlayedSfx, Does.Contain(GameSfxCue.PopupClose));
+            Assert.That(setup.HapticsController.PlayedCues, Does.Contain(GameHapticCue.Light));
         }
 
         [Test]
@@ -278,6 +280,7 @@ namespace DreamBlastClone.Tests.EditMode
             var inputBridge = runtime.AddComponent<BoardInputSessionBridge>();
             var flowController = runtime.AddComponent<TestLevelSceneFlowController>();
             var audioController = runtime.AddComponent<TestRecordingGameAudioController>();
+            var hapticsController = runtime.AddComponent<TestRecordingGameHapticsController>();
             var controller = runtime.AddComponent<LevelWinPresentationController>();
             var presentationRoot = CreateGameObject("WinPresentationRoot");
             var presentationCanvasGroup = presentationRoot.AddComponent<CanvasGroup>();
@@ -324,6 +327,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(controller, "inputBridge", inputBridge);
             SetField(controller, "flowController", flowController);
             SetField(controller, "audioController", audioController);
+            SetField(controller, "hapticsController", hapticsController);
             SetField(controller, "presentationRoot", presentationRoot);
             SetField(controller, "continueHintRoot", continueHintRoot.gameObject);
             SetField(controller, "presentationCanvasGroup", presentationCanvasGroup);
@@ -341,7 +345,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(controller, "starIdlePulseFrequency", 2f);
             SetField(controller, "overlayEnterAlphaMultiplier", 0.76f);
 
-            return new ControllerSetup(controller, inputBridge, flowController, audioController, presentationRoot, continueHintRoot.gameObject, starRoot, winParticlePlayer);
+            return new ControllerSetup(controller, inputBridge, flowController, audioController, hapticsController, presentationRoot, continueHintRoot.gameObject, starRoot, winParticlePlayer);
         }
 
         private GameObject CreateGameObject(string name)
@@ -418,6 +422,7 @@ namespace DreamBlastClone.Tests.EditMode
                 BoardInputSessionBridge inputBridge,
                 TestLevelSceneFlowController flowController,
                 TestRecordingGameAudioController audioController,
+                TestRecordingGameHapticsController hapticsController,
                 GameObject presentationRoot,
                 GameObject continueHintRoot,
                 RectTransform starRoot,
@@ -427,6 +432,7 @@ namespace DreamBlastClone.Tests.EditMode
                 InputBridge = inputBridge;
                 FlowController = flowController;
                 AudioController = audioController;
+                HapticsController = hapticsController;
                 PresentationRoot = presentationRoot;
                 ContinueHintRoot = continueHintRoot;
                 StarRoot = starRoot;
@@ -440,6 +446,8 @@ namespace DreamBlastClone.Tests.EditMode
             public TestLevelSceneFlowController FlowController { get; }
 
             public TestRecordingGameAudioController AudioController { get; }
+
+            public TestRecordingGameHapticsController HapticsController { get; }
 
             public GameObject PresentationRoot { get; }
 

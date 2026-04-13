@@ -12,6 +12,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private BoardInputSessionBridge inputBridge;
         [SerializeField] private LevelSceneFlowController flowController;
         [SerializeField] private GameAudioController audioController;
+        [SerializeField] private GameHapticsController hapticsController;
         [SerializeField] private GameObject popupRoot;
         [SerializeField] private Button closeButton;
         [SerializeField] private Button tryAgainButton;
@@ -219,6 +220,8 @@ namespace DreamBlastClone.Controllers.Unity
             audioController?.SetMusicVolumeMultiplier(popupMusicVolumeMultiplier);
             audioController?.PlaySfx(GameSfxCue.PopupOpen);
             audioController?.PlaySfx(GameSfxCue.LoseSting);
+            hapticsController?.Play(GameHapticCue.Light);
+            hapticsController?.Play(GameHapticCue.Heavy);
             BeginEntering();
             return true;
         }
@@ -297,6 +300,7 @@ namespace DreamBlastClone.Controllers.Unity
             stateElapsedSeconds = 0f;
             SetActionButtonsInteractable(false);
             audioController?.PlaySfx(GameSfxCue.PopupClose);
+            hapticsController?.Play(GameHapticCue.Light);
 
             if (exitDurationSeconds <= 0f)
             {
@@ -561,6 +565,7 @@ namespace DreamBlastClone.Controllers.Unity
             inputBridge = targetInputBridge;
             flowController = targetFlowController;
             audioController ??= GetComponent<GameAudioController>() ?? gameObject.AddComponent<GameAudioController>();
+            hapticsController ??= audioController.GetComponent<GameHapticsController>() ?? audioController.gameObject.AddComponent<GameHapticsController>();
             closeButton ??= FindButton("CloseButton");
             tryAgainButton ??= FindButton("TryAgainButton");
             mainMenuButton ??= FindButton("MainMenuButton");

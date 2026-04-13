@@ -156,6 +156,40 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void GoalCompletionHapticPlaysOnIncompleteToCompleteTransitionOnly()
+        {
+            var board = new BoardModel(2, 2);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(new BoardCoordinate(0, 1), new StoneObstacleModel());
+
+            var session = new LevelSession(
+                board,
+                remainingMoves: 3,
+                new FixedRefillCubeColorResolver(),
+                new[]
+                {
+                    new LevelGoalDefinition(LevelGoalType.Stone, 1)
+                });
+
+            var controller = CreateConfiguredHudController(session, out _, out _, out _);
+            var hapticsController = (TestRecordingGameHapticsController)GetField(controller, "hapticsController");
+
+            InvokeMethod(controller, "OnEnable");
+            InvokeMethod(controller, "Start");
+
+            var tapResult = session.ProcessTap(new BoardCoordinate(0, 0));
+            InvokeMethod(controller, "HandleTapProcessed", tapResult);
+            Assert.That(hapticsController.PlayedCues, Is.EqualTo(new[] { GameHapticCue.Medium }));
+
+            var invalidTap = session.ProcessTap(new BoardCoordinate(0, 0));
+            InvokeMethod(controller, "HandleTapProcessed", invalidTap);
+            Assert.That(hapticsController.PlayedCues, Is.EqualTo(new[] { GameHapticCue.Medium }));
+
+            InvokeMethod(controller, "OnDisable");
+        }
+
+        [Test]
         public void RefreshHudShowsRemainingChalicesInsteadOfBoxCount()
         {
             var board = new BoardModel(2, 2);
@@ -385,6 +419,7 @@ namespace DreamBlastClone.Tests.EditMode
             host.SetSession(session);
             var bridge = runtime.AddComponent<BoardInputSessionBridge>();
             var audioController = runtime.AddComponent<TestRecordingGameAudioController>();
+            var hapticsController = runtime.AddComponent<TestRecordingGameHapticsController>();
             var controller = runtime.AddComponent<LevelSceneHudController>();
 
             moveLabel = CreateText("MoveLabel");
@@ -394,6 +429,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(controller, "sessionHost", host);
             SetField(controller, "inputBridge", bridge);
             SetField(controller, "audioController", audioController);
+            SetField(controller, "hapticsController", hapticsController);
             SetField(controller, "moveCountLabel", moveLabel);
             SetField(controller, "goalItemTemplate", goalTemplate);
             SetField(controller, "goalItemsContainer", goalContainer);

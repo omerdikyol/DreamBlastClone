@@ -7,6 +7,7 @@ namespace DreamBlastClone.Controllers.Unity
     {
         [SerializeField] private Button targetButton;
         [SerializeField] private GameAudioController audioController;
+        [SerializeField] private GameHapticsController hapticsController;
 
         private void OnEnable()
         {
@@ -33,10 +34,20 @@ namespace DreamBlastClone.Controllers.Unity
             audioController ??= GetComponentInParent<GameAudioController>() ?? FindFirstObjectByType<GameAudioController>();
         }
 
+        private void ResolveHapticsController()
+        {
+            hapticsController ??=
+                audioController != null
+                    ? audioController.GetComponent<GameHapticsController>() ?? audioController.gameObject.AddComponent<GameHapticsController>()
+                    : GetComponentInParent<GameHapticsController>() ?? FindFirstObjectByType<GameHapticsController>() ?? gameObject.AddComponent<GameHapticsController>();
+        }
+
         private void HandleButtonClicked()
         {
             ResolveAudioController();
+            ResolveHapticsController();
             audioController?.PlaySfx(GameSfxCue.MenuButtonClick);
+            hapticsController?.Play(GameHapticCue.Light);
         }
     }
 }

@@ -176,6 +176,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
             Assert.That(GetAudioController(bridge).PlayedSfx, Does.Contain(GameSfxCue.CubeBlast));
+            Assert.That(GetHapticsController(bridge).PlayedCues, Does.Contain(GameHapticCue.Light));
         }
 
         [Test]
@@ -194,6 +195,7 @@ namespace DreamBlastClone.Tests.EditMode
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
 
             Assert.That(GetAudioController(bridge).PlayedSfx, Does.Contain(GameSfxCue.RocketActivation));
+            Assert.That(GetHapticsController(bridge).PlayedCues, Does.Contain(GameHapticCue.Medium));
         }
 
         [Test]
@@ -212,6 +214,7 @@ namespace DreamBlastClone.Tests.EditMode
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
 
             Assert.That(GetAudioController(bridge).PlayedSfx, Does.Contain(GameSfxCue.TntActivation));
+            Assert.That(GetHapticsController(bridge).PlayedCues, Does.Contain(GameHapticCue.Medium));
         }
 
         [Test]
@@ -230,6 +233,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
             Assert.That(GetAudioController(bridge).PlayedSfx, Does.Contain(GameSfxCue.VaseHit));
+            Assert.That(GetHapticsController(bridge).PlayedCues, Does.Contain(GameHapticCue.Light));
         }
 
         [Test]
@@ -444,6 +448,7 @@ namespace DreamBlastClone.Tests.EditMode
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
 
             Assert.That(GetAudioController(bridge).PlayedSfx.FindAll(cue => cue == GameSfxCue.RocketActivation).Count, Is.EqualTo(2));
+            Assert.That(GetHapticsController(bridge).PlayedCues, Does.Contain(GameHapticCue.Heavy));
         }
 
         [Test]
@@ -465,6 +470,7 @@ namespace DreamBlastClone.Tests.EditMode
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
 
             Assert.That(GetAudioController(bridge).PlayedSfx.FindAll(cue => cue == GameSfxCue.TntActivation).Count, Is.EqualTo(2));
+            Assert.That(GetHapticsController(bridge).PlayedCues, Does.Contain(GameHapticCue.Heavy));
         }
 
         [Test]
@@ -487,6 +493,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(GetAudioController(bridge).PlayedSfx.FindAll(cue => cue == GameSfxCue.RocketActivation).Count, Is.EqualTo(3));
             Assert.That(GetAudioController(bridge).PlayedSfx.FindAll(cue => cue == GameSfxCue.TntActivation).Count, Is.EqualTo(1));
+            Assert.That(GetHapticsController(bridge).PlayedCues, Does.Contain(GameHapticCue.Heavy));
         }
 
         [Test]
@@ -1049,10 +1056,12 @@ namespace DreamBlastClone.Tests.EditMode
             var bridgeObject = CreateGameObject("Bridge");
             var bridge = bridgeObject.AddComponent<BoardInputSessionBridge>();
             var audioController = bridgeObject.AddComponent<TestRecordingGameAudioController>();
+            var hapticsController = bridgeObject.AddComponent<TestRecordingGameHapticsController>();
             SetField(bridge, "boardView", boardView);
             SetField(bridge, "sessionHost", host);
             SetField(bridge, "inputCamera", camera);
             SetField(bridge, "audioController", audioController);
+            SetField(bridge, "hapticsController", hapticsController);
             SetField(bridge, "destructionFeedbackPlayer", CreateDestructionFeedbackPlayer());
             SetField(bridge, "tapAnticipationPlayer", CreateTapAnticipationPlayer());
             SetField(bridge, "cubeBlastParticlePlayer", CreateCubeBlastParticlePlayer());
@@ -1112,6 +1121,11 @@ namespace DreamBlastClone.Tests.EditMode
         private TestRecordingGameAudioController GetAudioController(BoardInputSessionBridge bridge)
         {
             return (TestRecordingGameAudioController)GetField(bridge, "audioController");
+        }
+
+        private TestRecordingGameHapticsController GetHapticsController(BoardInputSessionBridge bridge)
+        {
+            return (TestRecordingGameHapticsController)GetField(bridge, "hapticsController");
         }
 
         private Camera GetCamera(BoardInputSessionBridge bridge)

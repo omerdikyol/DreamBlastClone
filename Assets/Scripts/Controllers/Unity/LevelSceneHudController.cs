@@ -12,6 +12,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private LevelSessionHost sessionHost;
         [SerializeField] private BoardInputSessionBridge inputBridge;
         [SerializeField] private GameAudioController audioController;
+        [SerializeField] private GameHapticsController hapticsController;
         [SerializeField] private Transform audioSettingsCanvasRoot;
         [SerializeField] private AudioSettingsPopupController audioSettingsPopupPrefab;
         [SerializeField] private Component moveCountLabel;
@@ -107,6 +108,7 @@ namespace DreamBlastClone.Controllers.Unity
                 if (hasInitializedGoalState && !wasCompleted && progress.IsCompleted)
                 {
                     audioController?.PlaySfx(GameSfxCue.GoalCompletion);
+                    hapticsController?.Play(GameHapticCue.Medium);
                 }
 
                 if (index < displayedGoalCompletionStates.Count)
@@ -156,6 +158,7 @@ namespace DreamBlastClone.Controllers.Unity
         private void ResolveAudioController()
         {
             audioController ??= GetComponent<GameAudioController>() ?? gameObject.AddComponent<GameAudioController>();
+            hapticsController ??= audioController.GetComponent<GameHapticsController>() ?? audioController.gameObject.AddComponent<GameHapticsController>();
         }
 
         private void EnsureAudioSettingsPopup()

@@ -12,6 +12,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private BoardInputSessionBridge inputBridge;
         [SerializeField] private LevelSceneFlowController flowController;
         [SerializeField] private GameAudioController audioController;
+        [SerializeField] private GameHapticsController hapticsController;
         [SerializeField] private GameObject presentationRoot;
         [SerializeField] private GameObject continueHintRoot;
         [SerializeField] private CanvasGroup presentationCanvasGroup;
@@ -207,6 +208,8 @@ namespace DreamBlastClone.Controllers.Unity
             audioController?.SetMusicVolumeMultiplier(presentationMusicVolumeMultiplier);
             audioController?.PlaySfx(GameSfxCue.PopupOpen);
             audioController?.PlaySfx(GameSfxCue.WinSting);
+            hapticsController?.Play(GameHapticCue.Light);
+            hapticsController?.Play(GameHapticCue.Heavy);
             BeginEntering();
             winCelebrationParticlePlayer?.TryPlay(starTransform);
             return true;
@@ -235,6 +238,7 @@ namespace DreamBlastClone.Controllers.Unity
             inputBridge = targetInputBridge;
             flowController = targetFlowController;
             audioController ??= GetComponent<GameAudioController>() ?? gameObject.AddComponent<GameAudioController>();
+            hapticsController ??= audioController.GetComponent<GameHapticsController>() ?? audioController.gameObject.AddComponent<GameHapticsController>();
             presentationCanvasGroup ??= presentationRoot.GetComponent<CanvasGroup>();
             continueHintCanvasGroup ??= continueHintRoot != null ? continueHintRoot.GetComponent<CanvasGroup>() : null;
             winCelebrationParticlePlayer ??= presentationRoot.GetComponent<WinCelebrationParticlePlayer>();
@@ -371,6 +375,7 @@ namespace DreamBlastClone.Controllers.Unity
             state = WinPresentationState.Exiting;
             stateElapsedSeconds = 0f;
             audioController?.PlaySfx(GameSfxCue.PopupClose);
+            hapticsController?.Play(GameHapticCue.Light);
 
             if (exitDurationSeconds <= 0f)
             {

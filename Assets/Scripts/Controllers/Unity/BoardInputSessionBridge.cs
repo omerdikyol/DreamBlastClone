@@ -18,6 +18,7 @@ namespace DreamBlastClone.Controllers.Unity
         [SerializeField] private LevelSessionHost sessionHost;
         [SerializeField] private Camera inputCamera;
         [SerializeField] private GameAudioController audioController;
+        [SerializeField] private GameHapticsController hapticsController;
         [SerializeField] private float normalCubePreviewDuration = 0.12f;
         [SerializeField] private BoardDestructionFeedbackPlayer destructionFeedbackPlayer;
         [SerializeField] private TapAnticipationPlayer tapAnticipationPlayer;
@@ -443,6 +444,7 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             audioController?.PlaySfx(GameSfxCue.TntActivation);
+            hapticsController?.Play(GameHapticCue.Medium);
             // Use the short settle-blocking window, not the full particle lifetime.
             // Particles keep advancing via AdvancePendingPreview during settle.
             remainingPreviewSeconds = singleTntEffectPlayer.SettleBlockingDuration;
@@ -536,6 +538,7 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             audioController?.PlaySfx(GameSfxCue.RocketActivation);
+            hapticsController?.Play(GameHapticCue.Medium);
             duration = singleRocketEffectPlayer.Duration;
             return true;
         }
@@ -631,6 +634,7 @@ namespace DreamBlastClone.Controllers.Unity
         private void ResolveAudioController()
         {
             audioController ??= GetComponent<GameAudioController>() ?? gameObject.AddComponent<GameAudioController>();
+            hapticsController ??= audioController.GetComponent<GameHapticsController>() ?? audioController.gameObject.AddComponent<GameHapticsController>();
         }
 
         private void PlayComboPresentationSfx(SpecialItemComboType comboType)
@@ -643,14 +647,17 @@ namespace DreamBlastClone.Controllers.Unity
             switch (comboType)
             {
                 case SpecialItemComboType.RocketRocket:
+                    hapticsController?.Play(GameHapticCue.Heavy);
                     audioController.PlaySfx(GameSfxCue.RocketActivation, 1.2f, bypassCooldown: true, bypassVoiceLimit: true);
                     audioController.PlaySfxDelayed(GameSfxCue.RocketActivation, ComboRocketDelaySeconds, 1.2f, bypassCooldown: true, bypassVoiceLimit: true);
                     break;
                 case SpecialItemComboType.TntTnt:
+                    hapticsController?.Play(GameHapticCue.Heavy);
                     audioController.PlaySfx(GameSfxCue.TntActivation, 1.3f, bypassCooldown: true, bypassVoiceLimit: true);
                     audioController.PlaySfxDelayed(GameSfxCue.TntActivation, ComboTntDelaySeconds, 1.3f, bypassCooldown: true, bypassVoiceLimit: true);
                     break;
                 case SpecialItemComboType.TntRocket:
+                    hapticsController?.Play(GameHapticCue.Heavy);
                     audioController.PlaySfx(GameSfxCue.TntActivation, 1.45f, bypassCooldown: true, bypassVoiceLimit: true);
                     audioController.PlaySfx(GameSfxCue.RocketActivation, 1.15f, bypassCooldown: true, bypassVoiceLimit: true);
                     audioController.PlaySfxDelayed(GameSfxCue.RocketActivation, ComboRocketDelaySeconds, 1.15f, bypassCooldown: true, bypassVoiceLimit: true);
@@ -669,6 +676,7 @@ namespace DreamBlastClone.Controllers.Unity
             if (tap.RouteType == TapRouteType.NormalCube && tap.NormalCube.IsValidTap)
             {
                 audioController.PlaySfx(GameSfxCue.CubeBlast);
+                hapticsController?.Play(GameHapticCue.Light);
             }
 
             TryPlayVaseSfx(preTapBoard, tap);
@@ -695,6 +703,7 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             audioController.PlaySfx(hasRemoval ? GameSfxCue.VaseDestroy : GameSfxCue.VaseHit);
+            hapticsController?.Play(hasRemoval ? GameHapticCue.Medium : GameHapticCue.Light);
         }
 
         private void TryPlayStoneSfx(BoardModel preTapBoard, BoardTapDispatchResult tap)
@@ -703,6 +712,7 @@ namespace DreamBlastClone.Controllers.Unity
             if (descriptor.HasAnyParticles)
             {
                 audioController.PlaySfx(GameSfxCue.StoneDestroy);
+                hapticsController?.Play(GameHapticCue.Medium);
             }
         }
 
@@ -738,15 +748,18 @@ namespace DreamBlastClone.Controllers.Unity
             if (shouldPlayDoorBreak)
             {
                 audioController.PlaySfx(GameSfxCue.ChaliceDoorBreak);
+                hapticsController?.Play(GameHapticCue.Medium);
             }
             else if (shouldPlayDoorHit)
             {
                 audioController.PlaySfx(GameSfxCue.ChaliceDoorHit);
+                hapticsController?.Play(GameHapticCue.Light);
             }
 
             if (shouldPlayChaliceCollect)
             {
                 audioController.PlaySfx(GameSfxCue.ChaliceCollect);
+                hapticsController?.Play(GameHapticCue.Light);
             }
         }
 

@@ -7,6 +7,7 @@ namespace DreamBlastClone.Controllers.Unity
     public sealed class AudioSettingsPopupController : MonoBehaviour
     {
         [SerializeField] private GameAudioController audioController;
+        [SerializeField] private GameHapticsController hapticsController;
         [SerializeField] private BoardInputSessionBridge inputBridge;
         [SerializeField] private Canvas popupCanvas;
         [SerializeField] private GraphicRaycaster graphicRaycaster;
@@ -134,6 +135,7 @@ namespace DreamBlastClone.Controllers.Unity
                 return;
             }
 
+            ResolveHapticsController();
             SyncSlidersFromAudio();
         }
 
@@ -148,6 +150,8 @@ namespace DreamBlastClone.Controllers.Unity
             popupCanvas.transform.SetAsLastSibling();
             SuppressInputIfNeeded();
             audioController.PlaySfx(GameSfxCue.PopupOpen);
+            ResolveHapticsController();
+            hapticsController?.Play(GameHapticCue.Light);
             state = PopupState.Entering;
             stateElapsedSeconds = 0f;
             ApplyVisualState(0f, 0f, contentEnterOffsetY, contentEnterScale, overlayEnterAlphaMultiplier);
@@ -168,6 +172,8 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             audioController?.PlaySfx(GameSfxCue.PopupClose);
+            ResolveHapticsController();
+            hapticsController?.Play(GameHapticCue.Light);
             state = PopupState.Closing;
             stateElapsedSeconds = 0f;
 
@@ -224,6 +230,14 @@ namespace DreamBlastClone.Controllers.Unity
                     }
                     break;
             }
+        }
+
+        private void ResolveHapticsController()
+        {
+            hapticsController ??=
+                audioController != null
+                    ? audioController.GetComponent<GameHapticsController>() ?? audioController.gameObject.AddComponent<GameHapticsController>()
+                    : GetComponentInParent<GameHapticsController>() ?? FindFirstObjectByType<GameHapticsController>() ?? gameObject.AddComponent<GameHapticsController>();
         }
 
         private void BeginVisible()

@@ -31,6 +31,7 @@ namespace DreamBlastClone.Tests.EditMode
         {
             var root = CreateGameObject("Root");
             var audioController = root.AddComponent<TestRecordingGameAudioController>();
+            var hapticsController = root.AddComponent<TestRecordingGameHapticsController>();
             var buttonObject = new GameObject("Button", typeof(RectTransform), typeof(Image), typeof(Button), typeof(UIButtonClickSoundPlayer));
             createdObjects.Add(buttonObject);
             buttonObject.transform.SetParent(root.transform, false);
@@ -39,6 +40,7 @@ namespace DreamBlastClone.Tests.EditMode
             button.onClick.Invoke();
 
             Assert.That(audioController.PlayedSfx, Is.EqualTo(new[] { GameSfxCue.MenuButtonClick }));
+            Assert.That(hapticsController.PlayedCues, Is.EqualTo(new[] { GameHapticCue.Light }));
         }
 
         [Test]
@@ -46,6 +48,7 @@ namespace DreamBlastClone.Tests.EditMode
         {
             var root = CreateGameObject("Root");
             var audioController = root.AddComponent<TestRecordingGameAudioController>();
+            root.AddComponent<TestRecordingGameHapticsController>();
             var buttonObject = new GameObject("Button", typeof(RectTransform), typeof(Image), typeof(Button), typeof(UIButtonClickSoundPlayer));
             createdObjects.Add(buttonObject);
             buttonObject.transform.SetParent(root.transform, false);

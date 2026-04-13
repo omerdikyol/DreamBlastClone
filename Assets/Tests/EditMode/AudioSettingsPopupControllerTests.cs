@@ -88,6 +88,21 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(popup.IsOpen, Is.False);
         }
 
+        [Test]
+        public void OpenAndCloseRequestLightHaptics()
+        {
+            var audioRoot = CreateGameObject("AudioController");
+            var audioController = audioRoot.AddComponent<GameAudioController>();
+            var hapticsController = audioRoot.AddComponent<TestRecordingGameHapticsController>();
+            var popup = CreatePopup(audioController);
+            SetField(popup, "enterDurationSeconds", 0f);
+            SetField(popup, "exitDurationSeconds", 0f);
+
+            Assert.That(popup.TryOpen(), Is.True);
+            Assert.That(popup.TryClose(), Is.True);
+            Assert.That(hapticsController.PlayedCues, Is.EqualTo(new[] { GameHapticCue.Light, GameHapticCue.Light }));
+        }
+
         private AudioSettingsPopupController CreatePopup(GameAudioController audioController, BoardInputSessionBridge inputBridge = null)
         {
             var host = CreateGameObject("SettingsPopUp", typeof(RectTransform));
