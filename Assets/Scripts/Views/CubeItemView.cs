@@ -91,17 +91,22 @@ namespace DreamBlastClone.Views
             var baseScale = transform.localScale;
             var startScale = baseScale * Mathf.Max(0.01f, eligibleTransitionStartScaleMultiplier);
             var overshootScale = baseScale * Mathf.Max(1f, eligibleTransitionOvershootScaleMultiplier);
+            var startColor = ResolveTransitionColor(state);
+            startColor.a = targetRenderer.color.a;
+            var endColor = Color.white;
+            endColor.a = targetRenderer.color.a;
             transform.localScale = startScale;
-            targetRenderer.color = ResolveTransitionColor(state);
+            targetRenderer.color = startColor;
 
             appearanceTween = DOTween.Sequence()
                 .Append(transform.DOScale(overshootScale, eligibleTransitionDuration * 0.42f).SetEase(Ease.OutQuad))
                 .Append(transform.DOScale(baseScale, eligibleTransitionDuration * 0.58f).SetEase(Ease.OutBack))
-                .Join(DOTween.To(
-                        () => targetRenderer.color,
-                        value => targetRenderer.color = value,
-                        Color.white,
-                        eligibleTransitionDuration)
+                .Join(DOVirtual.Float(0f, 1f, eligibleTransitionDuration, progress =>
+                    {
+                        var color = Color.LerpUnclamped(startColor, endColor, progress);
+                        color.a = targetRenderer.color.a;
+                        targetRenderer.color = color;
+                    })
                     .SetEase(Ease.OutQuad))
                 .SetUpdate(UpdateType.Normal, isIndependentUpdate: false)
                 .SetLink(gameObject, LinkBehaviour.KillOnDestroy)

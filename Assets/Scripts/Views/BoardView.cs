@@ -56,6 +56,8 @@ namespace DreamBlastClone.Views
 
         public float CellSize => cellSize;
 
+        public IReadOnlyList<GameObject> SpawnedVisuals => spawnedVisuals;
+
         public void Render(BoardModel board, bool startItemIdleLoops = true)
         {
             if (board is null)

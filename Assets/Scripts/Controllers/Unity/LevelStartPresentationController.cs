@@ -263,14 +263,16 @@ namespace DreamBlastClone.Controllers.Unity
             boardVisuals.Clear();
 
             var boardChildren = new List<Transform>();
-            for (var index = 0; index < boardView.transform.childCount; index++)
+            var spawnedVisuals = boardView.SpawnedVisuals;
+            for (var index = 0; index < spawnedVisuals.Count; index++)
             {
-                var child = boardView.transform.GetChild(index);
-                if (child == null || child.gameObject == gridBackgroundRenderer.gameObject)
+                var visual = spawnedVisuals[index];
+                if (visual == null)
                 {
                     continue;
                 }
 
+                var child = visual.transform;
                 if (child.GetComponentsInChildren<SpriteRenderer>(includeInactive: true).Length == 0)
                 {
                     continue;
