@@ -51,6 +51,7 @@ namespace DreamBlastClone.Views
         private readonly CubeGroupDetector cubeGroupDetector = new CubeGroupDetector();
         private readonly Dictionary<BoardCoordinate, ChaliceBoxPresentationState> chalicePresentationStates = new Dictionary<BoardCoordinate, ChaliceBoxPresentationState>();
         private readonly Dictionary<BoardCoordinate, RenderedCubeAppearance> previousCubeAppearances = new Dictionary<BoardCoordinate, RenderedCubeAppearance>();
+        private readonly Dictionary<BoardCoordinate, GameObject> itemVisualsByCoordinate = new Dictionary<BoardCoordinate, GameObject>();
         private readonly System.Random chalicePresentationRandom = new System.Random();
         private static Sprite runtimeBoardClipMaskSprite;
 
@@ -84,6 +85,12 @@ namespace DreamBlastClone.Views
         {
             ClearSpawnedVisuals();
             previousCubeAppearances.Clear();
+            itemVisualsByCoordinate.Clear();
+        }
+
+        public bool TryGetItemVisual(BoardCoordinate coordinate, out GameObject visual)
+        {
+            return itemVisualsByCoordinate.TryGetValue(coordinate, out visual) && visual != null;
         }
 
         private void ClearSpawnedVisuals()
@@ -108,6 +115,7 @@ namespace DreamBlastClone.Views
             }
 
             spawnedVisuals.Clear();
+            itemVisualsByCoordinate.Clear();
         }
 
         public bool TryWorldToBoardCoordinate(BoardModel board, Vector3 worldPoint, out BoardCoordinate coordinate)
@@ -136,6 +144,14 @@ namespace DreamBlastClone.Views
         public Vector3 GetCellCenterWorld(BoardCoordinate coordinate)
         {
             return transform.TransformPoint(GetCellCenter(coordinate, 0f));
+        }
+
+        public Vector3 GetGridVertexLocal(int gridX, int gridY, float z = 0f)
+        {
+            return new Vector3(
+                origin.x + gridX * cellSize,
+                origin.y + gridY * cellSize,
+                z);
         }
 
         public void ApplyBoardClipMask(BoardModel board, GameObject visual)
@@ -277,6 +293,7 @@ namespace DreamBlastClone.Views
                 }
 
                 spawnedVisuals.Add(instance);
+                itemVisualsByCoordinate[cell.Coordinate] = instance;
             }
 
             previousCubeAppearances.Clear();

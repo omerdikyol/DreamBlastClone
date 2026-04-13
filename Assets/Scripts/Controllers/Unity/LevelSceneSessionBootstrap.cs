@@ -32,7 +32,24 @@ namespace DreamBlastClone.Controllers.Unity
             var levelJson = levelCatalog.GetLevelJson(levelNumber);
             var levelDefinition = levelJsonParser.Parse(levelJson.text);
             targetSessionHost.SetSession(levelSessionFactory.Create(levelDefinition));
+            EnsureMoveHintController(targetSessionHost);
             return true;
+        }
+
+        private void EnsureMoveHintController(LevelSessionHost targetSessionHost)
+        {
+            if (targetSessionHost is null || !targetSessionHost.TryGetComponent<BoardInputSessionBridge>(out var inputBridge))
+            {
+                return;
+            }
+
+            var moveHintController = targetSessionHost.GetComponent<MoveHintController>();
+            if (moveHintController == null)
+            {
+                moveHintController = targetSessionHost.gameObject.AddComponent<MoveHintController>();
+            }
+
+            moveHintController.Configure(targetSessionHost, inputBridge);
         }
     }
 }

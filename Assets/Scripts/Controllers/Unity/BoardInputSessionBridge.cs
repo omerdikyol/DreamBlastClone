@@ -61,7 +61,12 @@ namespace DreamBlastClone.Controllers.Unity
         private float remainingPreviewSeconds;
         private bool isInputSuppressed;
 
+        public event Action ScreenTapDetected;
         public event Action<LevelSessionTapResult> TapProcessed;
+
+        public BoardView BoardView => boardView;
+
+        public bool IsBoardBusy => IsPreviewActive();
 
         public bool IsInputSuppressed => isInputSuppressed;
 
@@ -98,6 +103,7 @@ namespace DreamBlastClone.Controllers.Unity
 
             if (TryReadScreenTap(out var screenPosition))
             {
+                ScreenTapDetected?.Invoke();
                 TryHandleScreenTap(screenPosition);
             }
         }
