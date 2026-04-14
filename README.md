@@ -1,4 +1,4 @@
-# DreamBlastClone
+# DreamBlastClone - Omer Dikyol
 
 DreamBlastClone is a level-based blast puzzle game built in Unity as a software engineering case study for Dream Games. The project focuses on deterministic gameplay, clean separation of concerns, testable pure C# game logic, and a presentation layer that is clearly separated from runtime board state.
 
