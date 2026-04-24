@@ -1085,6 +1085,15 @@ MonoBehaviour:
   effectZ: -0.15
   startScaleMultiplier: 1.08
   endScaleMultiplier: 0.15
+  staggerStepDelay: 0.09
+  growBeforeRemovalScaleMultiplier: 3
+  growBeforeRemovalDuration: 1.2
+  growBeforeRemovalOvershootMultiplier: 1.08
+  growBeforeRemovalSquashMultiplier: 0.9
+  growBeforeRemovalRotationDegrees: 6
+  growBeforeRemovalSortingOrderBoost: 30
+  tntWaveStepDelay: 0.055
+  tntWaveRemovalDuration: 0.28
 --- !u!114 &1374160547
 MonoBehaviour:
   m_ObjectHideFlags: 0

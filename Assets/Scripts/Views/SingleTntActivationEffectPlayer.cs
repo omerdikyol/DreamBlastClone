@@ -9,6 +9,7 @@ namespace DreamBlastClone.Views
     {
         [SerializeField] private Transform effectRoot;
         [SerializeField] private float duration = 0.22f;
+        [SerializeField] private float blastStartDelay = 1.2f;
         // How long TNT blocks settle — just the initial impact pop.
         // Lingering particles keep animating during settle via Advance().
         [SerializeField] private float settleBlockingDuration = 0.06f;
@@ -22,7 +23,9 @@ namespace DreamBlastClone.Views
 
         public bool IsPlaying => activeVisuals.Count > 0;
 
-        public float Duration => duration;
+        public float Duration => Mathf.Max(0f, blastStartDelay) + duration;
+
+        public float BlastStartDelay => Mathf.Max(0f, blastStartDelay);
 
         public float SettleBlockingDuration => Mathf.Min(settleBlockingDuration, duration);
 
@@ -71,10 +74,10 @@ namespace DreamBlastClone.Views
                 return;
             }
 
-            elapsed = Mathf.Min(duration, elapsed + Mathf.Max(0f, deltaTime));
+            elapsed = Mathf.Min(Duration, elapsed + Mathf.Max(0f, deltaTime));
             ApplyCurrentState();
 
-            if (elapsed >= duration)
+            if (elapsed >= Duration)
             {
                 Stop();
             }
@@ -137,8 +140,10 @@ namespace DreamBlastClone.Views
 
         private void ApplyCurrentState()
         {
-            var progress = duration > 0f ? Mathf.Clamp01(elapsed / duration) : 1f;
+            var localElapsed = elapsed - Mathf.Max(0f, blastStartDelay);
+            var progress = duration > 0f ? Mathf.Clamp01(localElapsed / duration) : 1f;
             var easedProgress = EaseOutCubic(progress);
+            var isWaitingForBlast = localElapsed < 0f;
 
             for (var index = 0; index < activeVisuals.Count; index++)
             {
@@ -153,7 +158,7 @@ namespace DreamBlastClone.Views
                 visual.Root.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(visual.StartRotation, visual.EndRotation, easedProgress));
 
                 var color = visual.BaseColor;
-                color.a *= 1f - easedProgress;
+                color.a *= isWaitingForBlast ? 0f : 1f - easedProgress;
                 visual.Renderer.color = color;
             }
         }

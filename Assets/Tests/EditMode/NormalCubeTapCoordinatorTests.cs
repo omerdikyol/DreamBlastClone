@@ -204,6 +204,31 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void TntCreatingBlastLetsCreatedTntFallBeforeAdjacentSlipClaimsColumn()
+        {
+            var board = new BoardModel(3, 6);
+            var tap = new BoardCoordinate(1, 5);
+            var sideCube = new CubeItemModel(CubeColor.Blue);
+
+            board.PlaceObstacle(new BoardCoordinate(0, 0), new StoneObstacleModel());
+            board.PlaceItem(new BoardCoordinate(0, 1), sideCube);
+            for (var y = 0; y < 6; y++)
+            {
+                board.PlaceItem(new BoardCoordinate(1, y), new CubeItemModel(CubeColor.Red));
+            }
+
+            var result = coordinator.Resolve(board, tap, new FakeRefillCubeColorResolver());
+
+            Assert.That(result.IsValidTap, Is.True);
+            Assert.That(result.Blast.CreatedSpecialCoordinate, Is.EqualTo(tap));
+            Assert.That(result.Blast.CreatedSpecialItem, Is.TypeOf<TntItemModel>());
+            Assert.That(result.Gravity.Moves, Has.Member(new ItemFallMove(tap, new BoardCoordinate(1, 0))));
+            Assert.That(result.Gravity.Moves, Has.None.EqualTo(new ItemFallMove(new BoardCoordinate(0, 1), new BoardCoordinate(1, 0))));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.TypeOf<TntItemModel>());
+            Assert.That(board.GetCell(new BoardCoordinate(0, 1)).Item, Is.SameAs(sideCube));
+        }
+
+        [Test]
         public void LShapedThreeCubeTapRemovesWholeGroupAndLeavesDiagonalCube()
         {
             var board = new BoardModel(3, 4);

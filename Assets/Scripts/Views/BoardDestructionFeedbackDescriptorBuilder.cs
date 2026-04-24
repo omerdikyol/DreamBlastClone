@@ -29,7 +29,7 @@ namespace DreamBlastClone.Views
             }
 
             var removedItems = CollectRemovedItems(tap, tapCoordinate);
-            var removedObstacles = CollectRemovedObstacles(preTapBoard, tap);
+            var removedObstacles = CollectRemovedObstacles(preTapBoard, tap, tapCoordinate);
             return new BoardDestructionFeedbackDescriptor(removedItems, removedObstacles);
         }
 
@@ -61,22 +61,39 @@ namespace DreamBlastClone.Views
                 case TapRouteType.SpecialItem:
                     if (tap.SpecialItem.Combo.IsComboActivated)
                     {
-                        AddRemovedItems(tap.SpecialItem.Combo.RemovedItemCoordinates, hitOrigin: null, removedItems, seenCoordinates);
+                        AddRemovedItems(
+                            tap.SpecialItem.Combo.RemovedItemCoordinates,
+                            hitOrigin: null,
+                            growCoordinate: null,
+                            hitStepOffset: 0,
+                            useSquareDistance: false,
+                            removedItems,
+                            seenCoordinates);
                     }
                     else
                     {
-                        var hitOrigin = ShouldStaggerRocketActivation(tap.SpecialItem.Activation) ? tapCoordinate : null;
-                        AddRemovedItems(tap.SpecialItem.Activation.RemovedItemCoordinates, hitOrigin, removedItems, seenCoordinates);
+                        var hitOrigin = ShouldStaggerSpecialActivation(tap.SpecialItem.Activation) ? tapCoordinate : null;
+                        AddRemovedItems(
+                            tap.SpecialItem.Activation.RemovedItemCoordinates,
+                            hitOrigin,
+                            growCoordinate: IsTntActivation(tap.SpecialItem.Activation) ? tapCoordinate : null,
+                            hitStepOffset: IsTntActivation(tap.SpecialItem.Activation) ? 1 : 0,
+                            useSquareDistance: IsTntActivation(tap.SpecialItem.Activation),
+                            removedItems,
+                            seenCoordinates);
                     }
 
                     foreach (var triggeredActivation in tap.SpecialItem.TriggeredActivations)
                     {
-                        var hitOrigin = ShouldStaggerRocketActivation(triggeredActivation.Activation)
+                        var hitOrigin = ShouldStaggerSpecialActivation(triggeredActivation.Activation)
                             ? triggeredActivation.OriginCoordinate
                             : (BoardCoordinate?)null;
                         AddRemovedItems(
                             triggeredActivation.Activation.RemovedItemCoordinates,
                             hitOrigin,
+                            growCoordinate: IsTntActivation(triggeredActivation.Activation) ? triggeredActivation.OriginCoordinate : null,
+                            hitStepOffset: IsTntActivation(triggeredActivation.Activation) ? 1 : 0,
+                            useSquareDistance: IsTntActivation(triggeredActivation.Activation),
                             removedItems,
                             seenCoordinates);
                     }
@@ -90,6 +107,9 @@ namespace DreamBlastClone.Views
         private static void AddRemovedItems(
             IReadOnlyList<BoardCoordinate> coordinates,
             BoardCoordinate? hitOrigin,
+            BoardCoordinate? growCoordinate,
+            int hitStepOffset,
+            bool useSquareDistance,
             List<RemovedItemFeedback> removedItems,
             HashSet<BoardCoordinate> seenCoordinates)
         {
@@ -100,28 +120,44 @@ namespace DreamBlastClone.Views
                     continue;
                 }
 
-                removedItems.Add(new RemovedItemFeedback(coordinate, ResolveHitStep(coordinate, hitOrigin)));
+                removedItems.Add(new RemovedItemFeedback(
+                    coordinate,
+                    ResolveHitStep(coordinate, hitOrigin, useSquareDistance) + hitStepOffset,
+                    growsBeforeRemoval: growCoordinate.HasValue && coordinate == growCoordinate.Value));
             }
         }
 
-        private static int ResolveHitStep(BoardCoordinate coordinate, BoardCoordinate? hitOrigin)
+        private static int ResolveHitStep(BoardCoordinate coordinate, BoardCoordinate? hitOrigin, bool useSquareDistance)
         {
             if (!hitOrigin.HasValue)
             {
                 return 0;
             }
 
-            return Math.Abs(coordinate.X - hitOrigin.Value.X)
-                + Math.Abs(coordinate.Y - hitOrigin.Value.Y);
+            var deltaX = Math.Abs(coordinate.X - hitOrigin.Value.X);
+            var deltaY = Math.Abs(coordinate.Y - hitOrigin.Value.Y);
+            return useSquareDistance
+                ? Math.Max(deltaX, deltaY)
+                : deltaX + deltaY;
         }
 
-        private static bool ShouldStaggerRocketActivation(SpecialItemActivationResult activation)
+        private static bool ShouldStaggerSpecialActivation(SpecialItemActivationResult activation)
         {
             return activation.IsValidActivation
-                && activation.ActivationType == SpecialActivationType.Rocket;
+                && (activation.ActivationType == SpecialActivationType.Rocket
+                    || activation.ActivationType == SpecialActivationType.Tnt);
         }
 
-        private static IReadOnlyList<RemovedObstacleFeedback> CollectRemovedObstacles(BoardModel preTapBoard, BoardTapDispatchResult tap)
+        private static bool IsTntActivation(SpecialItemActivationResult activation)
+        {
+            return activation.IsValidActivation
+                && activation.ActivationType == SpecialActivationType.Tnt;
+        }
+
+        private static IReadOnlyList<RemovedObstacleFeedback> CollectRemovedObstacles(
+            BoardModel preTapBoard,
+            BoardTapDispatchResult tap,
+            BoardCoordinate? tapCoordinate)
         {
             var obstacleDamage = tap.RouteType switch
             {
@@ -136,19 +172,75 @@ namespace DreamBlastClone.Views
             }
 
             var removedObstacles = new List<RemovedObstacleFeedback>();
-            var seenObstacles = new HashSet<Obstacles.ObstacleModel>();
+            var obstacleFeedbackByObstacle = new Dictionary<Obstacles.ObstacleModel, ObstacleFeedbackDraft>();
 
             foreach (var coordinate in obstacleDamage.RemovedCoordinates)
             {
-                if (!preTapBoard.TryGetCell(coordinate, out var cell) || cell.Obstacle is null || !seenObstacles.Add(cell.Obstacle))
+                if (!preTapBoard.TryGetCell(coordinate, out var cell) || cell.Obstacle is null)
                 {
                     continue;
                 }
 
-                removedObstacles.Add(new RemovedObstacleFeedback(FindObstacleFootprint(preTapBoard, cell.Obstacle)));
+                var hitStep = ResolveObstacleHitStep(tap, tapCoordinate, coordinate);
+                if (obstacleFeedbackByObstacle.TryGetValue(cell.Obstacle, out var draft))
+                {
+                    draft.HitStep = Math.Min(draft.HitStep, hitStep);
+                    obstacleFeedbackByObstacle[cell.Obstacle] = draft;
+                    continue;
+                }
+
+                obstacleFeedbackByObstacle.Add(
+                    cell.Obstacle,
+                    new ObstacleFeedbackDraft(
+                        FindObstacleFootprint(preTapBoard, cell.Obstacle),
+                        hitStep));
+            }
+
+            foreach (var draft in obstacleFeedbackByObstacle.Values)
+            {
+                removedObstacles.Add(new RemovedObstacleFeedback(draft.OccupiedCoordinates, draft.HitStep));
             }
 
             return removedObstacles;
+        }
+
+        private static int ResolveObstacleHitStep(
+            BoardTapDispatchResult tap,
+            BoardCoordinate? tapCoordinate,
+            BoardCoordinate obstacleCoordinate)
+        {
+            if (tap.RouteType != TapRouteType.SpecialItem || tap.SpecialItem.Combo.IsComboActivated)
+            {
+                return 0;
+            }
+
+            var bestHitStep = int.MaxValue;
+            if (ShouldStaggerSpecialActivation(tap.SpecialItem.Activation) && tapCoordinate.HasValue)
+            {
+                bestHitStep = Math.Min(
+                    bestHitStep,
+                    ResolveHitStep(
+                        obstacleCoordinate,
+                        tapCoordinate,
+                        IsTntActivation(tap.SpecialItem.Activation)) + (IsTntActivation(tap.SpecialItem.Activation) ? 1 : 0));
+            }
+
+            foreach (var triggeredActivation in tap.SpecialItem.TriggeredActivations)
+            {
+                if (!ShouldStaggerSpecialActivation(triggeredActivation.Activation))
+                {
+                    continue;
+                }
+
+                bestHitStep = Math.Min(
+                    bestHitStep,
+                    ResolveHitStep(
+                        obstacleCoordinate,
+                        triggeredActivation.OriginCoordinate,
+                        IsTntActivation(triggeredActivation.Activation)) + (IsTntActivation(triggeredActivation.Activation) ? 1 : 0));
+            }
+
+            return bestHitStep == int.MaxValue ? 0 : bestHitStep;
         }
 
         private static IReadOnlyList<BoardCoordinate> FindObstacleFootprint(BoardModel board, Obstacles.ObstacleModel obstacle)
@@ -164,6 +256,19 @@ namespace DreamBlastClone.Views
             }
 
             return occupiedCoordinates;
+        }
+
+        private struct ObstacleFeedbackDraft
+        {
+            public ObstacleFeedbackDraft(IReadOnlyList<BoardCoordinate> occupiedCoordinates, int hitStep)
+            {
+                OccupiedCoordinates = occupiedCoordinates;
+                HitStep = hitStep;
+            }
+
+            public IReadOnlyList<BoardCoordinate> OccupiedCoordinates { get; }
+
+            public int HitStep { get; set; }
         }
     }
 }

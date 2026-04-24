@@ -56,9 +56,12 @@ namespace DreamBlastClone.Controllers.Unity
         private BoardModel pendingFinalBoard;
         private BoardModel pendingSettleStartBoard;
         private BoardSettleMotionDescriptor pendingSettleMotionDescriptor;
+        private BoardModel pendingObstacleFeedbackBoard;
+        private BoardTapDispatchResult pendingObstacleFeedbackTap;
         private SingleTntActivationEffectDescriptor pendingTntPresentationDescriptor;
         private SpecialItemComboPresentationDescriptor pendingComboPresentationDescriptor;
         private float remainingPreviewSeconds;
+        private float remainingObstacleFeedbackDelay;
         private bool isInputSuppressed;
 
         public event Action ScreenTapDetected;
@@ -212,21 +215,32 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             TryStartCubeBlastParticles(preTapBoard, tapResult.Tap);
-            TryStartVaseParticles(preTapBoard, tapResult.Tap);
-            TryStartStoneParticles(preTapBoard, tapResult.Tap);
-            TryStartStoneTweenFeedback(preTapBoard, tapResult.Tap);
-            TryStartChaliceBoxParticles(preTapBoard, tapResult.Tap);
-            TryStartChaliceBoxTweenFeedback(preTapBoard, tapResult.Tap);
+            if (TryResolveSingleTntObstacleFeedbackDelay(tapResult.Tap, out var obstacleFeedbackDelay))
+            {
+                ScheduleObstacleFeedback(preTapBoard, tapResult.Tap, obstacleFeedbackDelay);
+            }
+            else
+            {
+                TryStartObstacleFeedback(preTapBoard, tapResult.Tap);
+            }
 
             if (TryStartSingleRocketEffect(resolvedCoordinate, tapResult.Tap, out var rocketDuration))
             {
                 presentationDuration = Math.Max(presentationDuration, rocketDuration);
             }
 
+            var startedSingleTntEffect = TryStartSingleTntEffect(resolvedCoordinate, tapResult.Tap, out var tntDuration);
+            if (startedSingleTntEffect)
+            {
+                presentationDuration = Math.Max(presentationDuration, tntDuration);
+            }
+
             pendingFinalBoard = finalBoard;
             pendingSettleStartBoard = settleStartBoard;
             pendingSettleMotionDescriptor = settleMotionDescriptor;
-            pendingTntPresentationDescriptor = BuildTntPresentationDescriptor(resolvedCoordinate, tapResult.Tap);
+            pendingTntPresentationDescriptor = startedSingleTntEffect
+                ? null
+                : BuildTntPresentationDescriptor(resolvedCoordinate, tapResult.Tap);
             pendingComboPresentationDescriptor = BuildComboPresentationDescriptor(tapResult.Tap);
 
             if (presentationDuration <= 0f)
@@ -321,6 +335,8 @@ namespace DreamBlastClone.Controllers.Unity
                 comboPresentationPlayer.Advance(deltaTime);
             }
 
+            AdvancePendingObstacleFeedback(deltaTime);
+
             if (!IsPreviewActive())
             {
                 return;
@@ -378,9 +394,12 @@ namespace DreamBlastClone.Controllers.Unity
             pendingFinalBoard = null;
             pendingSettleStartBoard = null;
             pendingSettleMotionDescriptor = null;
+            pendingObstacleFeedbackBoard = null;
+            pendingObstacleFeedbackTap = null;
             pendingTntPresentationDescriptor = null;
             pendingComboPresentationDescriptor = null;
             remainingPreviewSeconds = 0f;
+            remainingObstacleFeedbackDelay = 0f;
         }
 
         private bool TryStartPendingSettleMotion()
@@ -455,6 +474,82 @@ namespace DreamBlastClone.Controllers.Unity
             // Particles keep advancing via AdvancePendingPreview during settle.
             remainingPreviewSeconds = singleTntEffectPlayer.SettleBlockingDuration;
             return true;
+        }
+
+        private bool TryStartSingleTntEffect(BoardCoordinate resolvedCoordinate, BoardTapDispatchResult tap, out float duration)
+        {
+            duration = 0f;
+
+            var descriptor = BuildTntPresentationDescriptor(resolvedCoordinate, tap);
+            if (descriptor is null
+                || singleTntEffectPlayer is null
+                || boardView is null)
+            {
+                return false;
+            }
+
+            if (!singleTntEffectPlayer.TryPlay(boardView, descriptor))
+            {
+                return false;
+            }
+
+            audioController?.PlaySfxDelayed(
+                GameSfxCue.TntActivation,
+                singleTntEffectPlayer.BlastStartDelay,
+                volumeMultiplier: 1f,
+                bypassCooldown: true,
+                bypassVoiceLimit: true);
+            hapticsController?.Play(GameHapticCue.Medium);
+            duration = singleTntEffectPlayer.Duration;
+            return true;
+        }
+
+        private void ScheduleObstacleFeedback(BoardModel preTapBoard, BoardTapDispatchResult tap, float delay)
+        {
+            pendingObstacleFeedbackBoard = preTapBoard;
+            pendingObstacleFeedbackTap = tap;
+            remainingObstacleFeedbackDelay = Mathf.Max(0f, delay);
+
+            if (remainingObstacleFeedbackDelay <= 0f)
+            {
+                AdvancePendingObstacleFeedback(deltaTime: 0f);
+            }
+        }
+
+        private void AdvancePendingObstacleFeedback(float deltaTime)
+        {
+            if (pendingObstacleFeedbackBoard is null || pendingObstacleFeedbackTap is null)
+            {
+                return;
+            }
+
+            remainingObstacleFeedbackDelay = Mathf.Max(0f, remainingObstacleFeedbackDelay - Mathf.Max(0f, deltaTime));
+            if (remainingObstacleFeedbackDelay > 0f)
+            {
+                return;
+            }
+
+            TryStartObstacleFeedback(pendingObstacleFeedbackBoard, pendingObstacleFeedbackTap);
+            pendingObstacleFeedbackBoard = null;
+            pendingObstacleFeedbackTap = null;
+        }
+
+        private bool TryResolveSingleTntObstacleFeedbackDelay(BoardTapDispatchResult tap, out float delay)
+        {
+            delay = 0f;
+
+            if (tap.RouteType != TapRouteType.SpecialItem
+                || !tap.SpecialItem.IsValidTap
+                || tap.SpecialItem.Combo.IsComboActivated
+                || !tap.SpecialItem.Activation.IsValidActivation
+                || tap.SpecialItem.Activation.ActivationType != SpecialActivationType.Tnt
+                || singleTntEffectPlayer is null)
+            {
+                return false;
+            }
+
+            delay = singleTntEffectPlayer.BlastStartDelay;
+            return delay > 0f;
         }
 
         private BoardModel BuildPreviewBoard(BoardModel preTapBoard, BoardTapDispatchResult tap)
@@ -585,6 +680,15 @@ namespace DreamBlastClone.Controllers.Unity
             }
 
             return true;
+        }
+
+        private void TryStartObstacleFeedback(BoardModel preTapBoard, BoardTapDispatchResult tap)
+        {
+            TryStartVaseParticles(preTapBoard, tap);
+            TryStartStoneParticles(preTapBoard, tap);
+            TryStartStoneTweenFeedback(preTapBoard, tap);
+            TryStartChaliceBoxParticles(preTapBoard, tap);
+            TryStartChaliceBoxTweenFeedback(preTapBoard, tap);
         }
 
         private bool TryStartStoneParticles(BoardModel preTapBoard, BoardTapDispatchResult tap)

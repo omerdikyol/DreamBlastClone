@@ -204,6 +204,11 @@ namespace DreamBlastClone.Systems
                 return false;
             }
 
+            if (HasVerticalItemClaimAbove(board, sourceCoordinate, targetCoordinate))
+            {
+                return false;
+            }
+
             var belowCoordinate = sourceCoordinate.Offset(0, -1);
             if (ContainsRigidBlocker(board, belowCoordinate))
             {
@@ -212,6 +217,47 @@ namespace DreamBlastClone.Systems
 
             var sideCoordinate = sourceCoordinate.Offset(horizontalDirection, 0);
             return ContainsRigidBlocker(board, sideCoordinate);
+        }
+
+        private static bool HasVerticalItemClaimAbove(
+            BoardModel board,
+            BoardCoordinate sourceCoordinate,
+            BoardCoordinate targetCoordinate)
+        {
+            for (var y = targetCoordinate.Y + 1; y < board.Height; y++)
+            {
+                var coordinate = new BoardCoordinate(targetCoordinate.X, y);
+                if (coordinate == sourceCoordinate)
+                {
+                    continue;
+                }
+
+                var cell = board.GetCell(coordinate);
+                if (cell.HasObstacle)
+                {
+                    return false;
+                }
+
+                if (cell.HasItem)
+                {
+                    return HasOpenVerticalPath(board, coordinate, targetCoordinate);
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasOpenVerticalPath(BoardModel board, BoardCoordinate sourceCoordinate, BoardCoordinate targetCoordinate)
+        {
+            for (var y = sourceCoordinate.Y - 1; y >= targetCoordinate.Y; y--)
+            {
+                if (!IsOpenLandingCell(board, new BoardCoordinate(sourceCoordinate.X, y)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static bool IsOpenLandingCell(BoardModel board, BoardCoordinate coordinate)

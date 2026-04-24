@@ -106,6 +106,11 @@ namespace DreamBlastClone.Views
     public sealed class RemovedObstacleFeedback
     {
         public RemovedObstacleFeedback(IReadOnlyList<BoardCoordinate> occupiedCoordinates)
+            : this(occupiedCoordinates, hitStep: 0)
+        {
+        }
+
+        public RemovedObstacleFeedback(IReadOnlyList<BoardCoordinate> occupiedCoordinates, int hitStep)
         {
             if (occupiedCoordinates is null)
             {
@@ -117,9 +122,17 @@ namespace DreamBlastClone.Views
                 throw new ArgumentException("Removed obstacle feedback requires at least one occupied coordinate.", nameof(occupiedCoordinates));
             }
 
+            if (hitStep < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(hitStep), hitStep, "Hit step cannot be negative.");
+            }
+
             OccupiedCoordinates = occupiedCoordinates;
+            HitStep = hitStep;
         }
 
         public IReadOnlyList<BoardCoordinate> OccupiedCoordinates { get; }
+
+        public int HitStep { get; }
     }
 }
