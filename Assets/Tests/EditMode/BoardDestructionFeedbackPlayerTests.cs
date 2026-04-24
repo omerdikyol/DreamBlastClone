@@ -228,6 +228,37 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void TryPlayUsesSmoothWaveFlagWithoutTntGrowDelay()
+        {
+            var board = new BoardModel(2, 1);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Blue));
+
+            var boardView = CreateConfiguredBoardView();
+            var player = CreatePlayer(out var effectRoot);
+            SetField(player, "tntWaveStepDelay", 0.05f);
+            SetField(player, "tntWaveRemovalDuration", 0.3f);
+            var descriptor = new BoardDestructionFeedbackDescriptor(
+                new[]
+                {
+                    new RemovedItemFeedback(new BoardCoordinate(0, 0), hitStep: 1),
+                    new RemovedItemFeedback(new BoardCoordinate(1, 0), hitStep: 2)
+                },
+                System.Array.Empty<RemovedObstacleFeedback>(),
+                usesSmoothRemovalWave: true);
+
+            Assert.That(player.TryPlay(boardView, board, descriptor), Is.True);
+            Assert.That(player.Duration, Is.EqualTo(0.4f).Within(0.0001f));
+
+            player.Advance(0.09f);
+
+            var firstRenderer = effectRoot.GetChild(0).GetComponent<SpriteRenderer>();
+            var secondRenderer = effectRoot.GetChild(1).GetComponent<SpriteRenderer>();
+            Assert.That(firstRenderer.color.a, Is.LessThan(1f));
+            Assert.That(secondRenderer.color.a, Is.EqualTo(1f).Within(0.0001f));
+        }
+
+        [Test]
         public void TryPlayDelaysObstacleRemovalUntilTntGrowStepCompletes()
         {
             var board = new BoardModel(2, 1);

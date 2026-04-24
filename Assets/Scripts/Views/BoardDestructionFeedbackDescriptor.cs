@@ -20,10 +20,19 @@ namespace DreamBlastClone.Views
         public BoardDestructionFeedbackDescriptor(
             IReadOnlyList<RemovedItemFeedback> removedItems,
             IReadOnlyList<RemovedObstacleFeedback> removedObstacles)
+            : this(removedItems, removedObstacles, usesSmoothRemovalWave: false)
+        {
+        }
+
+        public BoardDestructionFeedbackDescriptor(
+            IReadOnlyList<RemovedItemFeedback> removedItems,
+            IReadOnlyList<RemovedObstacleFeedback> removedObstacles,
+            bool usesSmoothRemovalWave)
         {
             RemovedItems = removedItems ?? throw new ArgumentNullException(nameof(removedItems));
             RemovedObstacles = removedObstacles ?? throw new ArgumentNullException(nameof(removedObstacles));
             RemovedItemCoordinates = BuildRemovedCoordinates(removedItems);
+            UsesSmoothRemovalWave = usesSmoothRemovalWave;
         }
 
         public IReadOnlyList<RemovedItemFeedback> RemovedItems { get; }
@@ -31,6 +40,8 @@ namespace DreamBlastClone.Views
         public IReadOnlyList<BoardCoordinate> RemovedItemCoordinates { get; }
 
         public IReadOnlyList<RemovedObstacleFeedback> RemovedObstacles { get; }
+
+        public bool UsesSmoothRemovalWave { get; }
 
         public bool HasAnyFeedback => RemovedItemCoordinates.Count > 0 || RemovedObstacles.Count > 0;
 

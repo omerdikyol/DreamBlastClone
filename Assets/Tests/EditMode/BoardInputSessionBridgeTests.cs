@@ -521,7 +521,8 @@ namespace DreamBlastClone.Tests.EditMode
             var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(1.5f, 1.5f, 0f)));
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
-            AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
+            Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetComboPresentationPlayer(bridge).IsPlaying, Is.True);
 
             Assert.That(GetAudioController(bridge).PlayedSfx.FindAll(cue => cue == GameSfxCue.RocketActivation).Count, Is.EqualTo(3));
             Assert.That(GetAudioController(bridge).PlayedSfx.FindAll(cue => cue == GameSfxCue.TntActivation).Count, Is.EqualTo(1));
