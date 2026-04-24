@@ -67,6 +67,34 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void BuildAssignsRocketRemovalHitStepsFromActivationOrigin()
+        {
+            var board = new BoardModel(5, 1);
+            var tap = new BoardCoordinate(2, 0);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(tap, new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(3, 0), new CubeItemModel(CubeColor.Green));
+            board.PlaceItem(new BoardCoordinate(4, 0), new CubeItemModel(CubeColor.Yellow));
+
+            var preTapBoard = boardModelCloner.Clone(board);
+            var tapResult = dispatcher.Resolve(board, tap, refillColorResolver);
+            var descriptor = builder.Build(preTapBoard, tapResult, tap);
+
+            Assert.That(descriptor.RemovedItems, Has.Count.EqualTo(5));
+            Assert.That(descriptor.RemovedItems[0].Coordinate, Is.EqualTo(new BoardCoordinate(0, 0)));
+            Assert.That(descriptor.RemovedItems[0].HitStep, Is.EqualTo(2));
+            Assert.That(descriptor.RemovedItems[1].Coordinate, Is.EqualTo(new BoardCoordinate(1, 0)));
+            Assert.That(descriptor.RemovedItems[1].HitStep, Is.EqualTo(1));
+            Assert.That(descriptor.RemovedItems[2].Coordinate, Is.EqualTo(tap));
+            Assert.That(descriptor.RemovedItems[2].HitStep, Is.EqualTo(0));
+            Assert.That(descriptor.RemovedItems[3].Coordinate, Is.EqualTo(new BoardCoordinate(3, 0)));
+            Assert.That(descriptor.RemovedItems[3].HitStep, Is.EqualTo(1));
+            Assert.That(descriptor.RemovedItems[4].Coordinate, Is.EqualTo(new BoardCoordinate(4, 0)));
+            Assert.That(descriptor.RemovedItems[4].HitStep, Is.EqualTo(2));
+        }
+
+        [Test]
         public void BuildCollectsComboRemovedItemCoordinates()
         {
             var board = new BoardModel(3, 3);
