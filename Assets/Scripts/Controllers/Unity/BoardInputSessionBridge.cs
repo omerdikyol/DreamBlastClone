@@ -201,7 +201,7 @@ namespace DreamBlastClone.Controllers.Unity
             TryPlayGameplaySfx(preTapBoard, tapResult.Tap);
 
             var presentationDuration = 0f;
-            if (TryStartDestructionFeedback(preTapBoard, tapResult.Tap, out var destructionDuration))
+            if (TryStartDestructionFeedback(preTapBoard, resolvedCoordinate, tapResult.Tap, out var destructionDuration))
             {
                 presentationDuration = Math.Max(presentationDuration, destructionDuration);
             }
@@ -472,7 +472,11 @@ namespace DreamBlastClone.Controllers.Unity
             };
         }
 
-        private bool TryStartDestructionFeedback(BoardModel preTapBoard, BoardTapDispatchResult tap, out float duration)
+        private bool TryStartDestructionFeedback(
+            BoardModel preTapBoard,
+            BoardCoordinate resolvedCoordinate,
+            BoardTapDispatchResult tap,
+            out float duration)
         {
             duration = 0f;
 
@@ -481,7 +485,7 @@ namespace DreamBlastClone.Controllers.Unity
                 return false;
             }
 
-            var descriptor = destructionFeedbackDescriptorBuilder.Build(preTapBoard, tap);
+            var descriptor = destructionFeedbackDescriptorBuilder.Build(preTapBoard, tap, resolvedCoordinate);
             if (!destructionFeedbackPlayer.TryPlay(boardView, preTapBoard, descriptor))
             {
                 return false;

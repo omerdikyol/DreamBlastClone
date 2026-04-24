@@ -12,13 +12,15 @@ namespace DreamBlastClone.Views
         [SerializeField] private float effectZ = -0.15f;
         [SerializeField] private float startScaleMultiplier = 1.08f;
         [SerializeField] private float endScaleMultiplier = 0.15f;
+        [SerializeField] private float staggerStepDelay = 0.035f;
 
         private readonly List<ActiveDestructionVisual> activeVisuals = new List<ActiveDestructionVisual>();
         private float elapsed;
+        private float activeDuration;
 
         public bool IsPlaying => activeVisuals.Count > 0;
 
-        public float Duration => duration;
+        public float Duration => activeDuration > 0f ? activeDuration : duration;
 
         public bool TryPlay(BoardView boardView, BoardModel sourceBoard, BoardDestructionFeedbackDescriptor descriptor)
         {
@@ -47,16 +49,21 @@ namespace DreamBlastClone.Views
 
             var root = effectRoot is not null ? effectRoot : transform;
 
-            foreach (var coordinate in descriptor.RemovedItemCoordinates)
+            var maxStartDelay = 0f;
+
+            foreach (var removedItem in descriptor.RemovedItems)
             {
-                Register(boardView.CreateTransientItemVisual(sourceBoard, coordinate, root, effectZ));
+                var startDelay = Mathf.Max(0f, removedItem.HitStep * staggerStepDelay);
+                maxStartDelay = Mathf.Max(maxStartDelay, startDelay);
+                Register(boardView.CreateTransientItemVisual(sourceBoard, removedItem.Coordinate, root, effectZ), startDelay);
             }
 
             foreach (var removedObstacle in descriptor.RemovedObstacles)
             {
-                Register(boardView.CreateTransientObstacleVisual(sourceBoard, removedObstacle.OccupiedCoordinates, root, effectZ));
+                Register(boardView.CreateTransientObstacleVisual(sourceBoard, removedObstacle.OccupiedCoordinates, root, effectZ), startDelay: 0f);
             }
 
+            activeDuration = duration + maxStartDelay;
             ApplyCurrentState();
             return activeVisuals.Count > 0;
         }
@@ -68,10 +75,10 @@ namespace DreamBlastClone.Views
                 return;
             }
 
-            elapsed = Mathf.Min(duration, elapsed + Mathf.Max(0f, deltaTime));
+            elapsed = Mathf.Min(Duration, elapsed + Mathf.Max(0f, deltaTime));
             ApplyCurrentState();
 
-            if (elapsed >= duration)
+            if (elapsed >= Duration)
             {
                 Stop();
             }
@@ -93,23 +100,20 @@ namespace DreamBlastClone.Views
 
             activeVisuals.Clear();
             elapsed = 0f;
+            activeDuration = 0f;
         }
 
-        private void Register(GameObject root)
+        private void Register(GameObject root, float startDelay)
         {
             activeVisuals.Add(new ActiveDestructionVisual(
                 root,
                 root.transform.localScale,
-                root.GetComponentsInChildren<SpriteRenderer>(includeInactive: true)));
+                root.GetComponentsInChildren<SpriteRenderer>(includeInactive: true),
+                startDelay));
         }
 
         private void ApplyCurrentState()
         {
-            var progress = duration > 0f ? Mathf.Clamp01(elapsed / duration) : 1f;
-            var easedProgress = EaseOutCubic(progress);
-            var scaleMultiplier = Mathf.Lerp(startScaleMultiplier, endScaleMultiplier, easedProgress);
-            var alpha = 1f - easedProgress;
-
             foreach (var visual in activeVisuals)
             {
                 if (visual.Root is null)
@@ -117,19 +121,35 @@ namespace DreamBlastClone.Views
                     continue;
                 }
 
-                visual.Root.transform.localScale = visual.InitialScale * scaleMultiplier;
-
-                foreach (var spriteRenderer in visual.Renderers)
+                var localElapsed = elapsed - visual.StartDelay;
+                if (localElapsed <= 0f)
                 {
-                    if (spriteRenderer is null)
-                    {
-                        continue;
-                    }
-
-                    var color = spriteRenderer.color;
-                    color.a = alpha;
-                    spriteRenderer.color = color;
+                    visual.Root.transform.localScale = visual.InitialScale;
+                    ApplyAlpha(visual, alpha: 1f);
+                    continue;
                 }
+
+                var progress = duration > 0f ? Mathf.Clamp01(localElapsed / duration) : 1f;
+                var easedProgress = EaseOutCubic(progress);
+                var scaleMultiplier = Mathf.Lerp(startScaleMultiplier, endScaleMultiplier, easedProgress);
+                var alpha = 1f - easedProgress;
+                visual.Root.transform.localScale = visual.InitialScale * scaleMultiplier;
+                ApplyAlpha(visual, alpha);
+            }
+        }
+
+        private static void ApplyAlpha(ActiveDestructionVisual visual, float alpha)
+        {
+            foreach (var spriteRenderer in visual.Renderers)
+            {
+                if (spriteRenderer is null)
+                {
+                    continue;
+                }
+
+                var color = spriteRenderer.color;
+                color.a = alpha;
+                spriteRenderer.color = color;
             }
         }
 
@@ -141,11 +161,12 @@ namespace DreamBlastClone.Views
 
         private readonly struct ActiveDestructionVisual
         {
-            public ActiveDestructionVisual(GameObject root, Vector3 initialScale, SpriteRenderer[] renderers)
+            public ActiveDestructionVisual(GameObject root, Vector3 initialScale, SpriteRenderer[] renderers, float startDelay)
             {
                 Root = root;
                 InitialScale = initialScale;
                 Renderers = renderers;
+                StartDelay = startDelay;
             }
 
             public GameObject Root { get; }
@@ -153,6 +174,8 @@ namespace DreamBlastClone.Views
             public Vector3 InitialScale { get; }
 
             public SpriteRenderer[] Renderers { get; }
+
+            public float StartDelay { get; }
         }
     }
 }
