@@ -241,7 +241,16 @@ namespace DreamBlastClone.Controllers.Unity
             pendingTntPresentationDescriptor = startedSingleTntEffect
                 ? null
                 : BuildTntPresentationDescriptor(resolvedCoordinate, tapResult.Tap);
-            pendingComboPresentationDescriptor = BuildComboPresentationDescriptor(tapResult.Tap);
+            var comboPresentationDescriptor = BuildComboPresentationDescriptor(tapResult.Tap);
+            if (TryStartImmediateComboPresentation(comboPresentationDescriptor, out var comboDuration))
+            {
+                presentationDuration = Math.Max(presentationDuration, comboDuration);
+                pendingComboPresentationDescriptor = null;
+            }
+            else
+            {
+                pendingComboPresentationDescriptor = comboPresentationDescriptor;
+            }
 
             if (presentationDuration <= 0f)
             {
@@ -448,6 +457,30 @@ namespace DreamBlastClone.Controllers.Unity
 
             PlayComboPresentationSfx(descriptor.ComboType);
             remainingPreviewSeconds = comboPresentationPlayer.Duration;
+            return true;
+        }
+
+        private bool TryStartImmediateComboPresentation(
+            SpecialItemComboPresentationDescriptor descriptor,
+            out float duration)
+        {
+            duration = 0f;
+
+            if (descriptor is null
+                || descriptor.ComboType != SpecialItemComboType.TntRocket
+                || comboPresentationPlayer is null
+                || boardView is null)
+            {
+                return false;
+            }
+
+            if (!comboPresentationPlayer.TryPlay(boardView, descriptor))
+            {
+                return false;
+            }
+
+            PlayComboPresentationSfx(descriptor.ComboType);
+            duration = comboPresentationPlayer.Duration;
             return true;
         }
 

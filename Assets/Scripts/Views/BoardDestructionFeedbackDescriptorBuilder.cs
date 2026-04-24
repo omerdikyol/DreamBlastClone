@@ -30,7 +30,10 @@ namespace DreamBlastClone.Views
 
             var removedItems = CollectRemovedItems(tap, tapCoordinate);
             var removedObstacles = CollectRemovedObstacles(preTapBoard, tap, tapCoordinate);
-            return new BoardDestructionFeedbackDescriptor(removedItems, removedObstacles);
+            return new BoardDestructionFeedbackDescriptor(
+                removedItems,
+                removedObstacles,
+                usesSmoothRemovalWave: UsesSmoothComboRemovalWave(tap));
         }
 
         private static IReadOnlyList<RemovedItemFeedback> CollectRemovedItems(
@@ -61,12 +64,13 @@ namespace DreamBlastClone.Views
                 case TapRouteType.SpecialItem:
                     if (tap.SpecialItem.Combo.IsComboActivated)
                     {
+                        var hitOrigin = tapCoordinate;
                         AddRemovedItems(
                             tap.SpecialItem.Combo.RemovedItemCoordinates,
-                            hitOrigin: null,
+                            hitOrigin,
                             growCoordinate: null,
-                            hitStepOffset: 0,
-                            useSquareDistance: false,
+                            hitStepOffset: IsTntBasedCombo(tap.SpecialItem.Combo.ComboType) ? 1 : 0,
+                            useSquareDistance: IsTntBasedCombo(tap.SpecialItem.Combo.ComboType),
                             removedItems,
                             seenCoordinates);
                     }
@@ -154,6 +158,18 @@ namespace DreamBlastClone.Views
                 && activation.ActivationType == SpecialActivationType.Tnt;
         }
 
+        private static bool UsesSmoothComboRemovalWave(BoardTapDispatchResult tap)
+        {
+            return tap.RouteType == TapRouteType.SpecialItem
+                && tap.SpecialItem.Combo.IsComboActivated
+                && IsTntBasedCombo(tap.SpecialItem.Combo.ComboType);
+        }
+
+        private static bool IsTntBasedCombo(SpecialItemComboType comboType)
+        {
+            return comboType is SpecialItemComboType.TntTnt or SpecialItemComboType.TntRocket;
+        }
+
         private static IReadOnlyList<RemovedObstacleFeedback> CollectRemovedObstacles(
             BoardModel preTapBoard,
             BoardTapDispatchResult tap,
@@ -209,9 +225,19 @@ namespace DreamBlastClone.Views
             BoardCoordinate? tapCoordinate,
             BoardCoordinate obstacleCoordinate)
         {
-            if (tap.RouteType != TapRouteType.SpecialItem || tap.SpecialItem.Combo.IsComboActivated)
+            if (tap.RouteType != TapRouteType.SpecialItem)
             {
                 return 0;
+            }
+
+            if (tap.SpecialItem.Combo.IsComboActivated)
+            {
+                return tapCoordinate.HasValue
+                    ? ResolveHitStep(
+                        obstacleCoordinate,
+                        tapCoordinate,
+                        IsTntBasedCombo(tap.SpecialItem.Combo.ComboType)) + (IsTntBasedCombo(tap.SpecialItem.Combo.ComboType) ? 1 : 0)
+                    : 0;
             }
 
             var bestHitStep = int.MaxValue;

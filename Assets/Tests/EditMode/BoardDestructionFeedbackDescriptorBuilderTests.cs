@@ -158,6 +158,49 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void BuildAssignsRocketComboRemovalHitStepsFromComboOrigin()
+        {
+            var board = new BoardModel(5, 5);
+            var tap = new BoardCoordinate(2, 2);
+            board.PlaceItem(tap, new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(new BoardCoordinate(2, 3), new RocketItemModel(RocketOrientation.Vertical));
+            board.PlaceItem(new BoardCoordinate(0, 2), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(2, 0), new CubeItemModel(CubeColor.Blue));
+
+            var preTapBoard = boardModelCloner.Clone(board);
+            var tapResult = dispatcher.Resolve(board, tap, refillColorResolver);
+            var descriptor = builder.Build(preTapBoard, tapResult, tap);
+
+            Assert.That(tapResult.SpecialItem.Combo.ComboType, Is.EqualTo(SpecialItemComboType.RocketRocket));
+            Assert.That(descriptor.UsesSmoothRemovalWave, Is.False);
+            Assert.That(FindRemovedItem(descriptor, tap).HitStep, Is.EqualTo(0));
+            Assert.That(FindRemovedItem(descriptor, new BoardCoordinate(0, 2)).HitStep, Is.EqualTo(2));
+            Assert.That(FindRemovedItem(descriptor, new BoardCoordinate(2, 0)).HitStep, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void BuildAssignsTntComboRemovalHitStepsAndSmoothWave()
+        {
+            var board = new BoardModel(5, 5);
+            var tap = new BoardCoordinate(2, 2);
+            board.PlaceItem(tap, new TntItemModel());
+            board.PlaceItem(new BoardCoordinate(2, 3), new TntItemModel());
+            board.PlaceItem(new BoardCoordinate(4, 2), new CubeItemModel(CubeColor.Red));
+            board.PlaceObstacle(new BoardCoordinate(0, 2), new StoneObstacleModel());
+
+            var preTapBoard = boardModelCloner.Clone(board);
+            var tapResult = dispatcher.Resolve(board, tap, refillColorResolver);
+            var descriptor = builder.Build(preTapBoard, tapResult, tap);
+
+            Assert.That(tapResult.SpecialItem.Combo.ComboType, Is.EqualTo(SpecialItemComboType.TntTnt));
+            Assert.That(descriptor.UsesSmoothRemovalWave, Is.True);
+            Assert.That(FindRemovedItem(descriptor, tap).HitStep, Is.EqualTo(1));
+            Assert.That(FindRemovedItem(descriptor, new BoardCoordinate(4, 2)).HitStep, Is.EqualTo(3));
+            Assert.That(descriptor.RemovedObstacles, Has.Count.EqualTo(1));
+            Assert.That(descriptor.RemovedObstacles[0].HitStep, Is.EqualTo(3));
+        }
+
+        [Test]
         public void BuildCollectsTriggeredActivationRemovedItemCoordinates()
         {
             var board = new BoardModel(7, 5);
@@ -247,6 +290,21 @@ namespace DreamBlastClone.Tests.EditMode
             var preTapBoard = boardModelCloner.Clone(board);
             var tapResult = dispatcher.Resolve(board, tapCoordinate, refillColorResolver);
             return builder.Build(preTapBoard, tapResult);
+        }
+
+        private static RemovedItemFeedback FindRemovedItem(
+            BoardDestructionFeedbackDescriptor descriptor,
+            BoardCoordinate coordinate)
+        {
+            foreach (var removedItem in descriptor.RemovedItems)
+            {
+                if (removedItem.Coordinate == coordinate)
+                {
+                    return removedItem;
+                }
+            }
+
+            throw new AssertionException($"Expected removed item at {coordinate}.");
         }
 
         private sealed class TestRefillCubeColorResolver : IRefillCubeColorResolver

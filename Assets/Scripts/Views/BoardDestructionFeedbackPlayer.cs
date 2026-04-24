@@ -58,14 +58,15 @@ namespace DreamBlastClone.Views
 
             var root = effectRoot is not null ? effectRoot : transform;
 
-            var isTntWave = ContainsGrowBeforeRemovalItem(descriptor);
-            var sharedGrowDelay = isTntWave
+            var hasGrowBeforeRemovalItem = ContainsGrowBeforeRemovalItem(descriptor);
+            var isSmoothWave = descriptor.UsesSmoothRemovalWave || hasGrowBeforeRemovalItem;
+            var sharedGrowDelay = hasGrowBeforeRemovalItem
                 ? Mathf.Max(0f, growBeforeRemovalDuration)
                 : 0f;
-            var stepDelay = isTntWave
+            var stepDelay = isSmoothWave
                 ? Mathf.Max(0f, tntWaveStepDelay)
                 : Mathf.Max(0f, staggerStepDelay);
-            var removalDuration = isTntWave
+            var removalDuration = isSmoothWave
                 ? Mathf.Max(0.01f, tntWaveRemovalDuration)
                 : duration;
             var maxEndTime = 0f;
@@ -80,7 +81,7 @@ namespace DreamBlastClone.Views
                     startDelay,
                     removalDuration,
                     removedItem.GrowsBeforeRemoval,
-                    smoothRemoval: isTntWave,
+                    smoothRemoval: isSmoothWave,
                     growTween: CreateGrowTween(visual.transform, removedItem.GrowsBeforeRemoval));
             }
 
@@ -94,7 +95,7 @@ namespace DreamBlastClone.Views
                     startDelay,
                     removalDuration,
                     growsBeforeRemoval: false,
-                    smoothRemoval: isTntWave,
+                    smoothRemoval: isSmoothWave,
                     growTween: null);
             }
 
