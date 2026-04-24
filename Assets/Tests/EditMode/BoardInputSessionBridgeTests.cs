@@ -377,8 +377,8 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(GetDestructionFeedbackPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetTapAnticipationPlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetSingleRocketEffectPlayer(bridge).IsPlaying, Is.False);
-            Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.False);
-            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetVaseParticlePlayer(bridge).IsPlaying, Is.False);
 
             AdvancePendingPreview(bridge, GetDestructionFeedbackPlayer(bridge).Duration);
 
@@ -390,6 +390,38 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.False);
             Assert.That(GetSettleMotionPlayer(bridge).IsPlaying, Is.True);
+        }
+
+        [Test]
+        public void SingleTntTapDelaysObstacleBreakFeedbackUntilBlastStarts()
+        {
+            var board = new BoardModel(3, 3);
+            board.PlaceItem(new BoardCoordinate(1, 1), new TntItemModel());
+            board.PlaceObstacle(new BoardCoordinate(2, 1), new StoneObstacleModel());
+
+            var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
+            var bridge = CreateConfiguredBridge(session);
+            var boardView = GetBoardView(bridge);
+            SetField(GetSingleTntEffectPlayer(bridge), "blastStartDelay", 0.6f);
+
+            InvokeMethod(bridge, "Start");
+
+            var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(1.5f, 1.5f, 0f)));
+
+            Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(GetSingleTntEffectPlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetStoneTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
+
+            AdvancePendingPreview(bridge, 0.59f);
+
+            Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetStoneTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
+
+            AdvancePendingPreview(bridge, 0.01f);
+
+            Assert.That(GetStoneParticlePlayer(bridge).IsPlaying, Is.True);
+            Assert.That(GetStoneTweenFeedbackPlayer(bridge).IsPlaying, Is.True);
         }
 
         [Test]
@@ -736,12 +768,18 @@ namespace DreamBlastClone.Tests.EditMode
             var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
             var bridge = CreateConfiguredBridge(session);
             var boardView = GetBoardView(bridge);
+            SetField(GetSingleTntEffectPlayer(bridge), "blastStartDelay", 0.6f);
 
             InvokeMethod(bridge, "Start");
 
             var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(2.5f, 2.5f, 0f)));
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
+
+            AdvancePendingPreview(bridge, 0.6f);
+
             Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.True);
 
@@ -761,12 +799,18 @@ namespace DreamBlastClone.Tests.EditMode
             var session = new LevelSession(board, 5, new TestRefillCubeColorResolver());
             var bridge = CreateConfiguredBridge(session);
             var boardView = GetBoardView(bridge);
+            SetField(GetSingleTntEffectPlayer(bridge), "blastStartDelay", 0.6f);
 
             InvokeMethod(bridge, "Start");
 
             var screenPosition = GetCamera(bridge).WorldToScreenPoint(boardView.transform.TransformPoint(new Vector3(2.5f, 2.5f, 0f)));
 
             Assert.That(bridge.TryHandleScreenTap(screenPosition), Is.True);
+            Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.False);
+            Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.False);
+
+            AdvancePendingPreview(bridge, 0.6f);
+
             Assert.That(GetChaliceBoxParticlePlayer(bridge).IsPlaying, Is.True);
             Assert.That(GetChaliceBoxTweenFeedbackPlayer(bridge).IsPlaying, Is.True);
 

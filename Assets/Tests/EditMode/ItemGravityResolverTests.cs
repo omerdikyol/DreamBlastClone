@@ -234,6 +234,28 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void VerticalFallClaimsColumnBeforeAdjacentSlip()
+        {
+            var board = new BoardModel(3, 6);
+            var sideBaseBlocker = new StoneObstacleModel();
+            var createdTnt = new TntItemModel();
+            var sideCube = new CubeItemModel(CubeColor.Blue);
+
+            board.PlaceObstacle(new BoardCoordinate(0, 0), sideBaseBlocker);
+            board.PlaceItem(new BoardCoordinate(0, 1), sideCube);
+            board.PlaceItem(new BoardCoordinate(1, 5), createdTnt);
+
+            var result = resolver.Resolve(board);
+
+            Assert.That(result.Moves, Is.EqualTo(new[]
+            {
+                new ItemFallMove(new BoardCoordinate(1, 5), new BoardCoordinate(1, 0))
+            }));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.SameAs(createdTnt));
+            Assert.That(board.GetCell(new BoardCoordinate(0, 1)).Item, Is.SameAs(sideCube));
+        }
+
+        [Test]
         public void UnreachableCavityUnderRigidBlockerRemainsEmpty()
         {
             var board = new BoardModel(3, 3);

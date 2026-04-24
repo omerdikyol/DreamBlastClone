@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using DreamBlastClone.Grid;
 using UnityEngine;
 
@@ -12,7 +13,15 @@ namespace DreamBlastClone.Views
         [SerializeField] private float effectZ = -0.15f;
         [SerializeField] private float startScaleMultiplier = 1.08f;
         [SerializeField] private float endScaleMultiplier = 0.15f;
-        [SerializeField] private float staggerStepDelay = 0.035f;
+        [SerializeField] private float staggerStepDelay = 0.09f;
+        [SerializeField] private float growBeforeRemovalScaleMultiplier = 3f;
+        [SerializeField] private float growBeforeRemovalDuration = 1.2f;
+        [SerializeField] private float growBeforeRemovalOvershootMultiplier = 1.08f;
+        [SerializeField] private float growBeforeRemovalSquashMultiplier = 0.9f;
+        [SerializeField] private float growBeforeRemovalRotationDegrees = 6f;
+        [SerializeField] private int growBeforeRemovalSortingOrderBoost = 30;
+        [SerializeField] private float tntWaveStepDelay = 0.055f;
+        [SerializeField] private float tntWaveRemovalDuration = 0.28f;
 
         private readonly List<ActiveDestructionVisual> activeVisuals = new List<ActiveDestructionVisual>();
         private float elapsed;
@@ -49,21 +58,47 @@ namespace DreamBlastClone.Views
 
             var root = effectRoot is not null ? effectRoot : transform;
 
-            var maxStartDelay = 0f;
+            var isTntWave = ContainsGrowBeforeRemovalItem(descriptor);
+            var sharedGrowDelay = isTntWave
+                ? Mathf.Max(0f, growBeforeRemovalDuration)
+                : 0f;
+            var stepDelay = isTntWave
+                ? Mathf.Max(0f, tntWaveStepDelay)
+                : Mathf.Max(0f, staggerStepDelay);
+            var removalDuration = isTntWave
+                ? Mathf.Max(0.01f, tntWaveRemovalDuration)
+                : duration;
+            var maxEndTime = 0f;
 
             foreach (var removedItem in descriptor.RemovedItems)
             {
-                var startDelay = Mathf.Max(0f, removedItem.HitStep * staggerStepDelay);
-                maxStartDelay = Mathf.Max(maxStartDelay, startDelay);
-                Register(boardView.CreateTransientItemVisual(sourceBoard, removedItem.Coordinate, root, effectZ), startDelay);
+                var startDelay = sharedGrowDelay + Mathf.Max(0f, removedItem.HitStep * stepDelay);
+                maxEndTime = Mathf.Max(maxEndTime, startDelay + removalDuration);
+                var visual = boardView.CreateTransientItemVisual(sourceBoard, removedItem.Coordinate, root, effectZ);
+                Register(
+                    visual,
+                    startDelay,
+                    removalDuration,
+                    removedItem.GrowsBeforeRemoval,
+                    smoothRemoval: isTntWave,
+                    growTween: CreateGrowTween(visual.transform, removedItem.GrowsBeforeRemoval));
             }
 
             foreach (var removedObstacle in descriptor.RemovedObstacles)
             {
-                Register(boardView.CreateTransientObstacleVisual(sourceBoard, removedObstacle.OccupiedCoordinates, root, effectZ), startDelay: 0f);
+                var startDelay = sharedGrowDelay + Mathf.Max(0f, removedObstacle.HitStep * stepDelay);
+                maxEndTime = Mathf.Max(maxEndTime, startDelay + removalDuration);
+                var visual = boardView.CreateTransientObstacleVisual(sourceBoard, removedObstacle.OccupiedCoordinates, root, effectZ);
+                Register(
+                    visual,
+                    startDelay,
+                    removalDuration,
+                    growsBeforeRemoval: false,
+                    smoothRemoval: isTntWave,
+                    growTween: null);
             }
 
-            activeDuration = duration + maxStartDelay;
+            activeDuration = maxEndTime;
             ApplyCurrentState();
             return activeVisuals.Count > 0;
         }
@@ -90,10 +125,12 @@ namespace DreamBlastClone.Views
             {
                 if (Application.isPlaying)
                 {
+                    activeVisuals[index].GrowTween?.Kill();
                     Destroy(activeVisuals[index].Root);
                 }
                 else
                 {
+                    activeVisuals[index].GrowTween?.Kill();
                     DestroyImmediate(activeVisuals[index].Root);
                 }
             }
@@ -103,13 +140,29 @@ namespace DreamBlastClone.Views
             activeDuration = 0f;
         }
 
-        private void Register(GameObject root, float startDelay)
+        private void Register(
+            GameObject root,
+            float startDelay,
+            float removalDuration,
+            bool growsBeforeRemoval,
+            bool smoothRemoval,
+            Sequence growTween)
         {
+            var renderers = root.GetComponentsInChildren<SpriteRenderer>(includeInactive: true);
+            if (growsBeforeRemoval)
+            {
+                BoostSortingOrder(renderers, growBeforeRemovalSortingOrderBoost);
+            }
+
             activeVisuals.Add(new ActiveDestructionVisual(
                 root,
                 root.transform.localScale,
-                root.GetComponentsInChildren<SpriteRenderer>(includeInactive: true),
-                startDelay));
+                renderers,
+                startDelay,
+                removalDuration,
+                growsBeforeRemoval,
+                smoothRemoval,
+                growTween));
         }
 
         private void ApplyCurrentState()
@@ -124,18 +177,68 @@ namespace DreamBlastClone.Views
                 var localElapsed = elapsed - visual.StartDelay;
                 if (localElapsed <= 0f)
                 {
-                    visual.Root.transform.localScale = visual.InitialScale;
+                    if (!visual.GrowsBeforeRemoval)
+                    {
+                        visual.Root.transform.localScale = visual.InitialScale;
+                    }
+
                     ApplyAlpha(visual, alpha: 1f);
                     continue;
                 }
 
-                var progress = duration > 0f ? Mathf.Clamp01(localElapsed / duration) : 1f;
-                var easedProgress = EaseOutCubic(progress);
-                var scaleMultiplier = Mathf.Lerp(startScaleMultiplier, endScaleMultiplier, easedProgress);
+                visual.GrowTween?.Kill();
+                var progress = visual.RemovalDuration > 0f ? Mathf.Clamp01(localElapsed / visual.RemovalDuration) : 1f;
+                var easedProgress = visual.SmoothRemoval ? SmoothStep(progress) : EaseOutCubic(progress);
+                var startScale = visual.GrowsBeforeRemoval
+                    ? growBeforeRemovalScaleMultiplier
+                    : startScaleMultiplier;
+                var scaleMultiplier = Mathf.Lerp(startScale, endScaleMultiplier, easedProgress);
                 var alpha = 1f - easedProgress;
                 visual.Root.transform.localScale = visual.InitialScale * scaleMultiplier;
                 ApplyAlpha(visual, alpha);
             }
+        }
+
+        private Sequence CreateGrowTween(Transform target, bool growsBeforeRemoval)
+        {
+            if (!growsBeforeRemoval || target is null)
+            {
+                return null;
+            }
+
+            var baseScale = target.localScale;
+            var targetScale = baseScale * Mathf.Max(1f, growBeforeRemovalScaleMultiplier);
+            var overshootScale = targetScale * Mathf.Max(1f, growBeforeRemovalOvershootMultiplier);
+            var squashScale = new Vector3(
+                targetScale.x * Mathf.Max(0.01f, growBeforeRemovalSquashMultiplier),
+                targetScale.y / Mathf.Max(0.01f, growBeforeRemovalSquashMultiplier),
+                targetScale.z);
+            var durationSeconds = Mathf.Max(0.01f, growBeforeRemovalDuration);
+            var firstStep = durationSeconds * 0.52f;
+            var secondStep = durationSeconds * 0.22f;
+            var finalStep = durationSeconds - firstStep - secondStep;
+            var baseRotation = target.localEulerAngles;
+
+            return DOTween.Sequence()
+                .Append(target.DOScale(overshootScale, firstStep).SetEase(Ease.OutBack))
+                .Join(target.DOLocalRotate(baseRotation + Vector3.forward * growBeforeRemovalRotationDegrees, firstStep, RotateMode.Fast).SetEase(Ease.OutSine))
+                .Append(target.DOScale(squashScale, secondStep).SetEase(Ease.InOutSine))
+                .Join(target.DOLocalRotate(baseRotation - Vector3.forward * growBeforeRemovalRotationDegrees * 0.6f, secondStep, RotateMode.Fast).SetEase(Ease.InOutSine))
+                .Append(target.DOScale(targetScale, finalStep).SetEase(Ease.OutBack))
+                .Join(target.DOLocalRotate(baseRotation, finalStep, RotateMode.Fast).SetEase(Ease.OutSine));
+        }
+
+        private static bool ContainsGrowBeforeRemovalItem(BoardDestructionFeedbackDescriptor descriptor)
+        {
+            foreach (var removedItem in descriptor.RemovedItems)
+            {
+                if (removedItem.GrowsBeforeRemoval)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void ApplyAlpha(ActiveDestructionVisual visual, float alpha)
@@ -153,20 +256,53 @@ namespace DreamBlastClone.Views
             }
         }
 
+        private static void BoostSortingOrder(IReadOnlyList<SpriteRenderer> renderers, int sortingOrderBoost)
+        {
+            if (sortingOrderBoost <= 0)
+            {
+                return;
+            }
+
+            for (var index = 0; index < renderers.Count; index++)
+            {
+                if (renderers[index] is not null)
+                {
+                    renderers[index].sortingOrder += sortingOrderBoost;
+                }
+            }
+        }
+
         private static float EaseOutCubic(float progress)
         {
             var inverse = 1f - progress;
             return 1f - inverse * inverse * inverse;
         }
 
+        private static float SmoothStep(float progress)
+        {
+            return progress * progress * (3f - 2f * progress);
+        }
+
         private readonly struct ActiveDestructionVisual
         {
-            public ActiveDestructionVisual(GameObject root, Vector3 initialScale, SpriteRenderer[] renderers, float startDelay)
+            public ActiveDestructionVisual(
+                GameObject root,
+                Vector3 initialScale,
+                SpriteRenderer[] renderers,
+                float startDelay,
+                float removalDuration,
+                bool growsBeforeRemoval,
+                bool smoothRemoval,
+                Sequence growTween)
             {
                 Root = root;
                 InitialScale = initialScale;
                 Renderers = renderers;
                 StartDelay = startDelay;
+                RemovalDuration = removalDuration;
+                GrowsBeforeRemoval = growsBeforeRemoval;
+                SmoothRemoval = smoothRemoval;
+                GrowTween = growTween;
             }
 
             public GameObject Root { get; }
@@ -176,6 +312,14 @@ namespace DreamBlastClone.Views
             public SpriteRenderer[] Renderers { get; }
 
             public float StartDelay { get; }
+
+            public float RemovalDuration { get; }
+
+            public bool GrowsBeforeRemoval { get; }
+
+            public bool SmoothRemoval { get; }
+
+            public Sequence GrowTween { get; }
         }
     }
 }

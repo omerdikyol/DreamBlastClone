@@ -95,6 +95,51 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void BuildAssignsTntRemovalHitStepsFromActivationOriginAndMarksOriginToGrow()
+        {
+            var board = new BoardModel(5, 5);
+            var tap = new BoardCoordinate(2, 2);
+            board.PlaceItem(tap, new TntItemModel());
+            board.PlaceItem(new BoardCoordinate(2, 3), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(4, 2), new CubeItemModel(CubeColor.Blue));
+
+            var preTapBoard = boardModelCloner.Clone(board);
+            var tapResult = dispatcher.Resolve(board, tap, refillColorResolver);
+            var descriptor = builder.Build(preTapBoard, tapResult, tap);
+
+            Assert.That(descriptor.RemovedItems, Has.Count.EqualTo(3));
+            Assert.That(descriptor.RemovedItems[0].Coordinate, Is.EqualTo(tap));
+            Assert.That(descriptor.RemovedItems[0].HitStep, Is.EqualTo(1));
+            Assert.That(descriptor.RemovedItems[0].GrowsBeforeRemoval, Is.True);
+            Assert.That(descriptor.RemovedItems[1].Coordinate, Is.EqualTo(new BoardCoordinate(4, 2)));
+            Assert.That(descriptor.RemovedItems[1].HitStep, Is.EqualTo(3));
+            Assert.That(descriptor.RemovedItems[1].GrowsBeforeRemoval, Is.False);
+            Assert.That(descriptor.RemovedItems[2].Coordinate, Is.EqualTo(new BoardCoordinate(2, 3)));
+            Assert.That(descriptor.RemovedItems[2].HitStep, Is.EqualTo(2));
+            Assert.That(descriptor.RemovedItems[2].GrowsBeforeRemoval, Is.False);
+        }
+
+        [Test]
+        public void BuildAssignsTntObstacleRemovalHitStepsFromActivationOrigin()
+        {
+            var board = new BoardModel(5, 5);
+            var tap = new BoardCoordinate(2, 2);
+            var stoneCoordinate = new BoardCoordinate(4, 2);
+            board.PlaceItem(tap, new TntItemModel());
+            board.PlaceObstacle(stoneCoordinate, new StoneObstacleModel());
+
+            var preTapBoard = boardModelCloner.Clone(board);
+            var tapResult = dispatcher.Resolve(board, tap, refillColorResolver);
+            var descriptor = builder.Build(preTapBoard, tapResult, tap);
+
+            Assert.That(descriptor.RemovedObstacles, Has.Count.EqualTo(1));
+            Assert.That(
+                descriptor.RemovedObstacles[0].OccupiedCoordinates,
+                Is.EquivalentTo(new[] { stoneCoordinate }));
+            Assert.That(descriptor.RemovedObstacles[0].HitStep, Is.EqualTo(3));
+        }
+
+        [Test]
         public void BuildCollectsComboRemovedItemCoordinates()
         {
             var board = new BoardModel(3, 3);

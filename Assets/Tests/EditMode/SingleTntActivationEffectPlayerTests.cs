@@ -73,7 +73,7 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(player.TryPlay(boardView, descriptor), Is.True);
             Assert.That(player.IsPlaying, Is.True);
-            Assert.That(player.Duration, Is.EqualTo(0.22f).Within(0.0001f));
+            Assert.That(player.Duration, Is.EqualTo(1.42f).Within(0.0001f));
             Assert.That(CountChildrenByPrefix(effectRoot, "SingleTntPulse"), Is.EqualTo(1));
             Assert.That(CountChildrenByPrefix(effectRoot, "SingleTntExplosionCore"), Is.EqualTo(1));
             Assert.That(CountChildrenByPrefix(effectRoot, "SingleTntOriginGlow_"), Is.EqualTo(0));
@@ -89,6 +89,35 @@ namespace DreamBlastClone.Tests.EditMode
 
             Assert.That(player.IsPlaying, Is.False);
             Assert.That(effectRoot.childCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TryPlayKeepsBlastHiddenUntilStartDelayCompletes()
+        {
+            var boardView = CreateBoardView();
+            var player = CreatePlayer(out var effectRoot, out _, out _);
+            var descriptor = new SingleTntActivationEffectDescriptor(
+                new BoardCoordinate(1, 1),
+                new[]
+                {
+                    new BoardCoordinate(1, 1)
+                },
+                minX: 1,
+                minY: 1,
+                maxX: 1,
+                maxY: 1);
+
+            Assert.That(player.TryPlay(boardView, descriptor), Is.True);
+
+            var pulseRenderer = effectRoot.GetChild(0).GetComponent<SpriteRenderer>();
+            var explosionRenderer = effectRoot.GetChild(1).GetComponent<SpriteRenderer>();
+            Assert.That(pulseRenderer.color.a, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(explosionRenderer.color.a, Is.EqualTo(0f).Within(0.0001f));
+
+            player.Advance(1.2f);
+
+            Assert.That(pulseRenderer.color.a, Is.GreaterThan(0f));
+            Assert.That(explosionRenderer.color.a, Is.GreaterThan(0f));
         }
 
         private BoardView CreateBoardView()
@@ -113,6 +142,7 @@ namespace DreamBlastClone.Tests.EditMode
             SetField(player, "tntBurstSprite", burstSprite);
             SetField(player, "tntDebrisSprite", debrisSprite);
             SetField(player, "duration", 0.22f);
+            SetField(player, "blastStartDelay", 1.2f);
             return player;
         }
 

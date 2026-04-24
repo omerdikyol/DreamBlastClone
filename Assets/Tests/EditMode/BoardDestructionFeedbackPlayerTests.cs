@@ -106,6 +106,165 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void TryPlayUsesVisibleDefaultWaveDelayForFartherHitSteps()
+        {
+            var board = new BoardModel(3, 1);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Blue));
+            board.PlaceItem(new BoardCoordinate(2, 0), new CubeItemModel(CubeColor.Green));
+
+            var boardView = CreateConfiguredBoardView();
+            var player = CreatePlayer(out var effectRoot);
+            var descriptor = new BoardDestructionFeedbackDescriptor(
+                new[]
+                {
+                    new RemovedItemFeedback(new BoardCoordinate(0, 0), hitStep: 0),
+                    new RemovedItemFeedback(new BoardCoordinate(1, 0), hitStep: 1),
+                    new RemovedItemFeedback(new BoardCoordinate(2, 0), hitStep: 2)
+                },
+                System.Array.Empty<RemovedObstacleFeedback>());
+
+            Assert.That(player.TryPlay(boardView, board, descriptor), Is.True);
+            Assert.That(player.Duration, Is.EqualTo(0.32f).Within(0.0001f));
+
+            player.Advance(0.1f);
+
+            var firstRenderer = effectRoot.GetChild(0).GetComponent<SpriteRenderer>();
+            var secondRenderer = effectRoot.GetChild(1).GetComponent<SpriteRenderer>();
+            var thirdRenderer = effectRoot.GetChild(2).GetComponent<SpriteRenderer>();
+            Assert.That(firstRenderer.color.a, Is.LessThan(1f));
+            Assert.That(secondRenderer.color.a, Is.LessThan(1f));
+            Assert.That(thirdRenderer.color.a, Is.EqualTo(1f).Within(0.0001f));
+        }
+
+        [Test]
+        public void TryPlayGrowsMarkedItemBeforeRemovalStep()
+        {
+            var board = new BoardModel(1, 1);
+            board.PlaceItem(new BoardCoordinate(0, 0), new TntItemModel());
+
+            var boardView = CreateConfiguredBoardView();
+            var player = CreatePlayer(out var effectRoot);
+            SetField(player, "duration", 0.2f);
+            SetField(player, "staggerStepDelay", 0.2f);
+            SetField(player, "growBeforeRemovalScaleMultiplier", 3f);
+            SetField(player, "growBeforeRemovalDuration", 1.0f);
+            SetField(player, "tntWaveStepDelay", 0.2f);
+            SetField(player, "tntWaveRemovalDuration", 0.2f);
+            var descriptor = new BoardDestructionFeedbackDescriptor(
+                new[]
+                {
+                    new RemovedItemFeedback(new BoardCoordinate(0, 0), hitStep: 1, growsBeforeRemoval: true)
+                },
+                System.Array.Empty<RemovedObstacleFeedback>());
+
+            Assert.That(player.TryPlay(boardView, board, descriptor), Is.True);
+            Assert.That(player.Duration, Is.EqualTo(1.4f).Within(0.0001f));
+
+            player.Advance(0.5f);
+
+            var renderer = effectRoot.GetChild(0).GetComponent<SpriteRenderer>();
+            Assert.That(renderer.color.a, Is.EqualTo(1f).Within(0.0001f));
+        }
+
+        [Test]
+        public void TryPlaySortsGrowingItemAboveOtherRemovedSprites()
+        {
+            var board = new BoardModel(2, 1);
+            board.PlaceItem(new BoardCoordinate(0, 0), new TntItemModel());
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+
+            var boardView = CreateConfiguredBoardView();
+            var player = CreatePlayer(out var effectRoot);
+            SetField(player, "growBeforeRemovalSortingOrderBoost", 30);
+            var descriptor = new BoardDestructionFeedbackDescriptor(
+                new[]
+                {
+                    new RemovedItemFeedback(new BoardCoordinate(0, 0), hitStep: 1, growsBeforeRemoval: true),
+                    new RemovedItemFeedback(new BoardCoordinate(1, 0), hitStep: 2)
+                },
+                System.Array.Empty<RemovedObstacleFeedback>());
+
+            Assert.That(player.TryPlay(boardView, board, descriptor), Is.True);
+
+            var growingRenderer = effectRoot.GetChild(0).GetComponent<SpriteRenderer>();
+            var otherRenderer = effectRoot.GetChild(1).GetComponent<SpriteRenderer>();
+            Assert.That(growingRenderer.sortingOrder, Is.GreaterThan(otherRenderer.sortingOrder));
+        }
+
+        [Test]
+        public void TryPlayUsesLongerOverlappingRemovalForTntWave()
+        {
+            var board = new BoardModel(3, 1);
+            board.PlaceItem(new BoardCoordinate(0, 0), new TntItemModel());
+            board.PlaceItem(new BoardCoordinate(1, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(2, 0), new CubeItemModel(CubeColor.Blue));
+
+            var boardView = CreateConfiguredBoardView();
+            var player = CreatePlayer(out var effectRoot);
+            SetField(player, "growBeforeRemovalDuration", 1.0f);
+            SetField(player, "tntWaveStepDelay", 0.05f);
+            SetField(player, "tntWaveRemovalDuration", 0.3f);
+            var descriptor = new BoardDestructionFeedbackDescriptor(
+                new[]
+                {
+                    new RemovedItemFeedback(new BoardCoordinate(0, 0), hitStep: 1, growsBeforeRemoval: true),
+                    new RemovedItemFeedback(new BoardCoordinate(1, 0), hitStep: 2),
+                    new RemovedItemFeedback(new BoardCoordinate(2, 0), hitStep: 3)
+                },
+                System.Array.Empty<RemovedObstacleFeedback>());
+
+            Assert.That(player.TryPlay(boardView, board, descriptor), Is.True);
+            Assert.That(player.Duration, Is.EqualTo(1.45f).Within(0.0001f));
+
+            player.Advance(1.16f);
+
+            var firstRenderer = effectRoot.GetChild(0).GetComponent<SpriteRenderer>();
+            var secondRenderer = effectRoot.GetChild(1).GetComponent<SpriteRenderer>();
+            var thirdRenderer = effectRoot.GetChild(2).GetComponent<SpriteRenderer>();
+            Assert.That(firstRenderer.color.a, Is.LessThan(1f));
+            Assert.That(secondRenderer.color.a, Is.LessThan(1f));
+            Assert.That(thirdRenderer.color.a, Is.GreaterThan(0.8f));
+        }
+
+        [Test]
+        public void TryPlayDelaysObstacleRemovalUntilTntGrowStepCompletes()
+        {
+            var board = new BoardModel(2, 1);
+            board.PlaceItem(new BoardCoordinate(0, 0), new TntItemModel());
+            board.PlaceObstacle(new BoardCoordinate(1, 0), new StoneObstacleModel());
+
+            var boardView = CreateConfiguredBoardView();
+            var player = CreatePlayer(out var effectRoot);
+            SetField(player, "duration", 0.2f);
+            SetField(player, "staggerStepDelay", 0.2f);
+            SetField(player, "growBeforeRemovalDuration", 1.0f);
+            SetField(player, "tntWaveStepDelay", 0.2f);
+            SetField(player, "tntWaveRemovalDuration", 0.2f);
+            var descriptor = new BoardDestructionFeedbackDescriptor(
+                new[]
+                {
+                    new RemovedItemFeedback(new BoardCoordinate(0, 0), hitStep: 1, growsBeforeRemoval: true)
+                },
+                new[]
+                {
+                    new RemovedObstacleFeedback(new[] { new BoardCoordinate(1, 0) }, hitStep: 1)
+                });
+
+            Assert.That(player.TryPlay(boardView, board, descriptor), Is.True);
+            Assert.That(player.Duration, Is.EqualTo(1.4f).Within(0.0001f));
+
+            player.Advance(0.5f);
+
+            var obstacleRenderer = effectRoot.GetChild(1).GetComponent<SpriteRenderer>();
+            Assert.That(obstacleRenderer.color.a, Is.EqualTo(1f).Within(0.0001f));
+
+            player.Advance(0.8f);
+
+            Assert.That(obstacleRenderer.color.a, Is.LessThan(1f));
+        }
+
+        [Test]
         public void TryPlaySpawnsOneVisualPerRemovedObstacleInstance()
         {
             var board = new BoardModel(4, 4);
