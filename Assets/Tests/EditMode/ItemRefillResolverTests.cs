@@ -92,23 +92,23 @@ namespace DreamBlastClone.Tests.EditMode
             var colorResolver = new FakeRefillCubeColorResolver(new Dictionary<BoardCoordinate, CubeColor>
             {
                 { new BoardCoordinate(0, 1), CubeColor.Blue },
-                { new BoardCoordinate(1, 0), CubeColor.Yellow }
+                { new BoardCoordinate(1, 1), CubeColor.Yellow }
             });
 
             board.PlaceItem(new BoardCoordinate(0, 0), existingCube);
-            board.PlaceItem(new BoardCoordinate(1, 1), existingRocket);
+            board.PlaceItem(new BoardCoordinate(1, 0), existingRocket);
 
             var result = resolver.Resolve(board, colorResolver);
 
             Assert.That(result.Spawns, Is.EqualTo(new[]
             {
                 new ItemSpawn(new BoardCoordinate(0, 1), CubeColor.Blue),
-                new ItemSpawn(new BoardCoordinate(1, 0), CubeColor.Yellow)
+                new ItemSpawn(new BoardCoordinate(1, 1), CubeColor.Yellow)
             }));
             Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Item, Is.SameAs(existingCube));
-            Assert.That(board.GetCell(new BoardCoordinate(1, 1)).Item, Is.SameAs(existingRocket));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.SameAs(existingRocket));
             AssertSpawnedCube(board, new BoardCoordinate(0, 1), CubeColor.Blue);
-            AssertSpawnedCube(board, new BoardCoordinate(1, 0), CubeColor.Yellow);
+            AssertSpawnedCube(board, new BoardCoordinate(1, 1), CubeColor.Yellow);
         }
 
         [Test]
@@ -133,6 +133,49 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.Null);
             Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Obstacle, Is.SameAs(stone));
             Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Obstacle, Is.SameAs(vase));
+        }
+
+        [Test]
+        public void RefillOnlySpawnsBelowReachableEdgeOfGroupedRigidBlockers()
+        {
+            var board = new BoardModel(3, 3);
+            var leftStone = new StoneObstacleModel();
+            var rightStone = new StoneObstacleModel();
+
+            board.PlaceObstacle(new BoardCoordinate(1, 2), leftStone);
+            board.PlaceObstacle(new BoardCoordinate(2, 2), rightStone);
+
+            var result = resolver.Resolve(board, new FakeRefillCubeColorResolver());
+
+            Assert.That(result.Spawns, Is.EqualTo(new[]
+            {
+                new ItemSpawn(new BoardCoordinate(0, 0), CubeColor.Red),
+                new ItemSpawn(new BoardCoordinate(0, 1), CubeColor.Red),
+                new ItemSpawn(new BoardCoordinate(0, 2), CubeColor.Red),
+                new ItemSpawn(new BoardCoordinate(1, 0), CubeColor.Red),
+                new ItemSpawn(new BoardCoordinate(1, 1), CubeColor.Red)
+            }));
+            AssertSpawnedCube(board, new BoardCoordinate(1, 0), CubeColor.Red);
+            AssertSpawnedCube(board, new BoardCoordinate(1, 1), CubeColor.Red);
+            Assert.That(board.GetCell(new BoardCoordinate(2, 0)).Item, Is.Null);
+            Assert.That(board.GetCell(new BoardCoordinate(2, 1)).Item, Is.Null);
+            Assert.That(board.GetCell(new BoardCoordinate(1, 2)).Obstacle, Is.SameAs(leftStone));
+            Assert.That(board.GetCell(new BoardCoordinate(2, 2)).Obstacle, Is.SameAs(rightStone));
+        }
+
+        [Test]
+        public void CellBelowIsolatedRigidBlockerCanStillReceiveSpawnedCube()
+        {
+            var board = new BoardModel(3, 2);
+            var stone = new StoneObstacleModel();
+
+            board.PlaceObstacle(new BoardCoordinate(1, 1), stone);
+
+            var result = resolver.Resolve(board, new FakeRefillCubeColorResolver());
+
+            Assert.That(result.Spawns, Does.Contain(new ItemSpawn(new BoardCoordinate(1, 0), CubeColor.Red)));
+            AssertSpawnedCube(board, new BoardCoordinate(1, 0), CubeColor.Red);
+            Assert.That(board.GetCell(new BoardCoordinate(1, 1)).Obstacle, Is.SameAs(stone));
         }
 
         [Test]

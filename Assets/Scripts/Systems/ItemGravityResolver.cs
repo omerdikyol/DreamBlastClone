@@ -221,6 +221,35 @@ namespace DreamBlastClone.Systems
                 && !cell.HasObstacle;
         }
 
+        internal static bool CanRefillStreamMoveBetweenEmptyCells(
+            BoardModel board,
+            BoardCoordinate sourceCoordinate,
+            BoardCoordinate targetCoordinate)
+        {
+            if (!IsOpenLandingCell(board, sourceCoordinate)
+                || !IsOpenLandingCell(board, targetCoordinate))
+            {
+                return false;
+            }
+
+            if (targetCoordinate == sourceCoordinate.Offset(0, -1))
+            {
+                return true;
+            }
+
+            if (targetCoordinate == sourceCoordinate.Offset(-1, -1))
+            {
+                return CanSlipAroundRigidBlocker(board, sourceCoordinate, horizontalDirection: -1, targetCoordinate);
+            }
+
+            if (targetCoordinate == sourceCoordinate.Offset(1, -1))
+            {
+                return CanSlipAroundRigidBlocker(board, sourceCoordinate, horizontalDirection: 1, targetCoordinate);
+            }
+
+            return false;
+        }
+
         private static bool ContainsRigidBlocker(BoardModel board, BoardCoordinate coordinate)
         {
             return board.TryGetCell(coordinate, out var cell)
