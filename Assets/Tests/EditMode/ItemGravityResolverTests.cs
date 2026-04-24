@@ -178,6 +178,33 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void GroupedRigidBlockersAllowOnlyReachableEdgeCavityToFillLaterally()
+        {
+            var board = new BoardModel(3, 3);
+            var leftStone = new StoneObstacleModel();
+            var rightStone = new StoneObstacleModel();
+            var baseCube = new CubeItemModel(CubeColor.Red);
+            var settlingCube = new CubeItemModel(CubeColor.Blue);
+
+            board.PlaceObstacle(new BoardCoordinate(1, 1), leftStone);
+            board.PlaceObstacle(new BoardCoordinate(2, 1), rightStone);
+            board.PlaceItem(new BoardCoordinate(0, 0), baseCube);
+            board.PlaceItem(new BoardCoordinate(0, 1), settlingCube);
+
+            var result = resolver.Resolve(board);
+
+            Assert.That(result.Moves, Is.EqualTo(new[]
+            {
+                new ItemFallMove(new BoardCoordinate(0, 1), new BoardCoordinate(1, 0))
+            }));
+            Assert.That(board.GetCell(new BoardCoordinate(0, 0)).Item, Is.SameAs(baseCube));
+            Assert.That(board.GetCell(new BoardCoordinate(1, 0)).Item, Is.SameAs(settlingCube));
+            Assert.That(board.GetCell(new BoardCoordinate(2, 0)).Item, Is.Null);
+            Assert.That(board.GetCell(new BoardCoordinate(1, 1)).Obstacle, Is.SameAs(leftStone));
+            Assert.That(board.GetCell(new BoardCoordinate(2, 1)).Obstacle, Is.SameAs(rightStone));
+        }
+
+        [Test]
         public void ChaliceBoxAllowsReachableCavitiesUnderItsFootprintToFillLaterally()
         {
             var board = new BoardModel(4, 4);
