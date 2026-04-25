@@ -94,6 +94,33 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void TryPlayDelaysTransientVisualByHitStep()
+        {
+            var board = CreateBoard(ChaliceBoxParticleEventType.DoorBreak);
+            var boardView = CreateBoardView();
+            boardView.Render(board);
+            var player = CreatePlayer(out var effectRoot);
+            var descriptor = new ChaliceBoxParticleDescriptor(new[]
+            {
+                new ChaliceBoxParticleEvent(new BoardCoordinate(0, 0), ChaliceBoxParticleEventType.DoorBreak, amount: 1, hitStep: 2)
+            });
+
+            SetField(player, "eventStepDelay", 0.1f);
+
+            Assert.That(player.TryPlay(boardView, board, descriptor), Is.True);
+            Assert.That(player.IsPlaying, Is.True);
+            Assert.That(effectRoot.childCount, Is.EqualTo(0));
+
+            player.Advance(0.19f);
+
+            Assert.That(effectRoot.childCount, Is.EqualTo(0));
+
+            player.Advance(0.01f);
+
+            Assert.That(effectRoot.childCount, Is.EqualTo(1));
+        }
+
+        [Test]
         public void TryPlayReturnsFalseForEmptyDescriptor()
         {
             var board = CreateBoard(ChaliceBoxParticleEventType.DoorDamage);

@@ -10,6 +10,7 @@ namespace DreamBlastClone.Views
         [SerializeField] private Transform effectRoot;
         [SerializeField] private float duration = 0.36f;
         [SerializeField] private float maxParticleLifetime = 4.5f;
+        [SerializeField] private float eventStepDelay = 0.09f;
         [SerializeField] private float effectZ = -0.1f;
         [SerializeField] private int doorDamageBurstCount = 4;
         [SerializeField] private int doorBreakDoorBurstCount = 14;
@@ -30,9 +31,10 @@ namespace DreamBlastClone.Views
         [SerializeField] private Sprite[] chalicePhaseSprites;
 
         private readonly List<ActiveParticle> activeParticles = new List<ActiveParticle>();
+        private readonly List<PendingParticleEvent> pendingEvents = new List<PendingParticleEvent>();
         private float destroyBelowWorldY;
 
-        public bool IsPlaying => activeParticles.Count > 0;
+        public bool IsPlaying => activeParticles.Count > 0 || pendingEvents.Count > 0;
 
         public float Duration => duration;
 
@@ -64,10 +66,17 @@ namespace DreamBlastClone.Views
             var root = effectRoot is not null ? effectRoot : transform;
             foreach (var particleEvent in descriptor.Events)
             {
-                CreateEventBurst(boardView, root, particleEvent);
+                var delay = Mathf.Max(0f, particleEvent.HitStep) * Mathf.Max(0f, eventStepDelay);
+                if (delay <= 0f)
+                {
+                    CreateEventBurst(boardView, root, particleEvent);
+                    continue;
+                }
+
+                pendingEvents.Add(new PendingParticleEvent(boardView, root, particleEvent, delay));
             }
 
-            return activeParticles.Count > 0;
+            return activeParticles.Count > 0 || pendingEvents.Count > 0;
         }
 
         public void Advance(float deltaTime)
@@ -78,6 +87,19 @@ namespace DreamBlastClone.Views
             }
 
             var safeDeltaTime = Mathf.Max(0f, deltaTime);
+            for (var index = pendingEvents.Count - 1; index >= 0; index--)
+            {
+                var pendingEvent = pendingEvents[index];
+                pendingEvent.RemainingDelay -= safeDeltaTime;
+                if (pendingEvent.RemainingDelay > 0f)
+                {
+                    continue;
+                }
+
+                CreateEventBurst(pendingEvent.BoardView, pendingEvent.Root, pendingEvent.Event);
+                pendingEvents.RemoveAt(index);
+            }
+
             for (var index = activeParticles.Count - 1; index >= 0; index--)
             {
                 var particle = activeParticles[index];
@@ -114,6 +136,7 @@ namespace DreamBlastClone.Views
             }
 
             activeParticles.Clear();
+            pendingEvents.Clear();
             destroyBelowWorldY = 0f;
         }
 
@@ -387,6 +410,29 @@ namespace DreamBlastClone.Views
             public Color BaseColor { get; }
 
             public float Age { get; set; }
+        }
+
+        private sealed class PendingParticleEvent
+        {
+            public PendingParticleEvent(
+                BoardView boardView,
+                Transform root,
+                ChaliceBoxParticleEvent particleEvent,
+                float remainingDelay)
+            {
+                BoardView = boardView;
+                Root = root;
+                Event = particleEvent;
+                RemainingDelay = remainingDelay;
+            }
+
+            public BoardView BoardView { get; }
+
+            public Transform Root { get; }
+
+            public ChaliceBoxParticleEvent Event { get; }
+
+            public float RemainingDelay { get; set; }
         }
     }
 }

@@ -14,11 +14,12 @@ namespace DreamBlastClone.Views
 
     public readonly struct ChaliceBoxParticleEvent
     {
-        public ChaliceBoxParticleEvent(BoardCoordinate anchor, ChaliceBoxParticleEventType eventType, int amount)
+        public ChaliceBoxParticleEvent(BoardCoordinate anchor, ChaliceBoxParticleEventType eventType, int amount, int hitStep = 0)
         {
             Anchor = anchor;
             EventType = eventType;
             Amount = amount;
+            HitStep = hitStep;
         }
 
         public BoardCoordinate Anchor { get; }
@@ -26,6 +27,8 @@ namespace DreamBlastClone.Views
         public ChaliceBoxParticleEventType EventType { get; }
 
         public int Amount { get; }
+
+        public int HitStep { get; }
     }
 
     public sealed class ChaliceBoxParticleDescriptor
