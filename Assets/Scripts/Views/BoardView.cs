@@ -23,6 +23,8 @@ namespace DreamBlastClone.Views
         // even when the orthographic camera size expands on taller/narrower devices.
         [SerializeField] private Vector2 boardCenterViewport = new Vector2(0.5f, 0.44f);
         [SerializeField] private float cellSize = 1f;
+        [SerializeField] private float itemVisualVerticalFillMultiplier = 1.12f;
+        [SerializeField] private int itemRowSortingOrderStep = 1;
         [SerializeField] private float itemZ = -0.1f;
         [SerializeField] private float obstacleZ = 0f;
         private Vector2 origin; // derived; not serialized
@@ -195,7 +197,8 @@ namespace DreamBlastClone.Views
             instance.transform.position = transform.TransformPoint(GetCellCenter(coordinate, z));
             instance.transform.rotation = transform.rotation;
             ApplyItemAppearance(instance, cell.Item, coordinate, BuildCubeVisualStates(sourceBoard));
-            instance.transform.localScale = GetVisualScale(instance.transform, new Vector2(cellSize, cellSize));
+            instance.transform.localScale = GetVisualScale(instance.transform, GetItemVisualTargetSize());
+            ApplyItemSortingOrder(instance, coordinate, sourceBoard.Height);
             return instance;
         }
 
@@ -216,7 +219,8 @@ namespace DreamBlastClone.Views
             instance.transform.position = transform.TransformPoint(GetCellCenter(coordinate, z));
             instance.transform.rotation = transform.rotation;
             ApplyCubeAppearance(instance, color, ResolveCubeVisualState(coordinate, BuildCubeVisualStates(boardContext)));
-            instance.transform.localScale = GetVisualScale(instance.transform, new Vector2(cellSize, cellSize));
+            instance.transform.localScale = GetVisualScale(instance.transform, GetItemVisualTargetSize());
+            ApplyItemSortingOrder(instance, coordinate, boardContext.Height);
             return instance;
         }
 
@@ -275,7 +279,8 @@ namespace DreamBlastClone.Views
                     ? ResolveCubeVisualState(cell.Coordinate, cubeVisualStates)
                     : CubeVisualState.Default;
                 ApplyItemAppearance(instance, cell.Item, cell.Coordinate, cubeVisualStates);
-                instance.transform.localScale = GetVisualScale(instance.transform, new Vector2(cellSize, cellSize));
+                instance.transform.localScale = GetVisualScale(instance.transform, GetItemVisualTargetSize());
+                ApplyItemSortingOrder(instance, cell.Coordinate, board.Height);
 
                 if (cell.Item is CubeItemModel cube && instance.TryGetComponent<CubeItemView>(out var cubeItemView))
                 {
@@ -460,6 +465,21 @@ namespace DreamBlastClone.Views
             if (instance.TryGetComponent<SpriteRenderer>(out var spriteRenderer))
             {
                 spriteRenderer.color = Color.white;
+            }
+        }
+
+        private void ApplyItemSortingOrder(GameObject instance, BoardCoordinate coordinate, int boardHeight)
+        {
+            var sortingStep = Math.Max(0, itemRowSortingOrderStep);
+            var sortingOffset = Math.Max(0, coordinate.Y) * sortingStep;
+            var renderers = instance.GetComponentsInChildren<SpriteRenderer>(includeInactive: true);
+
+            for (var index = 0; index < renderers.Length; index++)
+            {
+                if (renderers[index] is not null)
+                {
+                    renderers[index].sortingOrder += sortingOffset;
+                }
             }
         }
 
@@ -737,6 +757,12 @@ namespace DreamBlastClone.Views
             return new Vector2(
                 (maxX - minX + 1) * cellSize,
                 (maxY - minY + 1) * cellSize);
+        }
+
+        private Vector2 GetItemVisualTargetSize()
+        {
+            var verticalFillMultiplier = Mathf.Max(0f, itemVisualVerticalFillMultiplier);
+            return new Vector2(cellSize, cellSize * verticalFillMultiplier);
         }
 
         private static string DescribeObstacleFootprint(IReadOnlyList<BoardCoordinate> occupiedCoordinates)

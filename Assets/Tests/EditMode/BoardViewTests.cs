@@ -742,7 +742,81 @@ namespace DreamBlastClone.Tests.EditMode
             boardView.Render(board);
 
             var itemVisual = GetItemRoot(boardView).GetChild(0);
-            Assert.That(itemVisual.localScale, Is.EqualTo(new Vector3(1f, 0.5f, 1f)));
+            Assert.That(itemVisual.localScale, Is.EqualTo(new Vector3(1f, 0.56f, 1f)));
+        }
+
+        [Test]
+        public void RenderUsesConfiguredItemVisualVerticalFillMultiplier()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView(cellSize: 2f);
+
+            SetField(boardView, "itemVisualVerticalFillMultiplier", 1.2f);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+
+            boardView.Render(board);
+
+            var itemVisual = GetItemRoot(boardView).GetChild(0);
+            Assert.That(itemVisual.localScale, Is.EqualTo(new Vector3(2f, 2.4f, 1f)));
+        }
+
+        [Test]
+        public void CreateTransientItemVisualUsesConfiguredItemVisualVerticalFillMultiplier()
+        {
+            var board = new BoardModel(1, 1);
+            var boardView = CreateConfiguredBoardView(cellSize: 2f);
+
+            SetField(boardView, "itemVisualVerticalFillMultiplier", 1.2f);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+
+            var transientVisual = boardView.CreateTransientItemVisual(
+                board,
+                new BoardCoordinate(0, 0),
+                boardView.transform,
+                z: 0f);
+
+            Assert.That(transientVisual.transform.localScale, Is.EqualTo(new Vector3(2f, 2.4f, 1f)));
+        }
+
+        [Test]
+        public void RenderSortsHigherRowsInFrontOfLowerRows()
+        {
+            var board = new BoardModel(1, 2);
+            var boardView = CreateConfiguredBoardView();
+
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(0, 1), new CubeItemModel(CubeColor.Blue));
+
+            boardView.Render(board);
+
+            var lowerRenderer = FindChildByPrefix(GetItemRoot(boardView), "CubePrefab_(0,0)").GetComponent<SpriteRenderer>();
+            var upperRenderer = FindChildByPrefix(GetItemRoot(boardView), "CubePrefab_(0,1)").GetComponent<SpriteRenderer>();
+            Assert.That(upperRenderer.sortingOrder, Is.GreaterThan(lowerRenderer.sortingOrder));
+        }
+
+        [Test]
+        public void CreateTransientItemVisualUsesRowSortingOrder()
+        {
+            var board = new BoardModel(1, 3);
+            var boardView = CreateConfiguredBoardView();
+
+            SetField(boardView, "itemRowSortingOrderStep", 3);
+            board.PlaceItem(new BoardCoordinate(0, 0), new CubeItemModel(CubeColor.Red));
+            board.PlaceItem(new BoardCoordinate(0, 2), new CubeItemModel(CubeColor.Blue));
+
+            var lowerTransient = boardView.CreateTransientItemVisual(
+                board,
+                new BoardCoordinate(0, 0),
+                boardView.transform,
+                z: 0f);
+            var upperTransient = boardView.CreateTransientItemVisual(
+                board,
+                new BoardCoordinate(0, 2),
+                boardView.transform,
+                z: 0f);
+
+            Assert.That(lowerTransient.GetComponent<SpriteRenderer>().sortingOrder, Is.EqualTo(0));
+            Assert.That(upperTransient.GetComponent<SpriteRenderer>().sortingOrder, Is.EqualTo(6));
         }
 
         [Test]
