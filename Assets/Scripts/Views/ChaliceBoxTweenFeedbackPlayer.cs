@@ -12,6 +12,7 @@ namespace DreamBlastClone.Views
     {
         [SerializeField] private Transform effectRoot;
         [SerializeField] private float duration = 0.14f;
+        [SerializeField] private float eventStepDelay = 0.09f;
         [SerializeField] private float effectZ = -0.18f;
         [SerializeField] private float doorDamageRotationDegrees = 4f;
         [SerializeField] private float doorBreakScaleMultiplier = 1.16f;
@@ -20,9 +21,10 @@ namespace DreamBlastClone.Views
 
         private readonly List<GameObject> activeVisuals = new List<GameObject>();
         private readonly List<Sequence> activeTweens = new List<Sequence>();
+        private readonly List<PendingFeedbackEvent> pendingEvents = new List<PendingFeedbackEvent>();
         private float elapsed;
 
-        public bool IsPlaying => activeVisuals.Count > 0;
+        public bool IsPlaying => activeVisuals.Count > 0 || pendingEvents.Count > 0;
 
         public float Duration => duration;
 
@@ -55,16 +57,20 @@ namespace DreamBlastClone.Views
             var root = effectRoot != null ? effectRoot : transform;
             foreach (var feedbackEvent in descriptor.Events)
             {
-                if (!TryCreateVisual(boardView, preTapBoard, root, feedbackEvent, out var visual))
+                var delay = Mathf.Max(0f, feedbackEvent.HitStep) * Mathf.Max(0f, eventStepDelay);
+                if (delay > 0f)
                 {
+                    pendingEvents.Add(new PendingFeedbackEvent(boardView, preTapBoard, root, feedbackEvent, delay));
                     continue;
                 }
 
-                activeVisuals.Add(visual);
-                activeTweens.Add(CreateTween(visual, feedbackEvent.EventType));
+                if (!TryStartFeedbackEvent(boardView, preTapBoard, root, feedbackEvent))
+                {
+                    continue;
+                }
             }
 
-            return activeVisuals.Count > 0;
+            return activeVisuals.Count > 0 || pendingEvents.Count > 0;
         }
 
         public void Advance(float deltaTime)
@@ -74,10 +80,32 @@ namespace DreamBlastClone.Views
                 return;
             }
 
-            elapsed = Mathf.Min(duration, elapsed + Mathf.Max(0f, deltaTime));
-            if (elapsed >= duration)
+            var safeDeltaTime = Mathf.Max(0f, deltaTime);
+            for (var index = pendingEvents.Count - 1; index >= 0; index--)
             {
-                Stop();
+                var pendingEvent = pendingEvents[index];
+                pendingEvent.RemainingDelay -= safeDeltaTime;
+                if (pendingEvent.RemainingDelay > 0f)
+                {
+                    continue;
+                }
+
+                TryStartFeedbackEvent(
+                    pendingEvent.BoardView,
+                    pendingEvent.PreTapBoard,
+                    pendingEvent.Root,
+                    pendingEvent.Event);
+                elapsed = 0f;
+                pendingEvents.RemoveAt(index);
+            }
+
+            if (activeVisuals.Count > 0)
+            {
+                elapsed = Mathf.Min(duration, elapsed + safeDeltaTime);
+                if (elapsed >= duration)
+                {
+                    Stop();
+                }
             }
         }
 
@@ -96,7 +124,24 @@ namespace DreamBlastClone.Views
             }
 
             activeVisuals.Clear();
+            pendingEvents.Clear();
             elapsed = 0f;
+        }
+
+        private bool TryStartFeedbackEvent(
+            BoardView boardView,
+            BoardModel preTapBoard,
+            Transform root,
+            ChaliceBoxParticleEvent feedbackEvent)
+        {
+            if (!TryCreateVisual(boardView, preTapBoard, root, feedbackEvent, out var visual))
+            {
+                return false;
+            }
+
+            activeVisuals.Add(visual);
+            activeTweens.Add(CreateTween(visual, feedbackEvent.EventType));
+            return true;
         }
 
         private bool TryCreateVisual(
@@ -219,6 +264,33 @@ namespace DreamBlastClone.Views
             {
                 DestroyImmediate(gameObject);
             }
+        }
+
+        private sealed class PendingFeedbackEvent
+        {
+            public PendingFeedbackEvent(
+                BoardView boardView,
+                BoardModel preTapBoard,
+                Transform root,
+                ChaliceBoxParticleEvent feedbackEvent,
+                float remainingDelay)
+            {
+                BoardView = boardView;
+                PreTapBoard = preTapBoard;
+                Root = root;
+                Event = feedbackEvent;
+                RemainingDelay = remainingDelay;
+            }
+
+            public BoardView BoardView { get; }
+
+            public BoardModel PreTapBoard { get; }
+
+            public Transform Root { get; }
+
+            public ChaliceBoxParticleEvent Event { get; }
+
+            public float RemainingDelay { get; set; }
         }
     }
 }

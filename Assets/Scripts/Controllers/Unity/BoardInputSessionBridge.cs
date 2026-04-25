@@ -58,6 +58,7 @@ namespace DreamBlastClone.Controllers.Unity
         private BoardSettleMotionDescriptor pendingSettleMotionDescriptor;
         private BoardModel pendingObstacleFeedbackBoard;
         private BoardTapDispatchResult pendingObstacleFeedbackTap;
+        private BoardCoordinate? pendingObstacleFeedbackCoordinate;
         private SingleTntActivationEffectDescriptor pendingTntPresentationDescriptor;
         private SpecialItemComboPresentationDescriptor pendingComboPresentationDescriptor;
         private float remainingPreviewSeconds;
@@ -217,11 +218,11 @@ namespace DreamBlastClone.Controllers.Unity
             TryStartCubeBlastParticles(preTapBoard, tapResult.Tap);
             if (TryResolveSingleTntObstacleFeedbackDelay(tapResult.Tap, out var obstacleFeedbackDelay))
             {
-                ScheduleObstacleFeedback(preTapBoard, tapResult.Tap, obstacleFeedbackDelay);
+                ScheduleObstacleFeedback(preTapBoard, tapResult.Tap, resolvedCoordinate, obstacleFeedbackDelay);
             }
             else
             {
-                TryStartObstacleFeedback(preTapBoard, tapResult.Tap);
+                TryStartObstacleFeedback(preTapBoard, tapResult.Tap, resolvedCoordinate);
             }
 
             if (TryStartSingleRocketEffect(resolvedCoordinate, tapResult.Tap, out var rocketDuration))
@@ -405,6 +406,7 @@ namespace DreamBlastClone.Controllers.Unity
             pendingSettleMotionDescriptor = null;
             pendingObstacleFeedbackBoard = null;
             pendingObstacleFeedbackTap = null;
+            pendingObstacleFeedbackCoordinate = null;
             pendingTntPresentationDescriptor = null;
             pendingComboPresentationDescriptor = null;
             remainingPreviewSeconds = 0f;
@@ -537,10 +539,11 @@ namespace DreamBlastClone.Controllers.Unity
             return true;
         }
 
-        private void ScheduleObstacleFeedback(BoardModel preTapBoard, BoardTapDispatchResult tap, float delay)
+        private void ScheduleObstacleFeedback(BoardModel preTapBoard, BoardTapDispatchResult tap, BoardCoordinate resolvedCoordinate, float delay)
         {
             pendingObstacleFeedbackBoard = preTapBoard;
             pendingObstacleFeedbackTap = tap;
+            pendingObstacleFeedbackCoordinate = resolvedCoordinate;
             remainingObstacleFeedbackDelay = Mathf.Max(0f, delay);
 
             if (remainingObstacleFeedbackDelay <= 0f)
@@ -562,9 +565,13 @@ namespace DreamBlastClone.Controllers.Unity
                 return;
             }
 
-            TryStartObstacleFeedback(pendingObstacleFeedbackBoard, pendingObstacleFeedbackTap);
+            TryStartObstacleFeedback(
+                pendingObstacleFeedbackBoard,
+                pendingObstacleFeedbackTap,
+                pendingObstacleFeedbackCoordinate);
             pendingObstacleFeedbackBoard = null;
             pendingObstacleFeedbackTap = null;
+            pendingObstacleFeedbackCoordinate = null;
         }
 
         private bool TryResolveSingleTntObstacleFeedbackDelay(BoardTapDispatchResult tap, out float delay)
@@ -715,13 +722,13 @@ namespace DreamBlastClone.Controllers.Unity
             return true;
         }
 
-        private void TryStartObstacleFeedback(BoardModel preTapBoard, BoardTapDispatchResult tap)
+        private void TryStartObstacleFeedback(BoardModel preTapBoard, BoardTapDispatchResult tap, BoardCoordinate? resolvedCoordinate)
         {
             TryStartVaseParticles(preTapBoard, tap);
             TryStartStoneParticles(preTapBoard, tap);
             TryStartStoneTweenFeedback(preTapBoard, tap);
-            TryStartChaliceBoxParticles(preTapBoard, tap);
-            TryStartChaliceBoxTweenFeedback(preTapBoard, tap);
+            TryStartChaliceBoxParticles(preTapBoard, tap, resolvedCoordinate);
+            TryStartChaliceBoxTweenFeedback(preTapBoard, tap, resolvedCoordinate);
         }
 
         private bool TryStartStoneParticles(BoardModel preTapBoard, BoardTapDispatchResult tap)
@@ -751,14 +758,14 @@ namespace DreamBlastClone.Controllers.Unity
             return stoneTweenFeedbackPlayer.TryPlay(boardView, preTapBoard, descriptor);
         }
 
-        private bool TryStartChaliceBoxParticles(BoardModel preTapBoard, BoardTapDispatchResult tap)
+        private bool TryStartChaliceBoxParticles(BoardModel preTapBoard, BoardTapDispatchResult tap, BoardCoordinate? resolvedCoordinate)
         {
             if (boardView is null || chaliceBoxParticlePlayer is null)
             {
                 return false;
             }
 
-            var descriptor = chaliceBoxParticleDescriptorBuilder.Build(preTapBoard, tap);
+            var descriptor = chaliceBoxParticleDescriptorBuilder.Build(preTapBoard, tap, resolvedCoordinate);
             if (!chaliceBoxParticlePlayer.TryPlay(boardView, descriptor, GetParticleDestroyWorldY()))
             {
                 return false;
@@ -767,14 +774,14 @@ namespace DreamBlastClone.Controllers.Unity
             return true;
         }
 
-        private bool TryStartChaliceBoxTweenFeedback(BoardModel preTapBoard, BoardTapDispatchResult tap)
+        private bool TryStartChaliceBoxTweenFeedback(BoardModel preTapBoard, BoardTapDispatchResult tap, BoardCoordinate? resolvedCoordinate)
         {
             if (boardView is null || chaliceBoxTweenFeedbackPlayer is null)
             {
                 return false;
             }
 
-            var descriptor = chaliceBoxParticleDescriptorBuilder.Build(preTapBoard, tap);
+            var descriptor = chaliceBoxParticleDescriptorBuilder.Build(preTapBoard, tap, resolvedCoordinate);
             return chaliceBoxTweenFeedbackPlayer.TryPlay(boardView, preTapBoard, descriptor);
         }
 

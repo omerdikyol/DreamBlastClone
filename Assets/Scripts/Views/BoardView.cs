@@ -198,7 +198,7 @@ namespace DreamBlastClone.Views
             instance.transform.rotation = transform.rotation;
             ApplyItemAppearance(instance, cell.Item, coordinate, BuildCubeVisualStates(sourceBoard));
             instance.transform.localScale = GetVisualScale(instance.transform, GetItemVisualTargetSize());
-            ApplyItemSortingOrder(instance, coordinate, sourceBoard.Height);
+            ApplyItemSortingOrder(instance, coordinate);
             return instance;
         }
 
@@ -220,7 +220,7 @@ namespace DreamBlastClone.Views
             instance.transform.rotation = transform.rotation;
             ApplyCubeAppearance(instance, color, ResolveCubeVisualState(coordinate, BuildCubeVisualStates(boardContext)));
             instance.transform.localScale = GetVisualScale(instance.transform, GetItemVisualTargetSize());
-            ApplyItemSortingOrder(instance, coordinate, boardContext.Height);
+            ApplyItemSortingOrder(instance, coordinate);
             return instance;
         }
 
@@ -280,7 +280,7 @@ namespace DreamBlastClone.Views
                     : CubeVisualState.Default;
                 ApplyItemAppearance(instance, cell.Item, cell.Coordinate, cubeVisualStates);
                 instance.transform.localScale = GetVisualScale(instance.transform, GetItemVisualTargetSize());
-                ApplyItemSortingOrder(instance, cell.Coordinate, board.Height);
+                ApplyItemSortingOrder(instance, cell.Coordinate);
 
                 if (cell.Item is CubeItemModel cube && instance.TryGetComponent<CubeItemView>(out var cubeItemView))
                 {
@@ -468,7 +468,7 @@ namespace DreamBlastClone.Views
             }
         }
 
-        private void ApplyItemSortingOrder(GameObject instance, BoardCoordinate coordinate, int boardHeight)
+        private void ApplyItemSortingOrder(GameObject instance, BoardCoordinate coordinate)
         {
             var sortingStep = Math.Max(0, itemRowSortingOrderStep);
             var sortingOffset = Math.Max(0, coordinate.Y) * sortingStep;

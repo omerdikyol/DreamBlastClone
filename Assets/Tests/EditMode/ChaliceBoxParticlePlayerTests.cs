@@ -139,6 +139,31 @@ namespace DreamBlastClone.Tests.EditMode
         }
 
         [Test]
+        public void TryPlayDelaysParticlesByHitStep()
+        {
+            var boardView = CreateBoardView();
+            var player = CreatePlayer(out var effectRoot, out _, out _);
+            var descriptor = new ChaliceBoxParticleDescriptor(new[]
+            {
+                new ChaliceBoxParticleEvent(new BoardCoordinate(0, 0), ChaliceBoxParticleEventType.DoorDamage, amount: 1, hitStep: 2)
+            });
+
+            SetField(player, "eventStepDelay", 0.1f);
+
+            Assert.That(player.TryPlay(boardView, descriptor, destroyBelowWorldY: -2f), Is.True);
+            Assert.That(player.IsPlaying, Is.True);
+            Assert.That(effectRoot.childCount, Is.EqualTo(0));
+
+            player.Advance(0.19f);
+
+            Assert.That(effectRoot.childCount, Is.EqualTo(0));
+
+            player.Advance(0.01f);
+
+            Assert.That(effectRoot.childCount, Is.EqualTo(4));
+        }
+
+        [Test]
         public void TryPlayUsesEveryAssignedSpriteForMajorBurstsOnly()
         {
             var boardView = CreateBoardView();

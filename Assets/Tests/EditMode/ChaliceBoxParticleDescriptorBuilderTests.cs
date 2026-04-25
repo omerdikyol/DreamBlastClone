@@ -38,19 +38,21 @@ namespace DreamBlastClone.Tests.EditMode
         public void BuildReturnsDoorBreakEventWhenDoorReachesZero()
         {
             var board = new BoardModel(4, 3);
+            var tapCoordinate = new BoardCoordinate(1, 1);
             var chaliceBox = new ChaliceBoxObstacleModel(new BoardCoordinate(2, 0), remainingDoorDurability: 1);
-            board.PlaceItem(new BoardCoordinate(1, 1), new RocketItemModel(RocketOrientation.Horizontal));
+            board.PlaceItem(tapCoordinate, new RocketItemModel(RocketOrientation.Horizontal));
             board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
 
             var preTapBoard = boardModelCloner.Clone(board);
-            var tap = dispatcher.Resolve(board, new BoardCoordinate(1, 1), new TestRefillCubeColorResolver());
-            var descriptor = builder.Build(preTapBoard, tap);
+            var tap = dispatcher.Resolve(board, tapCoordinate, new TestRefillCubeColorResolver());
+            var descriptor = builder.Build(preTapBoard, tap, tapCoordinate);
 
             Assert.That(descriptor.HasAnyParticles, Is.True);
             Assert.That(descriptor.Events, Has.Count.EqualTo(1));
             Assert.That(descriptor.Events[0].Anchor, Is.EqualTo(chaliceBox.Anchor));
             Assert.That(descriptor.Events[0].EventType, Is.EqualTo(ChaliceBoxParticleEventType.DoorBreak));
             Assert.That(descriptor.Events[0].Amount, Is.EqualTo(1));
+            Assert.That(descriptor.Events[0].HitStep, Is.EqualTo(1));
         }
 
         [Test]
@@ -70,6 +72,27 @@ namespace DreamBlastClone.Tests.EditMode
             Assert.That(descriptor.Events[0].Anchor, Is.EqualTo(chaliceBox.Anchor));
             Assert.That(descriptor.Events[0].EventType, Is.EqualTo(ChaliceBoxParticleEventType.ChaliceDamage));
             Assert.That(descriptor.Events[0].Amount, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void BuildAssignsTntHitStepFromActivationOrigin()
+        {
+            var board = new BoardModel(5, 5);
+            var tapCoordinate = new BoardCoordinate(2, 2);
+            var chaliceBox = new ChaliceBoxObstacleModel(
+                new BoardCoordinate(2, 0),
+                remainingDoorDurability: 0,
+                requiredChaliceCount: 10,
+                collectedChaliceCount: 0);
+            board.PlaceItem(tapCoordinate, new TntItemModel());
+            board.PlaceObstacle(chaliceBox.OccupiedCoordinates, chaliceBox);
+
+            var preTapBoard = boardModelCloner.Clone(board);
+            var tap = dispatcher.Resolve(board, tapCoordinate, new TestRefillCubeColorResolver());
+            var descriptor = builder.Build(preTapBoard, tap, tapCoordinate);
+
+            Assert.That(descriptor.HasAnyParticles, Is.True);
+            Assert.That(descriptor.Events[0].HitStep, Is.EqualTo(2));
         }
 
         [Test]
