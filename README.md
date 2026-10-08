@@ -6,6 +6,12 @@ The result is a fully playable 10-level puzzle game with authored JSON levels, p
 
 ---
 
+## Start here
+
+Open the repository root as a Unity project using **6000.3.10f1**, the version recorded in [ProjectVersion.txt](ProjectSettings/ProjectVersion.txt). The main scenes are [MainScene](Assets/Scenes/MainScene.unity) and [LevelScene](Assets/Scenes/LevelScene.unity).
+
+For the gameplay flow, read [LevelSession](Assets/Scripts/Controllers/LevelSession.cs), then the [level-board builder](Assets/Scripts/Data/LevelBoardBuilder.cs). The [EditMode tests](Assets/Tests/EditMode) cover model, input, and presentation behavior. Run them through Unity’s Test Runner; the sections below explain the rules and architecture.
+
 ## Screenshots
 
 ### Main Scene
